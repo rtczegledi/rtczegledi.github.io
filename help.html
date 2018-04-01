@@ -1,7 +1,40 @@
 <html>
 <body>
-Help for the Group Torus image Generator.
-<br>
-Come back soon...
+<b>Author:</b> Richard Czegledi<br>
+<b>Date:</b> March 31, 2018
+
+<h1>Help for the Group Torus Image Generator</h1>
+
+This web page allows one to create an image file suitable for group torus meditations.  There are four components to the generated image:
+<ul>
+	<li>the group torus title,</li>
+	<li>the list of members/masters,</li>
+	<li>the torus circle,</li>
+	<li>and the optional recipient name in the center of the torus.</li>
+</ul>
+
+The group torus title consists of three text fields named "<b>Title 1</b>", "<b>Title 2</b>", and "<b>part (optional)</b>".  The contents of these three fields are drawn at the top of the image.  The "<b>Title 1</b>" field is used to automatically create the download filename with the current date appended.  That is, if this field has contents "Group Torus with the Archangels" then the download filename could default to "Group Torus with the Archangels - Mar 31, 2018.png".  The "<b>part (optional)</b>" field is typically left blank.  It can be used if multiple images are necessary with unique part names like "Group A" and "Group B".  The title font style can be changed.  Finally, colours can be selected for the "<b>Title 1</b>"/"<b>Title 2</b>" lines as well as the "<b>part (optional)</b>" line.
+<div/><br/>
+
+Up to 12 set of members and optional masters can be selected.  Each row is of the form "Member [person] works with [master]" where the master can be selected from a drop down menu.  The first member field that is not blank is considered special in that it is placed in the cardinal direction as specified by the "<b>Orientation for the first member</b>" drop down menu.  All the remaining members/masters are drawn around the torus ring in a clockwise manner.  Note that there is no validation for duplicate members or for any master to be present.  The font style and colour for members and masters can be changed.
+<div/><br/>
+
+The torus is drawn as a circle with overlayed smaller circles called pegs denoting where members are situated.  The colour for both the circle and pegs can be changed with "<b>Torus colour</b>" and "<b>Torus peg color</b>" selectors.
+<div/><br/>
+
+The "<b>Torus size</b>" drop down menu changes the size of the torus circle.  If many members and masters are specified then the generated image can look cluttered as the web page makes its best effort to place the text.  Try adjusting the "<b>Torus size</b>" and "<b>Orientation for the first member</b>" values until a pleasing image is generated.
+<div/><br/>
+
+The optional "<b>Recipient</b>" field is used to draw text in the center of the torus circle.  Its font and colour selection can be changed.
+<div/><br/>
+
+When a suitable image has been configured then click the "<b>Download</b>" link to download the image with the specified filename.  Note that this feature may not be available on all platforms (on an iPad the image just appears in a new tab).
+
+
+<h2>Customization</h2>
+All font and colour selections as well as the "<b>Title 1</b>" field will be preserved in a cookie on your browser.  That way, when the web page is revisited the last selections will be restored.
+<div/><br/>
+
+Multiple configurations are supported via bookmarks.  At the bottom of the web page is a "<b>My URL</b>" field that, when requested, will update various selections.  Copy and paste this URL into your bookmark manager for quick reference.
 </body>
 </html>

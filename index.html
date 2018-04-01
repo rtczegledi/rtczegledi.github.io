@@ -1134,7 +1134,10 @@ function pageSetup() {
   <body onLoad=pageSetup()>
     <script src="jscolor.min.js"></script>
     <script src="jsurl.js"></script>
-    Need help?  Look <a href=help.html>here</a>
+    Click <a href=help.html>here</a> for help.
+    <a id="downloadLink" href="#image">Download</a> image as filename
+    <input type='text' name="name" id="f" value="download.png" size="70"/>
+    
     <table border=1>
       <tr>
         <td>
@@ -1205,11 +1208,6 @@ function pageSetup() {
       </td>
     </table>
 
-    <hr/>
-    <a id="downloadLink" href="#image">Download</a> image as filename
-    <input type='text' name="name" id="f" value="download.png" size="70"/>
-
-    
     <br/>
     Debug enabled: <input type=checkbox id='_debug' onChange='buildCanvas()'><br>
     My URL: <span id='_myURL'></span>
