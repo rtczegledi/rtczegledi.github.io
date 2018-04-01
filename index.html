@@ -1107,7 +1107,7 @@ function pageSetup() {
     var dl = $("downloadLink");
     dl.addEventListener( "click", 
                          function() { 
-                             this.href = canvas.toDataURL("image/png");
+                             this.href = _canvas.toDataURL("image/png");
                              var name = $("f").value;
                              if( name === "" ) name = "image.png";
                              this.download = name;
@@ -1134,6 +1134,7 @@ function pageSetup() {
   <body onLoad=pageSetup()>
     <script src="jscolor.min.js"></script>
     <script src="jsurl.js"></script>
+    Need help?  Look <a href=help.html>here</a>
     <table border=1>
       <tr>
         <td>
