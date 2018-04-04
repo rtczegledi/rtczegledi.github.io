@@ -59,6 +59,9 @@ var OBJECT_TYPE = { TITLE:0, MEMBER:1, MASTER:2, RECIPIENT:3};
 
 var g_ParameterCookieName = "parameters";
 
+var g_DragSrcEl = null;
+
+
 // NOTE: font description MUST include the font height in 'px'.
 var g_RecipientFontDesc = { 
     fontFamilyID:       "rff",
@@ -937,7 +940,7 @@ function createFontSelectionElements( parentID, fontDesc ) {
 
     // font family selection
     var element = document.createElement( "span" );
-    var str = "<select name=fontFamily id='" + fontDesc.fontFamilyID + "' onchange='buildCanvas()'>\n";
+    var str = "<select class=dropDown name=fontFamily id='" + fontDesc.fontFamilyID + "' onchange='buildCanvas()'>\n";
     for( var i = 0; i < g_DetectedFonts.length; ++i ) {
         str += "<option value='" + g_DetectedFonts[i] + "'";
         str += ">" + g_DetectedFonts[i] + "</option>\n";
@@ -948,7 +951,7 @@ function createFontSelectionElements( parentID, fontDesc ) {
 
     // font size selection
     element = document.createElement( "span" );
-    var str = "<select name=fontSize id='" + fontDesc.fontSizeID + "' onchange='buildCanvas()'>\n";
+    var str = "<select class=dropDown name=fontSize id='" + fontDesc.fontSizeID + "' onchange='buildCanvas()'>\n";
     for( var i = 0; i < fontSizes.length; ++i ) {
         str += "<option value='" + fontSizes[i] + "'";
         str += ">" + fontSizes[i] + "</option>\n";
@@ -1070,6 +1073,86 @@ function eraseCookie( name ) {
     document.cookie = name+'=; Max-Age=-99999999;';  
 }
 
+function handleDragStart(e) {
+    this.style.opacity = '0.4';  // this / e.target is the source node.
+    g_DragSrcEl = this;
+
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData( "text/html", this.innerHTML);
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault(); // Necessary. Allows us to drop.
+    }
+
+    e.dataTransfer.dropEffect = 'move';  // See the section on the DataTransfer object.
+
+    return false;
+}
+
+function handleDragEnter(e) {
+    // this / e.target is the current hover target.
+    this.classList.add('over');
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('over');  // this / e.target is previous target element.
+}
+
+function handleDrop(e) {
+    // this / e.target is current target element.
+
+    if (e.stopPropagation) {
+        e.stopPropagation(); // stops the browser from redirecting.
+    }
+
+    if( g_DragSrcEl != this ) {
+        var srcRow = parseInt( g_DragSrcEl.id );
+        var destRow = parseInt( this.id );
+        var tempName = $("p"+srcRow).value;
+        var tempMaster = $("m"+srcRow).value;
+
+        if( destRow > srcRow ) {
+            while( srcRow < destRow ) {
+                $("p"+srcRow).value = $("p"+(srcRow+1)).value;
+                $("m"+srcRow).value = $("m"+(srcRow+1)).value;
+                ++srcRow;
+            }
+            $("p"+srcRow).value = tempName;
+            $("m"+srcRow).value = tempMaster;
+        } else {
+            while( srcRow > destRow ) {
+                $("p"+srcRow).value = $("p"+(srcRow-1)).value;
+                $("m"+srcRow).value = $("m"+(srcRow-1)).value;
+                --srcRow;
+            }
+        }
+        $("p"+srcRow).value = tempName;
+        $("m"+srcRow).value = tempMaster;
+        buildCanvas();
+    }
+
+    var rows = document.querySelectorAll('#members .row');
+    [].forEach.call(rows, function (row) {
+        row.classList.remove('over');
+        row.style.opacity = "";
+    });
+
+    return false;
+}
+
+function handleDragEnd(e) {
+    // this/e.target is the source node.
+
+    var rows = document.querySelectorAll('#members .row');
+    [].forEach.call(rows, function (row) {
+        row.classList.remove('over');
+        row.style.opacity = "";
+    });
+}
+
+
 function pageSetup() {
     // Determine what fonts are supported.
     g_DetectedFonts = (new Detector()).identifyCommonFonts();
@@ -1086,8 +1169,11 @@ function pageSetup() {
     // Create the Members/Masters forms.
     for( var i = 0; i < g_Origin.maxMembers; ++i ) {
        var element = document.createElement( "div" );
-       var str = "Member <input type='text' name='member' id='p" + i + "' onChange='buildCanvas()'/>" +
-                 " works with <select name=masters id='m" + i + "' onChange='buildCanvas()'>\n";
+       element.setAttribute( "class", "row" );
+       element.setAttribute( "draggable", "true" );
+       element.setAttribute( "id", "" + i );
+       var str = "Member <input class=textInput type='text' name='member' id='p" + i + "' onChange='buildCanvas()'/>" +
+                 " works with <select class=dropDown name=masters id='m" + i + "' onChange='buildCanvas()'>\n";
 
        g_MastersList.sort();
        for( var j = 0; j < g_MastersList.length; ++j ) {
@@ -1114,6 +1200,17 @@ function pageSetup() {
                          }, 
                          false );
 
+    // Support for draggable elements.
+    var rows = document.querySelectorAll('#members .row');
+    [].forEach.call(rows, function(row) {
+      row.addEventListener('dragstart', handleDragStart, false);
+      row.addEventListener('dragenter', handleDragEnter, false);
+      row.addEventListener('dragover', handleDragOver, false);
+      row.addEventListener('dragleave', handleDragLeave, false);
+      row.addEventListener('drop', handleDrop, false);
+      row.addEventListener('dragend', handleDragEnd, false);
+    });
+
     // Set default element values
     initializeElementsFromHash( g_ElementDefaults );
 
@@ -1131,20 +1228,77 @@ function pageSetup() {
 
   </script>
 </head>
+  <style>
+    /* Prevent the text contents of draggable elements from being selectable. */
+    [draggable] {
+      -moz-user-select: none;
+      -khtml-user-select: none;
+      -webkit-user-select: none;
+      user-select: none;
+      /* Required to make elements draggable in old WebKit */
+      -khtml-user-drag: element;
+      -webkit-user-drag: element;
+    }
+    .dropDown {
+      background-color: #FFE2E1
+    }
+    .textInput {
+      background-color: #E2DDED;
+    }
+    .row {
+      border: 2px solid #666666;
+      background-color: #ccc;
+      margin-right: 5px;
+      -webkit-border-radius: 10px;
+      -ms-border-radius: 10px;
+      -moz-border-radius: 10px;
+      border-radius: 10px;
+      -webkit-box-shadow: inset 0 0 3px #000;
+      -ms-box-shadow: inset 0 0 3px #000;
+      box-shadow: inset 0 0 3px #000;
+      text-align: center;
+      cursor: move;
+    }
+    .row header {
+      color: #fff;
+      text-shadow: #000 0 1px;
+      box-shadow: 5px;
+      padding: 5px;
+      background: -moz-linear-gradient(left center, rgb(0,0,0), rgb(79,79,79), rgb(21,21,21));
+      background: -webkit-gradient(linear, left top, right top,
+                                   color-stop(0, rgb(0,0,0)),
+                                   color-stop(0.50, rgb(79,79,79)),
+                                   color-stop(1, rgb(21,21,21)));
+      background: -webkit-linear-gradient(left center, rgb(0,0,0), rgb(79,79,79), rgb(21,21,21));
+      background: -ms-linear-gradient(left center, rgb(0,0,0), rgb(79,79,79), rgb(21,21,21));
+      border-bottom: 1px solid #ddd;
+      -webkit-border-top-left-radius: 10px;
+      -moz-border-radius-topleft: 10px;
+      -ms-border-radius-topleft: 10px;
+      border-top-left-radius: 10px;
+      -webkit-border-top-right-radius: 10px;
+      -ms-border-top-right-radius: 10px;
+      -moz-border-radius-topright: 10px;
+      border-top-right-radius: 10px;
+    }
+    .row.over {
+      border: 2px dashed #000;
+    }
+  </style>
   <body onLoad=pageSetup()>
     <script src="jscolor.min.js"></script>
     <script src="jsurl.js"></script>
     Click <a href=help.html>here</a> for help.
     <a id="downloadLink" href="#image">Download</a> image as filename
-    <input type='text' name="name" id="f" value="download.png" size="70"/>
+    <input class=textInput type='text' name="name" id="f" value="download.png" size="70"/>
     
     <table border=1>
       <tr>
         <td>
         <h2>Group Torus Title</h2>
-        Title 1: <input type='text' name='t1' id='t1' size='40' value='' onChange='buildCanvas()'/><br>
-        Title 2: <input type='text' name='t2' id='t2' size='40' value='Duration: 20 min' onChange='buildCanvas()'/><br>
-        part (optional) <input type='text' name='tp' id='tp' size='20' value='' onChange='buildCanvas()'/>
+        Title 1: <input class=textInput type='text' name='t1' id='t1' size='40' value='' onChange='buildCanvas()'/><br>
+        Title 2: <input class=textInput type='text' name='t2' id='t2' size='40' value='Duration: 20 min' onChange='buildCanvas()'/><br>
+        part (optional) <input class=textInput type='text' name='tp' id='tp' size='20' value='' onChange='buildCanvas()'/>
             <input class="jscolor" id='tpc' value="000000" size='4' onchange='buildCanvas()'> <br>
         Font <span id='titleProperties'></span>
             <input class="jscolor" id='tc' value="000000" size='4' onchange='buildCanvas()'><br>
@@ -1160,15 +1314,22 @@ function pageSetup() {
         Master font <span id='masterProperties'></span>
             <input class="jscolor" id='mc' value="000000" size='4' onchange='buildCanvas()'> <br>
         Orientation for first member is
-        <select name=orientation id=o onChange='buildCanvas()'>
-            <option value=270>North</option>
-            <option value=315>Northeast</option>
-            <option value=0>East</option>
-            <option value=45>Southeast</option>
-            <option value=90>South</option>
-            <option value=135>Southwest</option>
-            <option value=180>West</option>
-            <option value=225>Northwest</option>
+        <select class=dropDown name=orientation id=o onChange='buildCanvas()'>
+            <option value=270>North (N)</option>
+            <option value=292.5>North-Northeast (NNE)</option>
+            <option value=315>Northeast (NE)</option>
+            <option value=337.5>East-Northeast (ENE)</option>
+            <option value=0>East (E)</option>
+            <option value=22.5>East-Southeast (ESE)</option>
+            <option value=45>Southeast (SE)</option>
+            <option value=67.5>South-Southeast (SSE)</option>
+            <option value=90>South (S)</option>
+            <option value=112.5>South-Southwest (SSW)</option>
+            <option value=135>Southwest (SW)</option>
+            <option value=157.5>West-Southwest (WSW)</option>
+            <option value=202.5>West-Northwest (WNW)</option>
+            <option value=225>Northwest (NW)</option>
+            <option value=247.5>North-Northwest (NNW)</option>
         </select>
         <div/>
         <br/>
@@ -1195,7 +1356,7 @@ function pageSetup() {
         </table>
 
         <h2>Recipient (optional)</h2>
-        Recipient: <input type='text' name='rep' id='rep' size='40' value='' onChange='buildCanvas()'/><br>
+        Recipient: <input class=textInput type='text' name='rep' id='rep' size='40' value='' onChange='buildCanvas()'/><br>
         Font <span id='recipientProperties'></span>
             <input class="jscolor" id='rc' value="000000" size='4' onchange='buildCanvas()'> <br>
       </td>
