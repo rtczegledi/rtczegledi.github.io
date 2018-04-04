@@ -907,17 +907,17 @@ function getDateString() {
     var day = new Date();
     var monthNames = ["January", "February", "March", "April", "May", "June", 
                       "July", "August", "September", "October", "November", "December"];
-    var currentMonth = day.getMonth();
-    var str = monthNames[day.getMonth()] + " " + day.getDate() + getNumberStringPrefix( day.getDate() ) + "/";
+    var currentMonth = day.getUTCMonth();
+    var str = monthNames[day.getUTCMonth()] + " " + day.getUTCDate() + getNumberStringPrefix( day.getUTCDate() ) + "/";
 
     // advance to 'tomorrow'
     day.setTime( day.getTime() + 86400 * 1000 );
 
-    if( currentMonth == day.getMonth() ) {
+    if( currentMonth == day.getUTCMonth() ) {
         // In current month.
-        return str + day.getDate() + getNumberStringPrefix( day.getDate() );
+        return str + day.getUTCDate() + getNumberStringPrefix( day.getUTCDate() );
     } else {
-        return str + monthNames[day.getMonth()] + " " + day.getDate() + getNumberStringPrefix( day.getDate() );
+        return str + monthNames[day.getUTCMonth()] + " " + day.getUTCDate() + getNumberStringPrefix( day.getUTCDate() );
     }
 }
 
