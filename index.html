@@ -44,10 +44,15 @@
 //  $("mfp")        - master font size
 //  $("mc")         - master colour
 
+//  $("bgc")        - background colour
 //  $("o")          - orientation
 //  $("tors")       - torus size in px
+//  $("torw")       - torus width in px
 //  $("torc")       - torus colour
+//  $("tort")       - torus treatment
+//  $("tortc")      - torus treament colour
 //  $("torpc")      - torus peg colour
+//  $("tori")       - torus image
 //  $("_error")     - error string
 //  $("f")          - image filename
 
@@ -57,55 +62,61 @@ var ALIGNMENT = { LEFT:0, CENTER:1, RIGHT:2, AUTO:3 };
 
 var OBJECT_TYPE = { TITLE:0, MEMBER:1, MASTER:2, RECIPIENT:3};
 
+var TORUS_TREATMENT = { NONE: 0, SOLID:1, MESH:2, IMAGE:3, SPIRAL:4 };
+
 var g_ParameterCookieName = "parameters";
 
 var g_DragSrcEl = null;
 
+var g_TorusImage = null;
+
+var g_TorusTreament = TORUS_TREATMENT.NONE;
 
 // NOTE: font description MUST include the font height in 'px'.
 var g_RecipientFontDesc = { 
-    fontFamilyID:       "rff",
-    fontBoldID:         "rfb",
-    fontItalicID:       "rfi",
-    fontSizeID:         "rfp",
+    fontFamilyID:               "rff",
+    fontBoldID:                 "rfb",
+    fontItalicID:               "rfi",
+    fontSizeID:                 "rfp",
 
-    textColorID:        "rc",
-    debugColor:         "green",
+    textColorID:                "rc",
+    debugColor:                 "green",
 
-    torusColorID:       "torc",       // extra color attribute for torus
-    torusPegColorID:    "torpc",      // extra color attribute for torus peg
-    imageColor:         "white"       // extra color attribute for image
+    torusColorID:               "torc",         // extra colour attribute for torus
+    torusPegColorID:            "torpc",        // extra colour attribute for torus peg
+    torusTreatmentColorID:      "tortc",        // extra colour attribute for torus treatment
+    imageColor:                 "white"         // extra colour attribute for image
 };
 
 var g_TitleFontDesc = { 
-    fontFamilyID:       "tff",
-    fontBoldID:         "tfb",
-    fontItalicID:       "tfi",
-    fontSizeID:         "tfp",
+    fontFamilyID:               "tff",
+    fontBoldID:                 "tfb",
+    fontItalicID:               "tfi",
+    fontSizeID:                 "tfp",
 
-    textColorID:        "tc",
-    titleGroupColorID:  "tpc",        // extra color attribute to title group
-    debugColor:         "green"
+    textColorID:                "tc",
+    titleGroupColorID:          "tpc",        // extra color attribute to title group
+    debugColor:                 "green"
 };
 
 var g_MemberFontDesc = { 
-    fontFamilyID:       "pff",
-    fontBoldID:         "pfb",
-    fontItalicID:       "pfi",
-    fontSizeID:         "pfp",
+    fontFamilyID:               "pff",
+    fontBoldID:                 "pfb",
+    fontItalicID:               "pfi",
+    fontSizeID:                 "pfp",
 
-    textColorID:        "pc",
-    debugColor:         "green"
+    textColorID:                "pc",
+    debugColor:                 "green"
 };
 
 var g_MasterFontDesc = { 
-    fontFamilyID:       "mff",
-    fontBoldID:         "mfb",
-    fontItalicID:       "mfi",
-    fontSizeID:         "mfp",
+    fontFamilyID:               "mff",
+    fontBoldID:                 "mfb",
+    fontItalicID:               "mfi",
+    fontSizeID:                 "mfp",
 
-    textColorID:        "mc",
-    debugColor:         "green"
+    textColorID:                "mc",
+    debugColor:                 "green"
 };
 
 var g_ElementDefaults = {
@@ -117,7 +128,11 @@ var g_ElementDefaults = {
 
     t1:"Group Torus",   // Title 1 string
 
+    bgc:"FFFFFF",       // background colour
     tors:"100",         // torus size
+    torw:"3",           // torus ring width
+    tort:"0",           // torus treatment
+    tortc:"000000",     // torus treatment colour
     tpc:"FF15C8",       // title group color
 
     torc:"000000",      // torus color
@@ -534,27 +549,83 @@ function drawSeatingArrangement() {
         obj.draw();
 
         if( i == 0 ) {
-            // Draw the torus
-            obj.drawCircle( colorFromID(obj.fontDesc.torusColorID), 
-                            obj.origin.torusRingWidth, 0 );
+            pegs = [];
 
-            // Draw the pegs
+            // Compute all the peg locations
             for( var j = 0; j < g_ObjectArray.length; ++j ) {
                 var pegObj = g_ObjectArray[j];
 
                 if( pegObj.objectType == OBJECT_TYPE.MEMBER ) {
                     var peg = pegObj.origin.polarToAbsXY( obj.boundingRadius, pegObj.angle );
-
-                    var colour = colorFromID(g_RecipientFontDesc.torusPegColorID);
-                    context.strokeStyle = colour;
-                    context.lineWidth = 1;
-                    context.beginPath();
-                    context.arc( peg.x, peg.y, obj.origin.torusRingPegSize, 0, 2*Math.PI );
-                    context.fillStyle = colour;
-                    context.fill();
-                    context.closePath();
-                    context.stroke();
+                    pegs.push( peg );
                 }
+            }
+
+            if( g_TorusTreament == TORUS_TREATMENT.MESH ) {
+                for( j =0; j < pegs.length; ++j ) {
+                    for( var k = j+1; k < pegs.length; ++k ) {
+                        context.strokeStyle = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        context.lineWidth = 1;
+                        context.beginPath();
+                        context.moveTo( pegs[j].x, pegs[j].y );
+                        context.lineTo( pegs[k].x, pegs[k].y );
+                        context.closePath();
+                        context.stroke();
+                    }
+                }
+            }
+	
+            if( g_TorusTreament == TORUS_TREATMENT.IMAGE 
+             && g_TorusImage != undefined
+             && g_TorusImage.complete ) {
+                var width = g_TorusImage.width;
+                var height = g_TorusImage.height;
+                var scale = 2 * obj.boundingRadius / Math.sqrt( width*width + height*height );
+                var newWidth = Math.floor( scale * width );
+                var newHeight = Math.floor( scale * height );
+                
+                context.drawImage( g_TorusImage,
+                                   obj.centerX() - newWidth/2,
+                                   obj.centerY() - newHeight/2,
+                                   newWidth,
+                                   newHeight );
+            }
+
+            if( g_TorusTreament == TORUS_TREATMENT.SPIRAL ) {
+                var startStep = 10;
+                var spiralStep = startStep;
+                var spacing = -spiralStep;
+                while( obj.boundingRadius + spacing > 0 && spiralStep > 0 ) {
+                    obj.drawCircle( colorFromID(g_RecipientFontDesc.torusTreatmentColorID),
+                                    1,
+                                    spacing );
+                    spiralStep = Math.floor( ((obj.boundingRadius + spacing) / obj.boundingRadius) * startStep );
+                    spacing -= spiralStep;
+                }
+            }
+
+            // Draw the torus
+            if( g_TorusTreament == TORUS_TREATMENT.SOLID ) {
+                obj.drawCircle( colorFromID(obj.fontDesc.torusColorID), 
+                                parseInt( $("torw").value ), 
+                                0,
+                                colorFromID(g_RecipientFontDesc.torusTreatmentColorID) );
+            } else {
+                obj.drawCircle( colorFromID(obj.fontDesc.torusColorID), 
+                                parseInt( $("torw").value ), 0 );
+            }
+
+            // Draw the pegs
+            for( var j = 0; j < pegs.length; ++j ) {
+                var colour = colorFromID(g_RecipientFontDesc.torusPegColorID);
+                context.strokeStyle = colour;
+                context.lineWidth = 1;
+                context.beginPath();
+                context.arc( pegs[j].x, pegs[j].y, obj.origin.torusRingPegSize, 0, 2*Math.PI );
+                context.fillStyle = colour;
+                context.fill();
+                context.closePath();
+                context.stroke();
             }
         } else {
             if( g_Debug ) {
@@ -575,7 +646,9 @@ function buildCanvas() {
     resetGlobals();
     g_Debug = $("_debug").checked;
 
-    g_RecipientFontDesc.imageColor = g_Debug ? "yellow" : "white";
+    g_RecipientFontDesc.imageColor = g_Debug ? "yellow" : colorFromID("bgc");
+
+    g_TorusTreament = parseInt($("tort").value);
 
     if( $("t1").value !== "" )   g_Title.push( $("t1").value );
     if( $("t2").value !== "" )   g_Title.push( $("t2").value );
@@ -605,6 +678,12 @@ function buildCanvas() {
     }
 
     composeMyURL();
+}
+
+function newImage() {
+    g_TorusImage = new Image;
+    g_TorusImage.src = $("tori").value;
+    g_TorusImage.onload = function() { buildCanvas(); }
 }
 
 function testOverlap() {
@@ -806,13 +885,17 @@ function createTextObject( objectType,
         }
     };
 
-    obj.drawCircle = function( color, width, spacing ) {
+    obj.drawCircle = function( color, width, spacing, fillColour ) {
         var context = this.context;
 
+        context.fillStyle = fillColour;
         context.strokeStyle = color || this.fontDesc.debugColor;
         context.lineWidth = width;
         context.beginPath();
         context.arc( this.centerX(), this.centerY(), this.boundingRadius + spacing + 1, 0, 2*Math.PI );
+        if( fillColour != undefined ) {
+            context.fill();
+        }
         context.closePath();
         context.stroke();
     };
@@ -1073,7 +1156,7 @@ function eraseCookie( name ) {
     document.cookie = name+'=; Max-Age=-99999999;';  
 }
 
-function handleDragStart(e) {
+function memberHandleDragStart(e) {
     this.style.opacity = '0.4';  // this / e.target is the source node.
     g_DragSrcEl = this;
 
@@ -1081,26 +1164,25 @@ function handleDragStart(e) {
     e.dataTransfer.setData( "text/html", this.innerHTML);
 }
 
-function handleDragOver(e) {
+function memberHandleDragOver(e) {
     if (e.preventDefault) {
         e.preventDefault(); // Necessary. Allows us to drop.
     }
 
     e.dataTransfer.dropEffect = 'move';  // See the section on the DataTransfer object.
-
     return false;
 }
 
-function handleDragEnter(e) {
+function memberHandleDragEnter(e) {
     // this / e.target is the current hover target.
     this.classList.add('over');
 }
 
-function handleDragLeave(e) {
+function memberHandleDragLeave(e) {
     this.classList.remove('over');  // this / e.target is previous target element.
 }
 
-function handleDrop(e) {
+function memberHandleDrop(e) {
     // this / e.target is current target element.
 
     if (e.stopPropagation) {
@@ -1142,7 +1224,7 @@ function handleDrop(e) {
     return false;
 }
 
-function handleDragEnd(e) {
+function memberHandleDragEnd(e) {
     // this/e.target is the source node.
 
     var rows = document.querySelectorAll('#members .row');
@@ -1152,14 +1234,58 @@ function handleDragEnd(e) {
     });
 }
 
+function imageHandleDrop(e) {
+    // this / e.target is current target element.
+
+    if (e.preventDefault) {
+        e.preventDefault(); // Necessary. Allows us to drop.
+    }
+
+    if (e.stopPropagation) {
+        e.stopPropagation(); // stops the browser from redirecting.
+    }
+
+    var url = e.dataTransfer.getData( "URL" );
+    if( url ) {
+        // If an image is being drag-and-drop'd then set the image treatment immediately.
+        $("tori").value = url;
+        $("tort").value = TORUS_TREATMENT.IMAGE;
+        newImage();
+    }
+    return false;
+}
+
+function cancel(e) {
+    if (e.preventDefault) {
+        e.preventDefault(); // Necessary. Allows us to drop.
+    }
+    return false;
+}
+
+function addEventHandler(obj, evt, handler) {
+    if(obj.addEventListener) {
+        // W3C method
+        obj.addEventListener(evt, handler, false);
+    } else if(obj.attachEvent) {
+        // IE method.
+        obj.attachEvent('on'+evt, handler);
+    } else {
+        // Old school method.
+        obj['on'+evt] = handler;
+    }
+}
 
 function pageSetup() {
     // Determine what fonts are supported.
     g_DetectedFonts = (new Detector()).identifyCommonFonts();
 
     // Update the canvas to configured dimensions.
-    $("_canvas").width = g_Origin.imageWidth;
-    $("_canvas").height = g_Origin.imageHeight;
+    var canvas = $("_canvas");
+    canvas.width = g_Origin.imageWidth;
+    canvas.height = g_Origin.imageHeight;
+    addEventHandler( canvas, "dragover", cancel );
+    addEventHandler( canvas, "dragenter", cancel );
+    addEventHandler( canvas, "drop", imageHandleDrop );
 
     createFontSelectionElements( "titleProperties", g_TitleFontDesc );
     createFontSelectionElements( "recipientProperties", g_RecipientFontDesc );
@@ -1191,24 +1317,24 @@ function pageSetup() {
 
     // Update the "Download image" anchor element to download the canvas as a PNG file.
     var dl = $("downloadLink");
-    dl.addEventListener( "click", 
-                         function() { 
-                             this.href = _canvas.toDataURL("image/png");
-                             var name = $("f").value;
-                             if( name === "" ) name = "image.png";
-                             this.download = name;
-                         }, 
-                         false );
+    addEventHandler( dl,
+                     "click", 
+                     function() { 
+                         this.href = _canvas.toDataURL("image/png");
+                         var name = $("f").value;
+                         if( name === "" ) name = "image.png";
+                         this.download = name;
+                     } );
 
     // Support for draggable elements.
     var rows = document.querySelectorAll('#members .row');
     [].forEach.call(rows, function(row) {
-      row.addEventListener('dragstart', handleDragStart, false);
-      row.addEventListener('dragenter', handleDragEnter, false);
-      row.addEventListener('dragover', handleDragOver, false);
-      row.addEventListener('dragleave', handleDragLeave, false);
-      row.addEventListener('drop', handleDrop, false);
-      row.addEventListener('dragend', handleDragEnd, false);
+      addEventHandler( row, 'dragstart', memberHandleDragStart );
+      addEventHandler( row, 'dragenter', memberHandleDragEnter );
+      addEventHandler( row, 'dragover', memberHandleDragOver );
+      addEventHandler( row, 'dragleave', memberHandleDragLeave );
+      addEventHandler( row, 'drop', memberHandleDrop );
+      addEventHandler( row, 'dragend', memberHandleDragEnd );
     });
 
     // Set default element values
@@ -1335,11 +1461,14 @@ function pageSetup() {
         <br/>
         <table border=0>
           <tr>
+            <td>Background colour:</td>
+            <td><input class="jscolor" id='bgc' value="FFFFFF" size='6' onchange='buildCanvas()'></td>
+          </tr><tr>
             <td>Torus colour:</td>
-            <td><input class="jscolor" id='torc' value="000000" size='4' onchange='buildCanvas()'></td>
+            <td><input class="jscolor" id='torc' value="000000" size='6' onchange='buildCanvas()'></td>
           </tr><tr>
             <td>Torus peg colour:</td>
-            <td><input class="jscolor" id='torpc' value="000000" size='4' onchange='buildCanvas()'></td>
+            <td><input class="jscolor" id='torpc' value="000000" size='6' onchange='buildCanvas()'></td>
           </tr><tr>
             <td>Torus size:</td>
             <td>
@@ -1352,13 +1481,38 @@ function pageSetup() {
                 <option value=150>150px</option>
               </select>
             </td>
+          </tr><tr>
+            <td>Torus width:</td>
+            <td>
+              <select name=torusWidth id='torw' onChange='buildCanvas()'>
+                <option value=2>2px</option>
+                <option value=3>3px</option>
+                <option value=4>4px</option>
+                <option value=5>5px</option>
+                <option value=6>6px</option>
+                <option value=7>7px</option>
+              </select>
+            </td>
+          </tr><tr>
+            <td>Torus treatment:</td>
+            <td>
+              <select name=torusWidth id='tort' onChange='buildCanvas()'>
+                <option value=0>None</option>
+                <option value=1>SOLID</option>
+                <option value=2>MESH</option>
+                <option value=3>IMAGE</option>
+                <option value=4>SPIRAL</option>
+              </select>
+              <input class="jscolor" id='tortc' value="000000" size='6' onchange='buildCanvas()'> <br>
+             </td>
           </tr>
         </table>
 
         <h2>Recipient (optional)</h2>
         Recipient: <input class=textInput type='text' name='rep' id='rep' size='40' value='' onChange='buildCanvas()'/><br>
         Font <span id='recipientProperties'></span>
-            <input class="jscolor" id='rc' value="000000" size='4' onchange='buildCanvas()'> <br>
+            <input class="jscolor" id='rc' value="000000" size='6' onchange='buildCanvas()'> <br>
+        Image: <input class=textInput type='text' name='tori' id='tori' size='80' value='' onChange='newImage()'/><br>
       </td>
       <td valign=top>
           <table border=1 cellpadding=4>
