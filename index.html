@@ -12,6 +12,8 @@
 //  $("_canvas")    - canvas element for drawing image
 //  $("_debug")     - checkbox for enabling debug mode
 //  $("_myURL")     - URL name with parameters
+//  $("_profile")   - profile name
+//  $("_imageInput") - elements for accepting image URL
 
 //  $("t1")         - title string 1
 //  $("t2")         - title string 2
@@ -19,6 +21,7 @@
 //  $("tff")        - title font family
 //  $("tfb")        - title font bold selected
 //  $("tfi")        - title font italic selected 
+//  $("tfs")        - title font shadow selected
 //  $("tfp")        - title font size
 //  $("tc")         - title colour
 //  $("tpc")        - title part colour
@@ -27,6 +30,7 @@
 //  $("rff")        - recipient font family
 //  $("rfb")        - recipient font bold selected
 //  $("rfi")        - recipient font italic selected
+//  $("rfs")        - recipient font shadow selected
 //  $("rfp")        - recipient font size
 //  $("rc")         - recipient colour
 
@@ -34,6 +38,7 @@
 //  $("pff")        - member font family
 //  $("pfb")        - member font bold selected
 //  $("pfi")        - member font italic selected
+//  $("pfs")        - member font shadow selected
 //  $("pfp")        - member font size
 //  $("pc")         - member colour
 
@@ -41,6 +46,7 @@
 //  $("mff")        - master font family
 //  $("mfb")        - master font bold selected
 //  $("mfi")        - master font italic selected
+//  $("mfs")        - master font shadow selected
 //  $("mfp")        - master font size
 //  $("mc")         - master colour
 
@@ -52,7 +58,10 @@
 //  $("tort")       - torus treatment
 //  $("tortc")      - torus treament colour
 //  $("torpc")      - torus peg colour
+//  $("torpbc")     - torus peg border colour
 //  $("tori")       - torus image
+//  $("pegt")       - peg treatment
+//  $("pegw")       - peg width
 //  $("_error")     - error string
 //  $("f")          - image filename
 
@@ -62,9 +71,9 @@ var ALIGNMENT = { LEFT:0, CENTER:1, RIGHT:2, AUTO:3 };
 
 var OBJECT_TYPE = { TITLE:0, MEMBER:1, MASTER:2, RECIPIENT:3};
 
-var TORUS_TREATMENT = { NONE: 0, SOLID:1, MESH:2, IMAGE:3, SPIRAL:4 };
+var TORUS_TREATMENT = { NONE:0, SOLID:1, MESH:2, IMAGE:3, SPIRAL:4, HEART:5, RADIAL:6, GEOMETRIC_1:7, FLOWER_OF_LIFE:8 };
 
-var g_ParameterCookieName = "parameters";
+var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4 };
 
 var g_DragSrcEl = null;
 
@@ -72,18 +81,24 @@ var g_TorusImage = null;
 
 var g_TorusTreament = TORUS_TREATMENT.NONE;
 
+var g_PegTreatment = PEG_TREATMENT.CIRCLE;
+
+var g_CORSEnabled = true;
+
 // NOTE: font description MUST include the font height in 'px'.
 var g_RecipientFontDesc = { 
     fontFamilyID:               "rff",
     fontBoldID:                 "rfb",
     fontItalicID:               "rfi",
     fontSizeID:                 "rfp",
+    fontShadowID:               "rfs",
 
     textColorID:                "rc",
     debugColor:                 "green",
 
     torusColorID:               "torc",         // extra colour attribute for torus
     torusPegColorID:            "torpc",        // extra colour attribute for torus peg
+    torusPegBorderColorID:      "torpbc",       // extra colour attribute for torus peg border 
     torusTreatmentColorID:      "tortc",        // extra colour attribute for torus treatment
     imageColor:                 "white"         // extra colour attribute for image
 };
@@ -93,6 +108,7 @@ var g_TitleFontDesc = {
     fontBoldID:                 "tfb",
     fontItalicID:               "tfi",
     fontSizeID:                 "tfp",
+    fontShadowID:               "tfs",
 
     textColorID:                "tc",
     titleGroupColorID:          "tpc",        // extra color attribute to title group
@@ -104,6 +120,7 @@ var g_MemberFontDesc = {
     fontBoldID:                 "pfb",
     fontItalicID:               "pfi",
     fontSizeID:                 "pfp",
+    fontShadowID:               "pfs",
 
     textColorID:                "pc",
     debugColor:                 "green"
@@ -114,17 +131,18 @@ var g_MasterFontDesc = {
     fontBoldID:                 "mfb",
     fontItalicID:               "mfi",
     fontSizeID:                 "mfp",
+    fontShadowID:               "mfs",
 
     textColorID:                "mc",
     debugColor:                 "green"
 };
 
 var g_ElementDefaults = {
-                        // Font Family          bold?           italic?           Font Size       Text Color
-    /* Title */         tff:"Arial",            tfb:"true",     tfi:"false",      tfp:"16px",     tc:"3605FF",       
-    /* Recipient */     rff:"Arial",            rfb:"true",     rfi:"false",      rfp:"14px",     rc:"14811E",
-    /* Member */        pff:"Arial",            pfb:"true",     pfi:"false",      pfp:"14px",     pc:"000000",
-    /* Master */        mff:"Arial",            mfb:"true",     mfi:"false",      mfp:"14px",     mc:"000000",
+                        // Font Family      bold?       italic?      shadow?        Font Size   Text Color
+    /* Title */         tff:"Arial",        tfb:"true", tfi:"false", tfs:"false",   tfp:"16px", tc:"3605FF",       
+    /* Recipient */     rff:"Arial",        rfb:"true", rfi:"false", rfs:"false",   rfp:"14px", rc:"14811E",
+    /* Member */        pff:"Arial",        pfb:"true", pfi:"false", pfs:"false",   pfp:"14px", pc:"000000",
+    /* Master */        mff:"Arial",        mfb:"true", mfi:"false", mfs:"false",   mfp:"14px", mc:"000000",
 
     t1:"Group Torus",   // Title 1 string
 
@@ -134,9 +152,12 @@ var g_ElementDefaults = {
     tort:"0",           // torus treatment
     tortc:"000000",     // torus treatment colour
     tpc:"FF15C8",       // title group color
+    pegt:"1",           // peg treatment
+    pegw:"6",           // peg width
 
     torc:"000000",      // torus color
     torpc:"FF0000",     // torus peg color
+    torpbc:"000000",    // torus peg border colour
     pc:"000000",        // member color
     mc:"FF0000"         // master color
 };
@@ -211,15 +232,21 @@ var g_Origin = {
 
     maxMembers:                 12,             // maximum number of members supported
 
+    maxProfiles:                7,              // maximum number of cookie profiles supported
+    maxCookieDays:              365,            // maximum days to keep a cookie
 
     absXY : function( relX, relY ) {
         return { x: Math.round( this.imageCenterX + relX ),
                  y: Math.round( this.imageCenterY + relY ) };
     },
 
+    polarToAbsXYWithOffset : function( radius, angle, offsetX, offsetY ) {
+        return this.absXY( offsetX + radius * Math.cos( angle * Math.PI / 180 ),
+                           offsetY + radius * Math.sin( angle * Math.PI / 180 ) );
+    },
+
     polarToAbsXY : function( radius, angle ) {
-        return this.absXY( radius * Math.cos( angle * Math.PI / 180 ),
-                           radius * Math.sin( angle * Math.PI / 180 ) );
+        return this.polarToAbsXYWithOffset( radius, angle, 0, 0 );
     },
 
     resetImageCenter : function() {
@@ -247,6 +274,13 @@ function resetGlobals() {
     g_ObjectArray = [];
     g_Origin.resetImageCenter();
 }
+
+function resetCookies() {
+    for( var i = 0; i < g_Origin.maxProfiles; ++i ) {
+        eraseCookie( "profile" + i );
+    }
+}
+
 /**
  * JavaScript code to detect available availability of a
  * particular font in a browser using JavaScript and CSS.
@@ -487,10 +521,108 @@ function createSeatingArrangement() {
         result = testOverlap();
         if( result == null ) {
             break;
-        }
-    }
+        } }
 
     return result;
+}
+
+function drawHeart( context, xCenter, yCenter, size, borderColour, innerColour ) {
+    var x = xCenter-(size/2);
+    var y = yCenter-(size/2);
+    var w = size, h = size;
+    var d = Math.min(w,h);
+    context.strokeStyle = borderColour;
+    context.strokeWeight = 3;
+    context.shadowOffsetX = 4.0;
+    context.shadowOffsetY = 4.0;
+    context.lineWidth = size < 20 ? 1 : 5;
+    context.beginPath();
+    context.moveTo( x, y+d/4 );
+    context.quadraticCurveTo( x,y, x+d/4, y);
+    context.quadraticCurveTo( x+d/2, y, x+d/2, y+d/4 );
+    context.quadraticCurveTo( x+d/2, y, x+d*3/4, y );
+    context.quadraticCurveTo( x+d, y, x+d, y+d/4 );
+    context.quadraticCurveTo( x+d, y+d/2, x+d*3/4, y+d*3/4 );
+    context.lineTo( x+d/2, y+d );
+    context.lineTo( x+d/4, y+d*3/4 );
+    context.quadraticCurveTo( x, y+d/2, x, y+d/4 );
+    if( innerColour != undefined ) {
+        context.fillStyle = innerColour;
+        context.fill();
+    }
+    context.closePath();
+    context.stroke();
+}
+
+function drawPeg( context, x, y ) {
+    var colour = colorFromID(g_RecipientFontDesc.torusPegColorID);
+    var borderColour = colorFromID(g_RecipientFontDesc.torusPegBorderColorID);
+    var pegSize = g_Origin.torusRingPegSize;
+
+    if( g_PegTreatment == PEG_TREATMENT.CIRCLE ) {
+        context.strokeStyle = borderColour;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.arc( x, y, pegSize, 0, 2*Math.PI );
+        context.fillStyle = colour;
+        context.fill();
+        context.closePath();
+        context.stroke();
+    } else if( g_PegTreatment == PEG_TREATMENT.SQUARE ) {
+        context.strokeStyle = borderColour;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo( x-pegSize, y-pegSize );
+        context.lineTo( x+pegSize, y-pegSize );
+        context.lineTo( x+pegSize, y+pegSize );
+        context.lineTo( x-pegSize, y+pegSize );
+        context.fillStyle = colour;
+        context.fill();
+        context.closePath();
+        context.stroke();
+    } else if( g_PegTreatment == PEG_TREATMENT.DIAMOND ) {
+        context.strokeStyle = borderColour;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo( x, y-pegSize );
+        context.lineTo( x+pegSize, y );
+        context.lineTo( x, y+pegSize );
+        context.lineTo( x-pegSize, y );
+        context.fillStyle = colour;
+        context.fill();
+        context.closePath();
+        context.stroke();
+    } else if( g_PegTreatment == PEG_TREATMENT.HEART ) {
+        drawHeart( context, x, y, pegSize*2, borderColour, colour );
+    }
+}
+
+function iterateSacred( obj, radius, x, y, centerArray ) {
+    var d = distance( x, y, 0, 0 );
+    var visible = d <= obj.boundingRadius;
+    if( d <= obj.boundingRadius + radius ) {
+        for( var i = 0; i < centerArray.length; ++i ) {
+            if( Math.abs( centerArray[i].centerX - x ) < 2
+             && Math.abs( centerArray[i].centerY - y ) < 2 ) {
+                // The point is already added
+                return visible;
+            }
+        }
+
+        var myIndex = centerArray.length;
+        centerArray.push( {centerX:x, centerY:y} );
+
+        var points = [];
+        for( var angle = 0; angle < 360; angle+=60 ) {
+            var newX = x + radius * Math.cos( angle * Math.PI / 180 );
+            var newY = y + radius * Math.sin( angle * Math.PI / 180 );
+            points[angle/60] = iterateSacred( obj, radius, newX, newY, centerArray );
+        }
+
+        centerArray[myIndex].visiblePoints = points;
+        return visible;
+    }
+    return false;
 }
 
 function drawSeatingArrangement() {
@@ -546,8 +678,6 @@ function drawSeatingArrangement() {
     for( var i = 0; i < g_ObjectArray.length; ++i ) {
         var obj     = g_ObjectArray[i];
 
-        obj.draw();
-
         if( i == 0 ) {
             pegs = [];
 
@@ -561,47 +691,154 @@ function drawSeatingArrangement() {
                 }
             }
 
-            if( g_TorusTreament == TORUS_TREATMENT.MESH ) {
-                for( j =0; j < pegs.length; ++j ) {
-                    for( var k = j+1; k < pegs.length; ++k ) {
-                        context.strokeStyle = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
-                        context.lineWidth = 1;
-                        context.beginPath();
-                        context.moveTo( pegs[j].x, pegs[j].y );
-                        context.lineTo( pegs[k].x, pegs[k].y );
-                        context.closePath();
-                        context.stroke();
+            switch( g_TorusTreament ) {
+                case TORUS_TREATMENT.MESH:
+                    for( j =0; j < pegs.length; ++j ) {
+                        for( var k = j+1; k < pegs.length; ++k ) {
+                            context.strokeStyle = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                            context.lineWidth = 1;
+                            context.beginPath();
+                            context.moveTo( pegs[j].x, pegs[j].y );
+                            context.lineTo( pegs[k].x, pegs[k].y );
+                            context.closePath();
+                            context.stroke();
+                        }
                     }
-                }
-            }
+                    break;
 	
-            if( g_TorusTreament == TORUS_TREATMENT.IMAGE 
-             && g_TorusImage != undefined
-             && g_TorusImage.complete ) {
-                var width = g_TorusImage.width;
-                var height = g_TorusImage.height;
-                var scale = 2 * obj.boundingRadius / Math.sqrt( width*width + height*height );
-                var newWidth = Math.floor( scale * width );
-                var newHeight = Math.floor( scale * height );
-                
-                context.drawImage( g_TorusImage,
-                                   obj.centerX() - newWidth/2,
-                                   obj.centerY() - newHeight/2,
-                                   newWidth,
-                                   newHeight );
-            }
+                case TORUS_TREATMENT.IMAGE:
+                    if( g_TorusImage != undefined && g_TorusImage.complete ) {
+                        var width = g_TorusImage.width;
+                        var height = g_TorusImage.height;
+                        var scale = 2 * obj.boundingRadius / Math.sqrt( width*width + height*height );
+                        var newWidth = Math.floor( scale * width );
+                        var newHeight = Math.floor( scale * height );
+                        
+                        context.drawImage( g_TorusImage,
+                                           obj.centerX() - newWidth/2,
+                                           obj.centerY() - newHeight/2,
+                                           newWidth,
+                                           newHeight );
+                    }
+                    break;
 
-            if( g_TorusTreament == TORUS_TREATMENT.SPIRAL ) {
-                var startStep = 10;
-                var spiralStep = startStep;
-                var spacing = -spiralStep;
-                while( obj.boundingRadius + spacing > 0 && spiralStep > 0 ) {
-                    obj.drawCircle( colorFromID(g_RecipientFontDesc.torusTreatmentColorID),
-                                    1,
-                                    spacing );
-                    spiralStep = Math.floor( ((obj.boundingRadius + spacing) / obj.boundingRadius) * startStep );
-                    spacing -= spiralStep;
-                }
+                case TORUS_TREATMENT.SPIRAL: 
+                    {
+                        var startStep = 10;
+                        var spiralStep = startStep;
+                        var spacing = -spiralStep;
+                        while( obj.boundingRadius + spacing > 0 && spiralStep > 0 ) {
+                            obj.drawCircle( colorFromID(g_RecipientFontDesc.torusTreatmentColorID),
+                                            1,
+                                            spacing );
+                            spiralStep = Math.floor( ((obj.boundingRadius + spacing) / obj.boundingRadius) 
+                                                        * startStep );
+                            spacing -= spiralStep;
+                        }
+                    }
+                    break;
+
+                case TORUS_TREATMENT.HEART:
+                    drawHeart( context, obj.centerX(), obj.centerY(), obj.boundingRadius, 
+                                colorFromID(g_RecipientFontDesc.torusTreatmentColorID) );
+                    break;
+
+                case TORUS_TREATMENT.RADIAL:
+                    {
+                        for( j =0; j < pegs.length; ++j ) {
+                            context.lineWidth = 1;
+                            context.beginPath();
+                            context.moveTo( obj.centerX(), obj.centerY() );
+                            context.lineTo( pegs[j].x, pegs[j].y );
+                            context.closePath();
+                            context.stroke();
+                        }
+
+                        var step = 20;
+                        var spacing = -step;
+                        while( obj.boundingRadius + spacing > 0 ) {
+                            obj.drawCircle( colorFromID(g_RecipientFontDesc.torusTreatmentColorID),
+                                            1,
+                                            spacing );
+                            spacing -= step;
+                        }
+                    }
+                    break;
+
+                case TORUS_TREATMENT.GEOMETRIC_1:
+                    {
+                        for( var j = 0; j < g_ObjectArray.length; ++j ) {
+                            var pegObj = g_ObjectArray[j];
+
+                            if( pegObj.objectType == OBJECT_TYPE.MEMBER ) {
+                                var pointA;
+
+                                context.strokeStyle = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                                context.lineWidth = 1;
+                                context.beginPath();
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius, pegObj.angle );
+                                context.moveTo( point.x, point.y );
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius, pegObj.angle+120 );
+                                context.lineTo( point.x, point.y );
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius, pegObj.angle+240 );
+                                context.lineTo( point.x, point.y );
+                                context.closePath();
+                                context.stroke();
+                                
+                                context.beginPath();
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius/2, pegObj.angle+60 );
+                                context.arc( point.x, point.y, obj.boundingRadius/2, 0, 2*Math.PI );
+                                context.closePath();
+                                context.stroke();
+
+                                context.beginPath();
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius/2, pegObj.angle+180 );
+                                context.arc( point.x, point.y, obj.boundingRadius/2, 0, 2*Math.PI );
+                                context.closePath();
+                                context.stroke();
+
+                                context.beginPath();
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius/2, pegObj.angle-60 );
+                                context.arc( point.x, point.y, obj.boundingRadius/2, 0, 2*Math.PI );
+                                context.closePath();
+                                context.stroke();
+                            }
+                        }
+                    }
+                    break;
+
+                case TORUS_TREATMENT.FLOWER_OF_LIFE:
+                    {
+                        var centerArray = [];
+                        var radius = Math.floor( obj.boundingRadius/3 );
+                        var startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+
+                        iterateSacred( obj, radius, 0, 0, centerArray );
+                        context.lineWidth = 1;
+                        context.strokeStyle = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        for( var j = 0; j < centerArray.length; ++j ) {
+                            var point = obj.origin.absXY( centerArray[j].centerX, centerArray[j].centerY );
+
+                            var lum = (distance(centerArray[j].centerX, 
+                                                centerArray[j].centerY, 
+                                                0,0) / obj.boundingRadius);
+                            context.strokeStyle = colorLuminance( startColour, lum );
+
+                            var visiblePoints = centerArray[j].visiblePoints;
+                            for( var k = 0; k < visiblePoints.length; ++k ) {
+                                var endIndex = (k+1) % visiblePoints.length;
+                                if( visiblePoints[k] && visiblePoints[endIndex] ) {
+                                    var startAngle = 2*Math.PI * k / visiblePoints.length;
+                                    var endAngle = 2*Math.PI * endIndex / visiblePoints.length;
+                                    context.beginPath();
+                                    context.arc( point.x, point.y, radius, startAngle, endAngle );
+                                    context.closePath();
+                                    context.stroke();
+                                }
+                            }
+                        }
+                    }
+                    break;
             }
 
             // Draw the torus
@@ -617,21 +854,15 @@ function drawSeatingArrangement() {
 
             // Draw the pegs
             for( var j = 0; j < pegs.length; ++j ) {
-                var colour = colorFromID(g_RecipientFontDesc.torusPegColorID);
-                context.strokeStyle = colour;
-                context.lineWidth = 1;
-                context.beginPath();
-                context.arc( pegs[j].x, pegs[j].y, obj.origin.torusRingPegSize, 0, 2*Math.PI );
-                context.fillStyle = colour;
-                context.fill();
-                context.closePath();
-                context.stroke();
+                drawPeg( context, pegs[j].x, pegs[j].y );
             }
         } else {
             if( g_Debug ) {
                 obj.debugBoundingBox( obj.spacing );
             }
         }
+
+        obj.draw();
 
         if( g_Debug ) {
             obj.drawCircle( obj.fontDesc.DebugColor, 1, 0 );
@@ -642,6 +873,25 @@ function drawSeatingArrangement() {
     }
 }
 
+function colorLuminance(hex, lum) {
+	// validate hex string
+	hex = String(hex).replace(/[^0-9a-f]/gi, '');
+	if (hex.length < 6) {
+		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+	}
+	lum = lum || 0;
+
+	// convert to decimal and change luminosity
+	var rgb = "#", c, i;
+	for (i = 0; i < 3; i++) {
+		c = parseInt(hex.substr(i*2,2), 16);
+		c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
+		rgb += ("00"+c).substr(c.length);
+	}
+
+	return rgb;
+}
+
 function buildCanvas() {
     resetGlobals();
     g_Debug = $("_debug").checked;
@@ -649,6 +899,7 @@ function buildCanvas() {
     g_RecipientFontDesc.imageColor = g_Debug ? "yellow" : colorFromID("bgc");
 
     g_TorusTreament = parseInt($("tort").value);
+    g_PegTreatment = parseInt($("pegt").value);
 
     if( $("t1").value !== "" )   g_Title.push( $("t1").value );
     if( $("t2").value !== "" )   g_Title.push( $("t2").value );
@@ -666,6 +917,7 @@ function buildCanvas() {
 
     g_Origin.memberStartAngle = parseInt( $("o").value );
     g_Origin.torusRingSize = parseInt( $("tors").value );
+    g_Origin.torusRingPegSize = parseInt( $("pegw").value );
     if( g_Origin.torusRingSize < 100 || g_Origin.torusRingSize > 300 ) {
         g_Origin.torusRingSize = 100;
     }
@@ -684,6 +936,31 @@ function newImage() {
     g_TorusImage = new Image;
     g_TorusImage.src = $("tori").value;
     g_TorusImage.onload = function() { buildCanvas(); }
+}
+
+function testCORS() {
+    var testImage = new Image;
+    testImage.src = "http://maps.gstatic.com/mapfiles/api-3/images/google_white5.png";
+    testImage.onload = function() {
+        var canvas = $("_canvas");
+        var context = canvas.getContext("2d");
+        context.drawImage( testImage, 0, 0, 10, 10 ); 
+    
+        // Cross-Origin Resource Sharing (CORS) is a W3C specification that
+        //  allows cross-domain communication from the browser.  Note that
+        //  often cross-domain refers to resources that have different hostnames.
+        //  When CORS isn't enabled, it prevents this program from including
+        //  images to be embedded in the downloaded image (although they could
+        //  still be rendered).  We'll detect this scenario and prevent images
+        //  from being embedded.
+        var violation = false;
+        try {
+            var junkHref = canvas.toDataURL("image/png");
+        } catch( err ) {
+            violation = true;
+        }
+        g_CORSEnabled = violation;
+    }
 }
 
 function testOverlap() {
@@ -745,6 +1022,7 @@ function createTextObject( objectType,
              + ($(fontDesc.fontBoldID).checked ? "bold" : "normal") + " "         // font weight
              + $(fontDesc.fontSizeID).value + " " 
              + $(fontDesc.fontFamilyID).value;
+    obj.shadowEnabled = $(fontDesc.fontShadowID).checked;
     obj.context = obj.canvas.getContext("2d");
     obj.context.font = obj.font;
 
@@ -878,8 +1156,18 @@ function createTextObject( objectType,
                     x = center.x;
                 }
             }
-            this.context.fillStyle = this.line[i].color || colorFromID(this.fontDesc.textColorID);
             this.context.font = this.font;
+            if( this.shadowEnabled ) {
+                // Create a shadow effect for the text
+                shadow = colorLuminance( this.line[i].color || colorFromID(this.fontDesc.textColorID),
+                                         -0.1 ); 
+                this.context.shadowColor = shadow;
+                this.context.shadowBlur = 10;
+                this.context.lineWidth = 1; 
+                this.context.strokeText( this.line[i].text, x, y );
+                this.context.shadowBlur = 0; 
+            }
+            this.context.fillStyle = this.line[i].color || colorFromID(this.fontDesc.textColorID);
             this.context.fillText( this.line[i].text, x, y );
             y = y + this.fontHeight;
         }
@@ -1015,6 +1303,98 @@ function setDefaultFilename() {
 
 }
 
+function getProfiles() {
+    var profiles = [];
+    for( var i = 0; i < g_Origin.maxProfiles; ++i ) {
+        var cookie = getCookie( "profile"+i );
+        if( cookie != null ) {
+            var url = new Url( "?" + cookie );
+            profiles.push( url.query );
+        }
+    }
+    return profiles;
+}
+
+function setProfiles() {
+    var u = getUrlWithParameters();
+    var profiles = getProfiles();
+    var found = false;
+
+    u.query["day"] = (new Date()).getDay();
+    for( var i = 0; i < profiles.length; ++i ) {
+        if( profiles[i]["t1"] === u.query["t1"] ) {
+            // found the profiles with the same title. Update it
+            //  and move it to the top of the list.
+            profiles.splice( i, 1 );         // remove old object
+            profiles.splice( 0, 0, u.query );   // insert replacement
+            found = true;
+            break;
+        }
+    }
+
+    if( !found ) {
+        // add the object to the start of the list
+        profiles.unshift( u.query );
+        // possibly remove the extra entry
+        if( profiles.length >= g_Origin.maxProfiles ) {
+            profiles.splice( g_Origin.maxProfiles, profiles.length );
+        }
+    }
+
+    for( var i = 0; i < profiles.length && i < g_Origin.maxProfiles; ++i ) {
+        setCookie( "profile"+i, profiles[i].toString(), g_Origin.maxCookieDays );
+    }
+}
+
+function selectProfile() {
+    var profiles = getProfiles();
+    var num = parseInt($("profile").value);
+
+    // Set default element values
+    initializeElementsFromHash( g_ElementDefaults );
+
+    // Set values to selected profile.
+    if( num >= 0 && num < profiles.length ) {
+        initializeElementsFromHash( profiles[num] );
+    }
+
+    buildCanvas();
+}
+
+function saveProfile() {
+    setProfiles();
+    createProfilesElement( "profiles" );
+}
+
+function createProfilesElement( parentID ) {
+    var weekDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    var profiles = getProfiles();
+    var current = $("t1").value;
+    var str = "<select class=dropDown name=profile id=profile onChange='selectProfile()'>\n";
+    str += "<option value='-1'>Default</option>\n";
+    for( var i = 0; i < profiles.length; ++i ) {
+        str += "<option value='" + i + "'";
+        if( profiles[i]["t1"] === current ) {
+            str += " selected";
+        } 
+        str += ">" + profiles[i]["t1"];
+        var day = profiles[i]["day"];
+        if( weekDays[day] != undefined ) {
+            str += " ("+weekDays[day]+")";
+        }
+        str += "</option>\n";
+    }
+    str += "</select>";
+    var element = document.createElement( "span" );
+    element.innerHTML = str;
+
+    var last = $(parentID).lastChild;
+    if( last != null ) {
+        $(parentID).removeChild( last );
+    }
+    $(parentID).appendChild( element );
+}
+
 function createFontSelectionElements( parentID, fontDesc ) {
     var fontWeights = [ "normal", "bold" ];
     var fontSizes = [ "10px", "12px", "14px", "16px", "18px" ];
@@ -1052,6 +1432,12 @@ function createFontSelectionElements( parentID, fontDesc ) {
     // font italic selection
     element = document.createElement( "span" );
     str = "<I>Italic</I><input type=checkbox id='" + fontDesc.fontItalicID + "' onchange='buildCanvas()'>\n";
+    element.innerHTML = str;
+    $(parentID).appendChild( element );
+
+    // font shadow selection
+    element = document.createElement( "span" );
+    str = "<U>Shadow</U><input type=checkbox id='" + fontDesc.fontShadowID + "' onchange='buildCanvas()'>\n";
     element.innerHTML = str;
     $(parentID).appendChild( element );
 }
@@ -1126,9 +1512,6 @@ function getUrlWithParameters() {
 function composeMyURL() {
     var url = getUrlWithParameters();
     $("_myURL").innerHTML = "<b>" + url + "</b>";
-
-    // Save the URL as a cookie for later retrieval.
-    setCookie( g_ParameterCookieName, url.toString() );
 }
 
 function setCookie( name, value, days ) {
@@ -1279,6 +1662,8 @@ function pageSetup() {
     // Determine what fonts are supported.
     g_DetectedFonts = (new Detector()).identifyCommonFonts();
 
+    testCORS();
+
     // Update the canvas to configured dimensions.
     var canvas = $("_canvas");
     canvas.width = g_Origin.imageWidth;
@@ -1337,14 +1722,32 @@ function pageSetup() {
       addEventHandler( row, 'dragend', memberHandleDragEnd );
     });
 
+    if( g_CORSEnabled ) {
+        // If CORS is enabled then prevent image URLs being enterred.
+        $("_imageInput").style.display = "none";
+    }
+
     // Set default element values
     initializeElementsFromHash( g_ElementDefaults );
 
-    // Set element values from the cookie
-    setParametersFromUrl( getCookie(g_ParameterCookieName) );
+    if( window.location.href.indexOf( "?" ) != -1 ) {
+        // Set element values from URL parameters
+        setParametersFromUrl( window.location.href );
+    } else {
+        var profiles = getProfiles();
+        var day = (new Date()).getDay();
 
-    // Set element values from URL parameters
-    setParametersFromUrl( window.location.href );
+        // Try to find the last profile created on this weekday
+        for( var i = 0; i < profiles.length; ++i ) {
+            if( parseInt(profiles[i]["day"]) == day ) {
+                // Set values to selected profile.
+                initializeElementsFromHash( profiles[i] );
+                break;
+            }
+        }
+    }
+
+    createProfilesElement( "profiles" );
 
     buildCanvas();
 }
@@ -1416,7 +1819,8 @@ function pageSetup() {
     <script src="jsurl.js"></script>
     Click <a href=help.html>here</a> for help.
     <a id="downloadLink" href="#image">Download</a> image as filename
-    <input class=textInput type='text' name="name" id="f" value="download.png" size="70"/>
+    <input class=textInput type='text' name="name" id="f" value="download.png" size="70"/><br>
+    Profiles: <span id='profiles'></span> <button type='button' onclick='saveProfile()'>Save profile</button>
     
     <table border=1>
       <tr>
@@ -1464,47 +1868,89 @@ function pageSetup() {
             <td>Background colour:</td>
             <td><input class="jscolor" id='bgc' value="FFFFFF" size='6' onchange='buildCanvas()'></td>
           </tr><tr>
-            <td>Torus colour:</td>
-            <td><input class="jscolor" id='torc' value="000000" size='6' onchange='buildCanvas()'></td>
-          </tr><tr>
-            <td>Torus peg colour:</td>
-            <td><input class="jscolor" id='torpc' value="000000" size='6' onchange='buildCanvas()'></td>
-          </tr><tr>
-            <td>Torus size:</td>
+            <td>Torus ring</td>
             <td>
-              <select name=torusSize id='tors' onChange='buildCanvas()'>
-                <option value=100>100px</option>
-                <option value=110>110px</option>
-                <option value=120>120px</option>
-                <option value=130>130px</option>
-                <option value=140>140px</option>
-                <option value=150>150px</option>
-              </select>
+              <table border=1>
+                <tr>
+                  <td>ring treatment:</td>
+                  <td>
+                    <select name=torusWidth id='tort' onChange='buildCanvas()'>
+                      <option value=0>None</option>
+                      <option value=1>SOLID</option>
+                      <option value=2>MESH</option>
+                      <option value=3>IMAGE</option>
+                      <option value=4>SPIRAL</option>
+                      <option value=5>HEART</option>
+                      <option value=6>RADIAL</option>
+                      <option value=7>GEOMETRIC_1</option>
+                      <option value=8>FLOWER_OF_LIFE</option>
+                    </select>
+                    <input class="jscolor" id='tortc' value="000000" size='6' onchange='buildCanvas()'> <br>
+                   </td>
+                </tr><tr>
+                  <td>ring size:</td>
+                  <td>
+                    <select name=torusSize id='tors' onChange='buildCanvas()'>
+                      <option value=100>100px</option>
+                      <option value=110>110px</option>
+                      <option value=120>120px</option>
+                      <option value=130>130px</option>
+                      <option value=140>140px</option>
+                      <option value=150>150px</option>
+                    </select>
+                  </td>
+                </tr><tr>
+                  <td>ring width:</td>
+                  <td>
+                    <select name=torusWidth id='torw' onChange='buildCanvas()'>
+                      <option value=2>2px</option>
+                      <option value=3>3px</option>
+                      <option value=4>4px</option>
+                      <option value=5>5px</option>
+                      <option value=6>6px</option>
+                      <option value=7>7px</option>
+                    </select>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr><tr>
-            <td>Torus width:</td>
+            <td>Torus peg</td>
             <td>
-              <select name=torusWidth id='torw' onChange='buildCanvas()'>
-                <option value=2>2px</option>
-                <option value=3>3px</option>
-                <option value=4>4px</option>
-                <option value=5>5px</option>
-                <option value=6>6px</option>
-                <option value=7>7px</option>
-              </select>
+              <table border=1>
+                <tr>
+                  <td>peg treatment:</td>
+                  <td>
+                    <select name=pegTreatment id='pegt' onChange='buildCanvas()'>
+                      <option value=0>None</option>
+                      <option value=1>Circle</option>
+                      <option value=2>Square</option>
+                      <option value=3>Diamond</option>
+                      <option value=4>Heart</option>
+                    </select>
+                    <input class="jscolor" id='torc' value="000000" size='6' onchange='buildCanvas()'>
+                  </td>
+                </tr><tr>
+                  <td>peg width:</td>
+                  <td>
+                    <select name=pegWidth id='pegw' onChange='buildCanvas()'>
+                      <option value=5>5px</option>
+                      <option value=6>6px</option>
+                      <option value=7>7px</option>
+                      <option value=8>8px</option>
+                      <option value=9>9px</option>
+                      <option value=10>10px</option>
+                    </select>
+                  </td>
+                </tr><tr>
+                  <td>peg colour:</td>
+                  <td><input class="jscolor" id='torpc' value="000000" size='6' onchange='buildCanvas()'></td>
+                </tr><tr>
+                  <td>peg border colour:</td>
+                  <td><input class="jscolor" id='torpbc' value="000000" size='6' onchange='buildCanvas()'></td>
+                </tr>
+              </table>
             </td>
-          </tr><tr>
-            <td>Torus treatment:</td>
-            <td>
-              <select name=torusWidth id='tort' onChange='buildCanvas()'>
-                <option value=0>None</option>
-                <option value=1>SOLID</option>
-                <option value=2>MESH</option>
-                <option value=3>IMAGE</option>
-                <option value=4>SPIRAL</option>
-              </select>
-              <input class="jscolor" id='tortc' value="000000" size='6' onchange='buildCanvas()'> <br>
-             </td>
           </tr>
         </table>
 
@@ -1512,12 +1958,14 @@ function pageSetup() {
         Recipient: <input class=textInput type='text' name='rep' id='rep' size='40' value='' onChange='buildCanvas()'/><br>
         Font <span id='recipientProperties'></span>
             <input class="jscolor" id='rc' value="000000" size='6' onchange='buildCanvas()'> <br>
-        Image: <input class=textInput type='text' name='tori' id='tori' size='80' value='' onChange='newImage()'/><br>
+        <span id=_imageInput>
+            Image: <input class=textInput type='text' name='tori' id='tori' size='80' value='' onChange='newImage()'/><br>
+        </span>
       </td>
       <td valign=top>
           <table border=1 cellpadding=4>
             <tr><td>
-              <canvas id=_canvas width=100 height=50></canvas>
+              <canvas id=_canvas width=100 height=50 crossOrigin="Anonymous"></canvas>
             </td></tr>
           </table>
       </td>
