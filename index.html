@@ -1,6 +1,8 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <title>Image Generator</title>
+  <meta charset="utf-8"/>
   <script type="text/javascript">
 
 //////////////////////////////////////////////////////
@@ -419,11 +421,13 @@ function createSeatingArrangement() {
     var maxRadius = g_Origin.imageCenterY;
     var obj;
     var result = "";
+    var context = $("_canvas").getContext("2d");
 
     // Create the center object.
     obj = createTextObject( OBJECT_TYPE.RECIPIENT,
                             massageName( $("rep").value ),
                             $("_canvas"), 
+                            context,
                             g_RecipientFontDesc, 
                             ALIGNMENT.CENTER, 
                             g_Origin, 
@@ -438,6 +442,7 @@ function createSeatingArrangement() {
         obj = createTextObject( OBJECT_TYPE.MEMBER,
                                 massageName( g_Members[i].member ),
                                 $("_canvas"), 
+                                context,
                                 g_MemberFontDesc, 
                                 ALIGNMENT.AUTO, 
                                 g_Origin, 
@@ -468,6 +473,7 @@ function createSeatingArrangement() {
             obj = createTextObject( OBJECT_TYPE.MASTER,
                                     massageName( g_Members[i].master ),
                                     $("_canvas"), 
+                                    context,
                                     g_MasterFontDesc, 
                                     ALIGNMENT.AUTO, 
                                     g_Origin, 
@@ -507,6 +513,7 @@ function createSeatingArrangement() {
     obj = createTextObject( OBJECT_TYPE.TITLE,
                             title,
                             $("_canvas"), 
+                            context,
                             g_TitleFontDesc, 
                             ALIGNMENT.CENTER, 
                             g_Origin, 
@@ -521,7 +528,8 @@ function createSeatingArrangement() {
         result = testOverlap();
         if( result == null ) {
             break;
-        } }
+        } 
+    }
 
     return result;
 }
@@ -666,9 +674,6 @@ function drawSeatingArrangement() {
     var newHeight = maxY-minY;
     $("_canvas").width = newWidth;
     $("_canvas").height = newHeight;
-    var context = $("_canvas").getContext("2d");
-    context.fillStyle = g_RecipientFontDesc.imageColor;
-    context.fillRect( 0, 0, newWidth, newHeight );
     
     // Alter the image 'center' before the redraw.
     g_Origin.setImageCenter( g_ObjectArray[0].centerX() - minX,
@@ -678,8 +683,12 @@ function drawSeatingArrangement() {
     for( var i = 0; i < g_ObjectArray.length; ++i ) {
         var obj     = g_ObjectArray[i];
 
+        context = obj.context;
         if( i == 0 ) {
             pegs = [];
+
+            context.fillStyle = g_RecipientFontDesc.imageColor;
+            context.fillRect( 0, 0, newWidth, newHeight );
 
             // Compute all the peg locations
             for( var j = 0; j < g_ObjectArray.length; ++j ) {
@@ -934,15 +943,22 @@ function buildCanvas() {
 
 function newImage() {
     g_TorusImage = new Image;
-    g_TorusImage.src = $("tori").value;
+    g_TorusImage.crossOrigin = "Anonymous";
     g_TorusImage.onload = function() { buildCanvas(); }
+    g_TorusImage.src = $("tori").value;
+
+    // make sure the load event fires for cached images too
+    if( g_TorusImage.complete || g_TorusImage.complete === undefined ) {
+        g_TorusImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+        g_TorusImage.src = $("tori").value;
+    }
 }
 
 function testCORS() {
     var testImage = new Image;
     testImage.src = "http://maps.gstatic.com/mapfiles/api-3/images/google_white5.png";
     testImage.onload = function() {
-        var canvas = $("_canvas");
+        var canvas = $("_testCanvas");
         var context = canvas.getContext("2d");
         context.drawImage( testImage, 0, 0, 10, 10 ); 
     
@@ -1001,6 +1017,7 @@ function myTrim( str ) {
 function createTextObject( objectType,
                            textArray, 
                            canvas, 
+                           context,
                            fontDesc, 
                            alignment, 
                            origin, 
@@ -1023,7 +1040,7 @@ function createTextObject( objectType,
              + $(fontDesc.fontSizeID).value + " " 
              + $(fontDesc.fontFamilyID).value;
     obj.shadowEnabled = $(fontDesc.fontShadowID).checked;
-    obj.context = obj.canvas.getContext("2d");
+    obj.context = context;
     obj.context.font = obj.font;
 
     obj.line = [];
@@ -1974,5 +1991,6 @@ function pageSetup() {
     <br/>
     Debug enabled: <input type=checkbox id='_debug' onChange='buildCanvas()'><br>
     My URL: <span id='_myURL'></span>
+    <canvas id=_testCanvas width=5 height=5></canvas>
   </body>
 </html>
