@@ -36,6 +36,8 @@
 //  $("rfp")        - recipient font size
 //  $("rc")         - recipient colour
 
+//  $("tr#")        - trash member/master # (from 0)
+
 //  $("p#")         - member # (from 0)
 //  $("pff")        - member font family
 //  $("pfb")        - member font bold selected
@@ -54,6 +56,7 @@
 
 //  $("bgc")        - background colour
 //  $("o")          - orientation
+//  $("or")         - torus addition order
 //  $("tors")       - torus size in px
 //  $("torw")       - torus width in px
 //  $("torc")       - torus colour
@@ -73,7 +76,7 @@ var ALIGNMENT = { LEFT:0, CENTER:1, RIGHT:2, AUTO:3 };
 
 var OBJECT_TYPE = { TITLE:0, MEMBER:1, MASTER:2, RECIPIENT:3};
 
-var TORUS_TREATMENT = { NONE:0, SOLID:1, MESH:2, IMAGE:3, SPIRAL:4, HEART:5, RADIAL:6, GEOMETRIC_1:7, FLOWER_OF_LIFE:8 };
+var TORUS_TREATMENT = { NONE:0, MESH:1, IMAGE:2, SPIRAL:3, HEART:4, RANDOM:5, GEOMETRIC_1:6, FLOWER_OF_LIFE:7, METATRONS_CUBE:8 };
 
 var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4 };
 
@@ -86,6 +89,8 @@ var g_TorusTreament = TORUS_TREATMENT.NONE;
 var g_PegTreatment = PEG_TREATMENT.CIRCLE;
 
 var g_CORSEnabled = true;
+
+var g_AllMembers = [];
 
 // NOTE: font description MUST include the font height in 'px'.
 var g_RecipientFontDesc = { 
@@ -148,6 +153,9 @@ var g_ElementDefaults = {
 
     t1:"Group Torus",   // Title 1 string
 
+    o:"270",            // orientation
+    or:"counter",       // counter-clockwise additions
+
     bgc:"FFFFFF",       // background colour
     tors:"100",         // torus size
     torw:"3",           // torus ring width
@@ -176,7 +184,7 @@ var g_MastersList = [
     "Mother Mary",                  "Isis",                 "Serapis Bey",
     "St John, the Baptist",         "Eros",                 "Ma'at",
     "Amen Bey",                     "Ptah",                 "Thomas Merton",
-    "Portia",                       "Anubis",               "Quetzalcoatl",
+    "Portia",                       "Anubis",               "Quetzacoatl",
     "Freya",                        "Moses",                "Vesta",
     "Chananda",                     "Yogananda",            "Gautama Buddha",
     "Maitreya",                     "Cha Ara",              "Hinenuitepo",
@@ -233,6 +241,7 @@ var g_Origin = {
     titleSpacing:               20,             // px spacing from title to any member/master name
 
     maxMembers:                 12,             // maximum number of members supported
+    maxDropDownMembers:         15,             // maximum number of members in drop down list
 
     maxProfiles:                7,              // maximum number of cookie profiles supported
     maxCookieDays:              365,            // maximum days to keep a cookie
@@ -368,6 +377,42 @@ var Detector = function() {
     this.identifyCommonFonts = identifyCommonFonts;
 };
 
+function computeSeed() {
+    var seed = 12345;
+    for( var i = 0; i < g_Origin.maxMembers; ++i ) {
+        var member = $("p" + i).value;
+        var master = $("m" + i).value;
+        
+        if( member !== "" ) {
+            for( var j = 0; j < member.length; ++j ) {
+                seed = ((seed + member.charCodeAt(j)) * 53) % 0x80000000;
+            }
+        }
+        if( master !== "" ) {
+            for( var j = 0; j < master.length; ++j ) {
+                seed = ((seed + master.charCodeAt(j)) * 53) % 0x80000000;
+            }
+        }
+    }
+    return seed;
+}
+
+function myRand(seed) {
+    this.m = 0x80000000;    // 2**31
+    this.a = 1103515245;
+    this.c = 12345;
+    this.state = seed ? seed : Math.floor(Math.random() * (this.m-1));
+}
+myRand.prototype.nextInt = function() {
+    this.state = (this.a * this.state + this.c) % this.m;
+    return this.state;
+}
+myRand.prototype.nextRange = function(start, end) {
+    var rangeSize = end - start;
+    var randomUnder1 = this.nextInt() / this.m;
+    var value = start + Math.floor( randomUnder1 * rangeSize );
+    return value;
+}
 
 
 function $(id) {
@@ -422,6 +467,10 @@ function createSeatingArrangement() {
     var obj;
     var result = "";
     var context = $("_canvas").getContext("2d");
+
+    if( $("or").value === "counter" ) {
+        step = -step;
+    }
 
     // Create the center object.
     obj = createTextObject( OBJECT_TYPE.RECIPIENT,
@@ -736,10 +785,11 @@ function drawSeatingArrangement() {
                         var startStep = 10;
                         var spiralStep = startStep;
                         var spacing = -spiralStep;
+                        var startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
                         while( obj.boundingRadius + spacing > 0 && spiralStep > 0 ) {
-                            obj.drawCircle( colorFromID(g_RecipientFontDesc.torusTreatmentColorID),
-                                            1,
-                                            spacing );
+                            lum = -spacing / obj.boundingRadius;
+                            var colour = colorLuminance( startColour, lum );
+                            obj.drawCircle( colour, 1, spacing );
                             spiralStep = Math.floor( ((obj.boundingRadius + spacing) / obj.boundingRadius) 
                                                         * startStep );
                             spacing -= spiralStep;
@@ -752,25 +802,143 @@ function drawSeatingArrangement() {
                                 colorFromID(g_RecipientFontDesc.torusTreatmentColorID) );
                     break;
 
-                case TORUS_TREATMENT.RADIAL:
+                case TORUS_TREATMENT.RANDOM:
                     {
-                        for( j =0; j < pegs.length; ++j ) {
-                            context.lineWidth = 1;
-                            context.beginPath();
-                            context.moveTo( obj.centerX(), obj.centerY() );
-                            context.lineTo( pegs[j].x, pegs[j].y );
-                            context.closePath();
-                            context.stroke();
+                        var startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        var rnd = new myRand( computeSeed() );
+
+                        function polarToXY( radius, angle ) {
+                            if( radius == null ) {
+                                radius = rnd.nextRange( 0, obj.boundingRadius );
+                            }
+                            if( angle == null ) {
+                                angle = rnd.nextRange( 0, 360 );
+                            } 
+                            return { x:radius * Math.cos( angle * Math.PI / 180 ),
+                                     y:radius * Math.sin( angle * Math.PI / 180 ),
+                                     radius:radius,
+                                     angle:angle };
                         }
 
-                        var step = 20;
-                        var spacing = -step;
-                        while( obj.boundingRadius + spacing > 0 ) {
-                            obj.drawCircle( colorFromID(g_RecipientFontDesc.torusTreatmentColorID),
-                                            1,
-                                            spacing );
-                            spacing -= step;
+                        context.save();
+                        context.beginPath();
+                        context.arc( obj.centerX(), obj.centerY(), 
+                                     obj.boundingRadius + 1, 0, 2*Math.PI );
+                        context.clip();
+
+
+                        context.translate( obj.centerX(), obj.centerY() );
+                        context.lineJoin = "round";
+
+                        var startAngle = rnd.nextRange( 0, 360 );
+                        var steps = rnd.nextRange( 5, 16 );
+                        var increment = 360 / steps;
+                        var points = [ {x:0, y:0},          // origin
+                                       polarToXY( obj.boundingRadius, startAngle ),
+                                       polarToXY( obj.boundingRadius, startAngle + increment ), 
+                                       polarToXY( obj.boundingRadius/2, startAngle ),
+                                       polarToXY( obj.boundingRadius/2, startAngle + increment ), 
+                                       polarToXY( obj.boundingRadius/2, startAngle + (increment/2) ),
+                                       polarToXY( obj.boundingRadius, startAngle + increment*2 ),
+                                       polarToXY( obj.boundingRadius, startAngle - increment*2 ),
+                                       polarToXY( obj.boundingRadius/2, startAngle + increment*2 ),
+                                       polarToXY( obj.boundingRadius/2, startAngle - increment*2 ),
+                                     ];
+                                        
+                        var count = rnd.nextRange( 5, 10 );
+                        var randPoints = [];
+                        var STYLE = { POSITION:0, LINE:1, BEZIER:2, CIRCLE:3, MAX_STYLES:4 };
+                        for( var j = 0; j < count; ++j ) {
+                            var style = (j==0) ? STYLE.POSITION : rnd.nextRange( STYLE.LINE, STYLE.MAX_STYLES );
+                            var point = points[rnd.nextRange( 0, points.length )];
+                            var dot = rnd.nextRange( 0, 5 ) == 3;
+                            var lum = distance(point.x, point.y, 0, 0) / obj.boundingRadius;
+                            lum *= rnd.nextRange( -10, 10 ) / 5;
+                            var colour = randomColour( startColour, 
+                                                       [lum,
+                                                        lum,
+                                                        lum] );
+
+                            if( style == STYLE.BEZIER ) {
+                                randPoints.push( {style:STYLE.BEZIER,
+                                                  point:point,
+                                                  control1:points[rnd.nextRange( 0, points.length )],
+                                                  control2:points[rnd.nextRange( 0, points.length )],
+                                                  dot:dot,
+                                                  colour:colour} );
+                            } else if( style == STYLE.CIRCLE ) {
+                                randPoints.push( {style:style,
+                                                  point:point,
+                                                  dot:false,
+                                                  radius:rnd.nextRange( 10, obj.boundingRadius/2 ),
+                                                  colour:colour} );
+                            } else {
+                                randPoints.push( {style:style,
+                                                  point:point,
+                                                  dot:dot,
+                                                  colour:colour} );
+                            }
                         }
+
+                        context.strokeStyle = colour;
+                        context.lineWidth = 1;
+                        for( var j = 0; j < steps; ++j ) {
+                            var cursor, oldCursor;
+                            var dot = false;
+                            for( var k = 0; k < randPoints.length; ++k ) {
+                                var rp = randPoints[k];
+                                switch( rp.style ) {
+                                    case STYLE.POSITION:
+                                        cursor = rp;
+                                        break;
+
+                                    case STYLE.LINE:
+                                        context.strokeStyle = rp.colour;
+                                        context.beginPath();
+                                        context.moveTo( cursor.x, cursor.y );
+                                        cursor = rp.point;
+                                        context.lineTo( cursor.x, cursor.y );
+                                        context.closePath();
+                                        context.stroke();
+                                        break;
+
+                                    case STYLE.CIRCLE:
+                                        context.strokeStyle = rp.colour;
+                                        context.beginPath();
+                                        context.arc( rp.point.x, rp.point.y, rp.radius, 0, 2*Math.PI );
+                                        context.closePath();
+                                        context.stroke();
+                                        break;
+
+                                    case STYLE.BEZIER:
+                                        context.strokeStyle = rp.colour;
+                                        context.beginPath();
+                                        context.moveTo( cursor.x, cursor.y );
+                                        context.bezierCurveTo( rp.control1.x, rp.control1.y,
+                                                               rp.control2.x, rp.control2.y,
+                                                               rp.point.x, rp.point.y );
+                                        cursor = rp.point;
+                                        context.closePath();
+                                        context.stroke();
+                                        break;
+                                }
+
+                                if( dot ) {
+                                    context.beginPath();
+                                    context.arc( oldCursor.x, oldCursor.y, 5, 0, 2*Math.PI );
+                                    context.fillStyle = colour;
+                                    context.fill();
+                                    context.closePath();
+                                    context.stroke();
+                                }
+
+                                dot = rp.dot;
+                                oldCursor = cursor;
+                            }
+                            context.rotate( increment * Math.PI/180 );
+                        }
+
+                        context.restore();
                     }
                     break;
 
@@ -848,18 +1016,70 @@ function drawSeatingArrangement() {
                         }
                     }
                     break;
+
+                case TORUS_TREATMENT.METATRONS_CUBE:
+                    {
+                        var radius = obj.boundingRadius/5;
+                        var points = [];
+                        var startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        var angleStep = 360 / 6;
+
+                        points.push( {point:pegObj.origin.polarToAbsXY( 0, 0 ), colour:startColour} );
+                        for( var r = 2*radius; r <= 4*radius; r += 2*radius ) {
+                            for( var count = 0; count < 6; ++count ) {
+                                var point = pegObj.origin.polarToAbsXY( radius, 90+count*angleStep );
+                                points.push( {point:pegObj.origin.polarToAbsXY( r, 90+count*angleStep ), 
+                                              colour:pointColour( obj, point, startColour )} );
+                            }
+                        }
+
+                        context.lineWidth = 1;
+                        for( var j = 0; j < points.length; ++j ) {
+                            context.strokeStyle = points[j].colour;
+                            context.beginPath();
+                            context.arc( points[j].point.x, points[j].point.y, radius, 0, 2*Math.PI );
+                            context.closePath();
+                            context.stroke();
+                        }
+
+                        for( var j = 1; j < points.length; ++j ) {
+                            for( var k = j+1; k < points.length; ++k ) {
+                                context.strokeStyle = startColour;
+                                var gradient = context.createLinearGradient( points[j].point.x, points[j].point.y,
+                                                                             points[k].point.x, points[k].point.y );
+                                gradient.addColorStop( 0, points[j].colour );
+                                gradient.addColorStop( 1, points[k].colour );
+                                context.strokeStyle = gradient;
+                                context.beginPath();
+                                context.moveTo( points[j].point.x, points[j].point.y );
+                                context.lineTo( points[k].point.x, points[k].point.y );
+                                context.closePath();
+                                context.stroke();
+                                context.fillStyle = null;
+                            }
+                        }
+/*
+                        var step = 10;
+                        for( var x=obj.centerX()-obj.boundingRadius; x<obj.centerX()+obj.boundingRadius; x+=step ) {
+                            for( var y=obj.centerY()-obj.boundingRadius; y<obj.centerY()+obj.boundingRadius; y+=step ) {
+                                var colour = pointColour( obj, {x:x, y:y}, startColour );
+                                context.beginPath();
+                                context.strokeStyle = colour;
+                                context.arc( x, y, 4, 0, 2*Math.PI );
+                                context.fillStyle = colour;
+                                context.fill();
+                                context.closePath();
+                                context.stroke();
+                            }
+                        }
+*/
+                    }
+                    break;
             }
 
             // Draw the torus
-            if( g_TorusTreament == TORUS_TREATMENT.SOLID ) {
-                obj.drawCircle( colorFromID(obj.fontDesc.torusColorID), 
-                                parseInt( $("torw").value ), 
-                                0,
-                                colorFromID(g_RecipientFontDesc.torusTreatmentColorID) );
-            } else {
-                obj.drawCircle( colorFromID(obj.fontDesc.torusColorID), 
-                                parseInt( $("torw").value ), 0 );
-            }
+            obj.drawCircle( colorFromID(obj.fontDesc.torusColorID), 
+                            parseInt( $("torw").value ), 0 );
 
             // Draw the pegs
             for( var j = 0; j < pegs.length; ++j ) {
@@ -882,6 +1102,58 @@ function drawSeatingArrangement() {
     }
 }
 
+function pointColour( torusObj, point, startColour ) {
+    var radius = torusObj.boundingRadius * 0.75;
+    var p0 = torusObj.origin.polarToAbsXY( radius, 30 );
+    var p1 = torusObj.origin.polarToAbsXY( radius, 150 );
+    var p2 = torusObj.origin.polarToAbsXY( radius, 270 );
+    var maxDistance = distancePoints(p0, p1);
+    var arr = [Math.min( distancePoints(point, p0), maxDistance ),
+               Math.min( distancePoints(point, p1), maxDistance ), 
+               Math.min( distancePoints(point, p2), maxDistance )];
+    var magnitude = arr[0] + arr[1] + arr[2];
+    var percent = [ arr[0]/magnitude, 
+                    arr[1]/magnitude,
+                    arr[2]/magnitude ];
+
+	// validate hex string
+	var hex = String(startColour).replace(/[^0-9a-f]/gi, '');
+	if (hex.length < 6) {
+		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+	}
+
+	// convert to decimal and change luminosity
+	var rgb = "#", c, i;
+	for (i = 0; i < 3; i++) {
+		c = parseInt(hex.substr(i*2,2), 16);
+        
+        c = c + 2*256*(0.5-percent[i]);
+		c = Math.round(Math.min(Math.max(0, c), 255)).toString(16);
+		rgb += ("00"+c).substr(c.length);
+	}
+
+	return rgb;
+}
+
+function randomColour(hex, lumArray) {
+	// validate hex string
+	hex = String(hex).replace(/[^0-9a-f]/gi, '');
+	if (hex.length < 6) {
+		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+	}
+
+	// convert to decimal and change luminosity
+	var rgb = "#", c, i;
+	for (i = 0; i < 3; i++) {
+		c = parseInt(hex.substr(i*2,2), 16);
+        c = c + (c*lumArray[i]);
+		c = Math.round(Math.min(Math.max(0, c), 255)).toString(16);
+		rgb += ("00"+c).substr(c.length);
+	}
+
+	return rgb;
+}
+
 function colorLuminance(hex, lum) {
 	// validate hex string
 	hex = String(hex).replace(/[^0-9a-f]/gi, '');
@@ -901,6 +1173,17 @@ function colorLuminance(hex, lum) {
 	return rgb;
 }
 
+function lastVisibleMember() {
+    var lastVisible = g_Origin.maxMembers - 1;
+    while( lastVisible >= 0 ) {
+        if( $("p" + lastVisible).value !== "" ) {
+            break;
+        }
+        --lastVisible;
+    }
+    return lastVisible;
+}
+
 function buildCanvas() {
     resetGlobals();
     g_Debug = $("_debug").checked;
@@ -913,12 +1196,19 @@ function buildCanvas() {
     if( $("t1").value !== "" )   g_Title.push( $("t1").value );
     if( $("t2").value !== "" )   g_Title.push( $("t2").value );
 
+    var lastVisible = lastVisibleMember();
     for( var i = 0; i < g_Origin.maxMembers; ++i ) {
         var member = $("p" + i).value;
         var master = $("m" + i).value;
 
         if( member !== "" ) {
             g_Members.push( {member:member, master:master} );
+        }
+
+        if( i <= lastVisible ) {
+            $("tr" + i).style.visibility = "visible";
+        } else {
+            $("tr" + i).style.visibility = "hidden";
         }
     }
 
@@ -1008,6 +1298,10 @@ function testOverlap() {
 
 function distance( x1, y1, x2, y2 ) {
     return Math.sqrt( Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2) );
+}
+
+function distancePoints( p1, p2 ) {
+    return distance( p1.x, p1.y, p2.x, p2.y );
 }
 
 function myTrim( str ) {
@@ -1556,6 +1850,19 @@ function eraseCookie( name ) {
     document.cookie = name+'=; Max-Age=-99999999;';  
 }
 
+function deleteRow( num ) {
+    if( num <= lastVisibleMember() ) {
+        while( num < g_Origin.maxMembers-1 ) {
+            $("p"+num).value = $("p"+(num+1)).value;
+            $("m"+num).value = $("m"+(num+1)).value;
+            ++num;
+        }
+        $("p"+num).value = "";
+        $("m"+num).value = "";
+        buildCanvas();
+    }
+}
+
 function memberHandleDragStart(e) {
     this.style.opacity = '0.4';  // this / e.target is the source node.
     g_DragSrcEl = this;
@@ -1675,6 +1982,60 @@ function addEventHandler(obj, evt, handler) {
     }
 }
 
+function saveMembers() {
+    for( var i = 0; i < g_Origin.maxMembers; ++i ) {
+        var member = $("p" + i).value;
+        if( member !== "" ) {
+            var found = false;
+
+            for( var j = 0; j < g_AllMembers.length; ++j ) {
+                if( member === g_AllMembers[j] ) {
+                    // Found the member in the list.  Update it and move
+                    //  it to the top of the list.
+                    g_AllMembers.splice( j, 1 );            // remove the old entry
+                    g_AllMembers.splice( 0, 0, member );    // insert replacement
+                    found = true;
+                    break;
+                }
+            }
+
+            if( !found ) {
+                // Add the member to the start of the list.
+                g_AllMembers.unshift( member );
+                if( g_AllMembers.length >= g_Origin.maxDropDownMembers ) {
+                    g_AllMembers.splice( g_Origin.maxDropDownMembers,
+                                         g_Origin.length );
+                }
+            }
+        }
+    }
+    setCookie( "membersList", g_AllMembers.join( "/" ) );
+}
+
+function loadMembers() {
+    var cookie = getCookie( "membersList" );
+
+    if( cookie == null ) {
+        g_AllMembers = [];
+    } else {
+        g_AllMembers = cookie.split( "/" );
+    }
+
+    var element = document.createElement( "datalist" );
+    var str = "";
+    element.setAttribute( "id", "membersList" );
+    for( var i = 0; i < g_AllMembers.length; ++i ) {
+        str += "<option value='" + g_AllMembers[i] + "'>\n";
+    }
+    element.innerHTML = str;
+
+    var last = $("membersDatalist").lastChild;
+    if( last != null ) {
+        $("membersDatalist").removeChild( last );
+    }
+    $("membersDatalist").appendChild( element );
+}
+
 function pageSetup() {
     // Determine what fonts are supported.
     g_DetectedFonts = (new Detector()).identifyCommonFonts();
@@ -1700,7 +2061,9 @@ function pageSetup() {
        element.setAttribute( "class", "row" );
        element.setAttribute( "draggable", "true" );
        element.setAttribute( "id", "" + i );
-       var str = "Member <input class=textInput type='text' name='member' id='p" + i + "' onChange='buildCanvas()'/>" +
+       var str = "<span id='tr" + i + "' onClick='deleteRow(" + i + ")'>&#9949;</span> " +
+                "Member <input class=textInput type='text' name='member' id='p" + i + "' list=membersList" +
+                 " onChange='buildCanvas()'/>" +
                  " works with <select class=dropDown name=masters id='m" + i + "' onChange='buildCanvas()'>\n";
 
        g_MastersList.sort();
@@ -1722,6 +2085,8 @@ function pageSetup() {
     addEventHandler( dl,
                      "click", 
                      function() { 
+                         saveMembers();
+                         loadMembers();
                          this.href = _canvas.toDataURL("image/png");
                          var name = $("f").value;
                          if( name === "" ) name = "image.png";
@@ -1765,6 +2130,7 @@ function pageSetup() {
     }
 
     createProfilesElement( "profiles" );
+    loadMembers();
 
     buildCanvas();
 }
@@ -1839,6 +2205,8 @@ function pageSetup() {
     <input class=textInput type='text' name="name" id="f" value="download.png" size="70"/><br>
     Profiles: <span id='profiles'></span> <button type='button' onclick='saveProfile()'>Save profile</button>
     
+    <div id="membersDatalist"></div>
+
     <table border=1>
       <tr>
         <td>
@@ -1851,7 +2219,10 @@ function pageSetup() {
             <input class="jscolor" id='tc' value="000000" size='4' onchange='buildCanvas()'><br>
 
         <h2>Members / Masters</h2>
-        <i><b>Members are added to the torus in a clockwise order. <br></b></i>
+        <i><b>Members are added to the torus in a <select class=dropDown name=order id=or onchange='buildCanvas()'>
+            <option value='counter'>counter-clockwise</option>
+            <option value='clockwise'>clockwise</option>
+        </select> order.   Masters are on the<br> right (counter-clockwise) of members.<br></b></i>
         <div id="members"></div>
 
         <p id="_error"></p>
@@ -1874,6 +2245,7 @@ function pageSetup() {
             <option value=112.5>South-Southwest (SSW)</option>
             <option value=135>Southwest (SW)</option>
             <option value=157.5>West-Southwest (WSW)</option>
+            <option value=180>West (W)</option>
             <option value=202.5>West-Northwest (WNW)</option>
             <option value=225>Northwest (NW)</option>
             <option value=247.5>North-Northwest (NNW)</option>
@@ -1891,23 +2263,23 @@ function pageSetup() {
                 <tr>
                   <td>ring treatment:</td>
                   <td>
-                    <select name=torusWidth id='tort' onChange='buildCanvas()'>
+                    <select class=dropDown name=torusWidth id='tort' onChange='buildCanvas()'>
                       <option value=0>None</option>
-                      <option value=1>SOLID</option>
-                      <option value=2>MESH</option>
-                      <option value=3>IMAGE</option>
-                      <option value=4>SPIRAL</option>
-                      <option value=5>HEART</option>
-                      <option value=6>RADIAL</option>
-                      <option value=7>GEOMETRIC_1</option>
-                      <option value=8>FLOWER_OF_LIFE</option>
+                      <option value=1>MESH</option>
+                      <option value=2>IMAGE</option>
+                      <option value=3>SPIRAL</option>
+                      <option value=4>HEART</option>
+                      <option value=5>RANDOM</option>
+                      <option value=6>GEOMETRIC_1</option>
+                      <option value=7>FLOWER_OF_LIFE</option>
+                      <option value=8>METATRONS_CUBE</option>
                     </select>
                     <input class="jscolor" id='tortc' value="000000" size='6' onchange='buildCanvas()'> <br>
                    </td>
                 </tr><tr>
                   <td>ring size:</td>
                   <td>
-                    <select name=torusSize id='tors' onChange='buildCanvas()'>
+                    <select class=dropDown name=torusSize id='tors' onChange='buildCanvas()'>
                       <option value=100>100px</option>
                       <option value=110>110px</option>
                       <option value=120>120px</option>
@@ -1919,7 +2291,7 @@ function pageSetup() {
                 </tr><tr>
                   <td>ring width:</td>
                   <td>
-                    <select name=torusWidth id='torw' onChange='buildCanvas()'>
+                    <select class=dropDown name=torusWidth id='torw' onChange='buildCanvas()'>
                       <option value=2>2px</option>
                       <option value=3>3px</option>
                       <option value=4>4px</option>
@@ -1938,7 +2310,7 @@ function pageSetup() {
                 <tr>
                   <td>peg treatment:</td>
                   <td>
-                    <select name=pegTreatment id='pegt' onChange='buildCanvas()'>
+                    <select class=dropDown name=pegTreatment id='pegt' onChange='buildCanvas()'>
                       <option value=0>None</option>
                       <option value=1>Circle</option>
                       <option value=2>Square</option>
@@ -1950,7 +2322,7 @@ function pageSetup() {
                 </tr><tr>
                   <td>peg width:</td>
                   <td>
-                    <select name=pegWidth id='pegw' onChange='buildCanvas()'>
+                    <select class=dropDown name=pegWidth id='pegw' onChange='buildCanvas()'>
                       <option value=5>5px</option>
                       <option value=6>6px</option>
                       <option value=7>7px</option>
