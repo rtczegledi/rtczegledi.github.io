@@ -8,7 +8,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-// Date:        March 31, 2018
+// Date:        July 6, 2018
 //
 // ID Legend:
 //  $("_canvas")    - canvas element for drawing image
@@ -76,7 +76,9 @@ var ALIGNMENT = { LEFT:0, CENTER:1, RIGHT:2, AUTO:3 };
 
 var OBJECT_TYPE = { TITLE:0, MEMBER:1, MASTER:2, RECIPIENT:3};
 
-var TORUS_TREATMENT = { NONE:0, MESH:1, IMAGE:2, SPIRAL:3, HEART:4, RANDOM:5, GEOMETRIC_1:6, FLOWER_OF_LIFE:7, METATRONS_CUBE:8 };
+var TORUS_TREATMENT = { NONE:0, HEART:1, RANDOM:2, FLOWER_OF_LIFE:3, METATRONS_CUBE:4,
+                        DAISY:5, PETALS:6,
+                        MESH:7, GEOMETRIC_1:8, IMAGE:9};
 
 var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4 };
 
@@ -158,7 +160,7 @@ var g_ElementDefaults = {
 
     bgc:"FFFFFF",       // background colour
     tors:"100",         // torus size
-    torw:"3",           // torus ring width
+    torw:"3",           // torus circle width
     tort:"0",           // torus treatment
     tortc:"000000",     // torus treatment colour
     tpc:"FF15C8",       // title group color
@@ -224,12 +226,12 @@ var g_Origin = {
     imageCenterX:               400,            // imageWidth/2
     imageCenterY:               400,            // imageHeight/2
 
-    torusRingSize:              100,            // initial size of torus ring
-    torusRingWidth:             3,              // px for the torus ring
-    torusRingSpacing:           6,              // px spacing abound torus ring
-    torusRingMasterSpacing:     75,             // px spacing from torus ring to master names
+    torusRingSize:              100,            // initial size of torus circle 
+    torusRingWidth:             3,              // px for the torus circle
+    torusRingSpacing:           6,              // px spacing abound torus circle
+    torusRingMasterSpacing:     75,             // px spacing from torus circle to master names
 
-    torusRingPegSize:           6,              // px size of pegs on torus ring
+    torusRingPegSize:           6,              // px size of pegs on torus circle
 
     memberSpacing:              5,              // px spacing around member names
     masterSpacing:              5,              // px spacing around master names
@@ -780,23 +782,6 @@ function drawSeatingArrangement() {
                     }
                     break;
 
-                case TORUS_TREATMENT.SPIRAL: 
-                    {
-                        var startStep = 10;
-                        var spiralStep = startStep;
-                        var spacing = -spiralStep;
-                        var startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
-                        while( obj.boundingRadius + spacing > 0 && spiralStep > 0 ) {
-                            lum = -spacing / obj.boundingRadius;
-                            var colour = colorLuminance( startColour, lum );
-                            obj.drawCircle( colour, 1, spacing );
-                            spiralStep = Math.floor( ((obj.boundingRadius + spacing) / obj.boundingRadius) 
-                                                        * startStep );
-                            spacing -= spiralStep;
-                        }
-                    }
-                    break;
-
                 case TORUS_TREATMENT.HEART:
                     drawHeart( context, obj.centerX(), obj.centerY(), obj.boundingRadius, 
                                 colorFromID(g_RecipientFontDesc.torusTreatmentColorID) );
@@ -996,11 +981,7 @@ function drawSeatingArrangement() {
                         for( var j = 0; j < centerArray.length; ++j ) {
                             var point = obj.origin.absXY( centerArray[j].centerX, centerArray[j].centerY );
 
-                            var lum = (distance(centerArray[j].centerX, 
-                                                centerArray[j].centerY, 
-                                                0,0) / obj.boundingRadius);
-                            context.strokeStyle = colorLuminance( startColour, lum );
-
+                            context.strokeStyle = pointColour( obj, point, startColour );
                             var visiblePoints = centerArray[j].visiblePoints;
                             for( var k = 0; k < visiblePoints.length; ++k ) {
                                 var endIndex = (k+1) % visiblePoints.length;
@@ -1044,7 +1025,6 @@ function drawSeatingArrangement() {
 
                         for( var j = 1; j < points.length; ++j ) {
                             for( var k = j+1; k < points.length; ++k ) {
-                                context.strokeStyle = startColour;
                                 var gradient = context.createLinearGradient( points[j].point.x, points[j].point.y,
                                                                              points[k].point.x, points[k].point.y );
                                 gradient.addColorStop( 0, points[j].colour );
@@ -1058,21 +1038,43 @@ function drawSeatingArrangement() {
                                 context.fillStyle = null;
                             }
                         }
-/*
-                        var step = 10;
-                        for( var x=obj.centerX()-obj.boundingRadius; x<obj.centerX()+obj.boundingRadius; x+=step ) {
-                            for( var y=obj.centerY()-obj.boundingRadius; y<obj.centerY()+obj.boundingRadius; y+=step ) {
-                                var colour = pointColour( obj, {x:x, y:y}, startColour );
+                    }
+                    break;
+
+                case TORUS_TREATMENT.DAISY:
+                    {
+                        var startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        var width = obj.boundingRadius / 6;
+                         
+                        for( var radius = width/2; radius < obj.boundingRadius; radius += width/2 ) {
+                            for( var angle = 0; angle < 360; angle += 10 ) {
+                                var center = obj.origin.polarToAbsXY( radius, angle );
+                                var colour = pointColour( obj, center, startColour );
                                 context.beginPath();
                                 context.strokeStyle = colour;
-                                context.arc( x, y, 4, 0, 2*Math.PI );
-                                context.fillStyle = colour;
-                                context.fill();
+                                context.arc( center.x, center.y, width/2, 0, 2*Math.PI );
                                 context.closePath();
                                 context.stroke();
                             }
+                            width *= 2;
                         }
-*/
+                    }
+                    break;
+
+                case TORUS_TREATMENT.PETALS:
+                    {
+                        var startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        for( var angle=0; angle < 360; angle+=20 ) {
+                            var center = obj.origin.polarToAbsXY( obj.boundingRadius/2, angle );
+                            context.beginPath();
+                            context.strokeStyle = pointColour( obj, center, startColour );
+                            context.ellipse( center.x, center.y, obj.boundingRadius/2, 20, 
+                                             angle * Math.PI / 180, 2*Math.PI, false );
+                            context.fillStyle = pointColour( obj, center, startColour, "rgba", 0.1 );
+                            context.fill();
+                            context.closePath();
+                            context.stroke();
+                        }
                     }
                     break;
             }
@@ -1102,7 +1104,7 @@ function drawSeatingArrangement() {
     }
 }
 
-function pointColour( torusObj, point, startColour ) {
+function pointColour( torusObj, point, startColour, method, opacity ) {
     var radius = torusObj.boundingRadius * 0.75;
     var p0 = torusObj.origin.polarToAbsXY( radius, 30 );
     var p1 = torusObj.origin.polarToAbsXY( radius, 150 );
@@ -1123,14 +1125,33 @@ function pointColour( torusObj, point, startColour ) {
 	}
 
 	// convert to decimal and change luminosity
-	var rgb = "#", c, i;
+    if( method != null ) {
+        rgb = method + "(";
+    } else {
+        // hexadecimal color
+        var rgb = "#", c, i;
+    }
 	for (i = 0; i < 3; i++) {
 		c = parseInt(hex.substr(i*2,2), 16);
         
         c = c + 2*256*(0.5-percent[i]);
-		c = Math.round(Math.min(Math.max(0, c), 255)).toString(16);
-		rgb += ("00"+c).substr(c.length);
+		c = Math.round(Math.min(Math.max(0, c), 255));
+        if( method != null ) {
+            rgb += c.toString();
+            if( i < 2 ) {
+                rgb += ",";
+            }
+        } else {
+            c = c.toString(16);
+            rgb += ("00"+c).substr(c.length);
+        }
 	}
+    if( method != null ) {
+        if( opacity != null ) {
+            rgb += "," + opacity.toString();
+        }
+        rgb += ")";
+    }
 
 	return rgb;
 }
@@ -1274,7 +1295,7 @@ function testOverlap() {
         var obj = g_ObjectArray[i];
 
         if( obj.intersectsCircle( g_ObjectArray[0] ) ) {
-            return "object '" + obj.getName() + "' intersects torus ring";
+            return "object '" + obj.getName() + "' intersects torus circle";
         }
     }
     
@@ -1360,7 +1381,7 @@ function createTextObject( objectType,
 
     if( obj.objectType == OBJECT_TYPE.MEMBER ) {
         // Some fine placement is necessary for the member elements that
-        //  immediately orbit the ring so that the member text is adjacent
+        //  immediately orbit the circle so that the member text is adjacent
         //  to the peg.
         var peg = obj.origin.polarToAbsXY( obj.origin.torusRingSize + obj.origin.torusRingPegSize,
                                            obj.angle ); 
@@ -1571,17 +1592,29 @@ function createTextObject( objectType,
 }
 
 function getNumberStringPrefix( num ) {
-    num = num % 10;
-
     // determine 'st', 'nd', or 'rd', or 'th' prefix
-    if( num == 1 ) {
-        return "st";
-    } else if( num == 2 ) {
-        return "nd";
-    } else if( num == 3 ) {
-        return "rd";
+    if( num <= 20 ) {
+        if( num == 1 ) {
+            return "st";
+        } else if( num == 2 ) {
+            return "nd";
+        } else if( num == 3 ) {
+            return "rd";
+        } else {
+            return "th";
+        }
     } else {
-        return "th";
+        num = num % 10;
+
+        if( num == 1 ) {
+            return "st";
+        } else if( num == 2 ) {
+            return "nd";
+        } else if( num == 3 ) {
+            return "rd";
+        } else {
+            return "th";
+        }
     }
 }
 
@@ -2061,7 +2094,8 @@ function pageSetup() {
        element.setAttribute( "class", "row" );
        element.setAttribute( "draggable", "true" );
        element.setAttribute( "id", "" + i );
-       var str = "<span id='tr" + i + "' onClick='deleteRow(" + i + ")'>&#9949;</span> " +
+       var str = "<span class='tooltip' id='tr" + i + "' onClick='deleteRow(" + i + ")'>&#9949;" +
+                 "<span class='tooltiptext'>Delete this row</span></span> " +
                 "Member <input class=textInput type='text' name='member' id='p" + i + "' list=membersList" +
                  " onChange='buildCanvas()'/>" +
                  " works with <select class=dropDown name=masters id='m" + i + "' onChange='buildCanvas()'>\n";
@@ -2132,6 +2166,8 @@ function pageSetup() {
     createProfilesElement( "profiles" );
     loadMembers();
 
+    //$("tort").value = "10";  // XXX REMOVE
+
     buildCanvas();
 }
 
@@ -2196,27 +2232,72 @@ function pageSetup() {
     .row.over {
       border: 2px dashed #000;
     }
+    .inputTable {
+      border: 4px solid red;
+      border-radius: 20px;
+      padding: 10px;
+    }
+    .imageTable {
+      border: 2px solid green;
+    }
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        border-bottom: 1px dotted black;
+    }
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 150px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px 0;
+        position: absolute;
+        z-index: 1;
+        top: 150%;
+        left: 50%;
+        margin-left: -60px;
+        
+        /* Fade in tooltip - takes 1 second to go from 0% to 100% opac: */
+        opacity: 0;
+        transition: opacity 1s;
+    }
+    .tooltip .tooltiptext::after {
+        content: "";
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: transparent transparent black transparent;
+    }
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
   </style>
   <body onLoad=pageSetup()>
     <script src="jscolor.min.js"></script>
     <script src="jsurl.js"></script>
     Click <a href=help.html>here</a> for help.
     <a id="downloadLink" href="#image">Download</a> image as filename
-    <input class=textInput type='text' name="name" id="f" value="download.png" size="70"/><br>
-    Profiles: <span id='profiles'></span> <button type='button' onclick='saveProfile()'>Save profile</button>
+    <input class=textInput type='text' name="name" id="f" value="download.png" size="60"/><br>
+    Profiles: <span id='profiles'></span> <span class='tooltip'><button type='button' onclick='saveProfile()'>Save profile</button><span class=tooltiptext>Save current settings profile</span></span>
     
     <div id="membersDatalist"></div>
 
-    <table border=1>
+    <table class='inputTable'>
       <tr>
         <td>
         <h2>Group Torus Title</h2>
-        Title 1: <input class=textInput type='text' name='t1' id='t1' size='40' value='' onChange='buildCanvas()'/><br>
+        Title 1: <span class='tooltip'><input class=textInput type='text' name='t1' id='t1' size='40' value='' onChange='buildCanvas()'><span class='tooltiptext'>Title used in the image header and download filename.</span></input></span><br>
         Title 2: <input class=textInput type='text' name='t2' id='t2' size='40' value='Duration: 20 min' onChange='buildCanvas()'/><br>
         part (optional) <input class=textInput type='text' name='tp' id='tp' size='20' value='' onChange='buildCanvas()'/>
-            <input class="jscolor" id='tpc' value="000000" size='4' onchange='buildCanvas()'> <br>
+            <span class='tooltip'><input class="jscolor" id='tpc' value="000000" size='4' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for<br/><b>part (optional)</b></span></span> <br>
         Font <span id='titleProperties'></span>
-            <input class="jscolor" id='tc' value="000000" size='4' onchange='buildCanvas()'><br>
+            <span class='tooltip'><input class="jscolor" id='tc' value="000000" size='4' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for<br/><b>Title 1</b> and <b>Title 2</b></span></span><br>
 
         <h2>Members / Masters</h2>
         <i><b>Members are added to the torus in a <select class=dropDown name=order id=or onchange='buildCanvas()'>
@@ -2228,9 +2309,9 @@ function pageSetup() {
         <p id="_error"></p>
 
         Member font <span id='memberProperties'></span>
-            <input class="jscolor" id='pc' value="000000" size='4' onchange='buildCanvas()'> <br>
+            <span class='tooltip'><input class="jscolor" id='pc' value="000000" size='4' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for <br/>member names.</span></span> <br>
         Master font <span id='masterProperties'></span>
-            <input class="jscolor" id='mc' value="000000" size='4' onchange='buildCanvas()'> <br>
+            <span class='tooltip'><input class="jscolor" id='mc' value="000000" size='4' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for<br/>master names.</span></span> <br>
         Orientation for first member is
         <select class=dropDown name=orientation id=o onChange='buildCanvas()'>
             <option value=270>North (N)</option>
@@ -2252,32 +2333,40 @@ function pageSetup() {
         </select>
         <div/>
         <br/>
+        <h2>Torus Circle</h2>
         <table border=0>
           <tr>
             <td>Background colour:</td>
             <td><input class="jscolor" id='bgc' value="FFFFFF" size='6' onchange='buildCanvas()'></td>
           </tr><tr>
-            <td>Torus ring</td>
+            <td>Torus circle</td>
             <td>
               <table border=1>
                 <tr>
-                  <td>ring treatment:</td>
+                  <td>circle treatment:</td>
                   <td>
-                    <select class=dropDown name=torusWidth id='tort' onChange='buildCanvas()'>
-                      <option value=0>None</option>
-                      <option value=1>MESH</option>
-                      <option value=2>IMAGE</option>
-                      <option value=3>SPIRAL</option>
-                      <option value=4>HEART</option>
-                      <option value=5>RANDOM</option>
-                      <option value=6>GEOMETRIC_1</option>
-                      <option value=7>FLOWER_OF_LIFE</option>
-                      <option value=8>METATRONS_CUBE</option>
-                    </select>
-                    <input class="jscolor" id='tortc' value="000000" size='6' onchange='buildCanvas()'> <br>
+                    <span class=tooltip>
+                      <select class=dropDown name=torusWidth id='tort' onChange='buildCanvas()'>
+                        <option value=0>None</option>
+                        <option value=1>HEART</option>
+                        <option value=2>RANDOM</option>
+                        <option value=3>FLOWER_OF_LIFE</option>
+                        <option value=4>METATRONS_CUBE</option>
+                        <option value=5>DAISY</option>
+                        <option value=6>PETALS</option>
+                        <option value=7>MESH (per members)</option>
+                        <option value=8>GEOMETRIC_1 (per members)</option>
+                        <option value=9>IMAGE</option>
+                      </select>
+                      <span class=tooltiptext>Pattern to display within torus circle</span>
+                    </span>
+                    <span class=tooltip>
+                      <input class="jscolor" id='tortc' value="000000" size='6' onchange='buildCanvas()'> <br>
+                      <span class=tooltiptext>Colour selector for pattern in torus</span>
+                    </span>
                    </td>
                 </tr><tr>
-                  <td>ring size:</td>
+                  <td>circle size:</td>
                   <td>
                     <select class=dropDown name=torusSize id='tors' onChange='buildCanvas()'>
                       <option value=100>100px</option>
@@ -2289,7 +2378,7 @@ function pageSetup() {
                     </select>
                   </td>
                 </tr><tr>
-                  <td>ring width:</td>
+                  <td>circle width:</td>
                   <td>
                     <select class=dropDown name=torusWidth id='torw' onChange='buildCanvas()'>
                       <option value=2>2px</option>
@@ -2300,8 +2389,16 @@ function pageSetup() {
                       <option value=7>7px</option>
                     </select>
                   </td>
+                </tr><tr>
+                  <td>circle colour:</td>
+                  <td>
+                    <span class=tooltip>
+                      <input class="jscolor" id='torc' value="000000" size='6' onchange='buildCanvas()'>
+                      <span class=tooltiptext>Colour selector for torus circle</span>
+                    </span>
                 </tr>
               </table>
+                  </td>
             </td>
           </tr><tr>
             <td>Torus peg</td>
@@ -2317,7 +2414,6 @@ function pageSetup() {
                       <option value=3>Diamond</option>
                       <option value=4>Heart</option>
                     </select>
-                    <input class="jscolor" id='torc' value="000000" size='6' onchange='buildCanvas()'>
                   </td>
                 </tr><tr>
                   <td>peg width:</td>
@@ -2333,10 +2429,20 @@ function pageSetup() {
                   </td>
                 </tr><tr>
                   <td>peg colour:</td>
-                  <td><input class="jscolor" id='torpc' value="000000" size='6' onchange='buildCanvas()'></td>
+                  <td>
+                    <span class=tooltip>
+                      <input class="jscolor" id='torpc' value="000000" size='6' onchange='buildCanvas()'>
+                      <span class=tooltiptext>Colour selector for pegs</span>
+                    </span>
+                  </td>
                 </tr><tr>
                   <td>peg border colour:</td>
-                  <td><input class="jscolor" id='torpbc' value="000000" size='6' onchange='buildCanvas()'></td>
+                  <td>
+                    <span class=tooltip>
+                      <input class="jscolor" id='torpbc' value="000000" size='6' onchange='buildCanvas()'>
+                      <span class=tooltiptext>Colour selector for<br/>peg borders</span>
+                    </span>
+                  </td>
                 </tr>
               </table>
             </td>
@@ -2344,15 +2450,15 @@ function pageSetup() {
         </table>
 
         <h2>Recipient (optional)</h2>
-        Recipient: <input class=textInput type='text' name='rep' id='rep' size='40' value='' onChange='buildCanvas()'/><br>
+        Recipient: <span class='tooltip'><input class=textInput type='text' name='rep' id='rep' size='40' value='' onChange='buildCanvas()'/><span class='tooltiptext'>Optional name for center of torus</span></span><br>
         Font <span id='recipientProperties'></span>
-            <input class="jscolor" id='rc' value="000000" size='6' onchange='buildCanvas()'> <br>
+            <span class='tooltip'><input class="jscolor" id='rc' value="000000" size='6' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for <b>Recipient</b></span></span> <br>
         <span id=_imageInput>
             Image: <input class=textInput type='text' name='tori' id='tori' size='80' value='' onChange='newImage()'/><br>
         </span>
       </td>
       <td valign=top>
-          <table border=1 cellpadding=4>
+          <table class=imageTable cellpadding=4>
             <tr><td>
               <canvas id=_canvas width=100 height=50 crossOrigin="Anonymous"></canvas>
             </td></tr>
