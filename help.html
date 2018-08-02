@@ -54,7 +54,7 @@ blockquote.default{
 </style>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> July 6, 2018
+<b>Date:</b> August 2, 2018
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -72,7 +72,7 @@ The <b>Group Torus Title</b> consists of three text fields named "<b>Title 1</b>
 <div/><br/>
 
 <h2>Members / Masters</h2>
-Up to 12 set of members and optional masters can be added.  Each row is of the form "<b>Member [person] works with [master]</b>" where the master can be selected from a drop down menu.  The first member field that is not blank is considered special in that it is placed in the cardinal direction as specified by the "<b>Orientation for the first member</b>" drop down menu.  All the remaining members/masters are drawn around the torus ring in either a clockwise or counter-clockwise manner depending on the order selected by the drop down menu.  Note that there is no validation for duplicate members or for any master to be present.  The font style and colour for members and masters can be changed.
+Up to 16 set of members and optional masters can be added.  Each row is of the form "<b>Member [person] works with [master]</b>" where the master can be selected from a drop down menu.  The first member field that is not blank is considered special in that it is placed in the cardinal direction as specified by the "<b>Orientation for the first member</b>" drop down menu.  All the remaining members/masters are drawn around the torus ring in either a clockwise or counter-clockwise manner depending on the order selected by the drop down menu.  Note that there is no validation for duplicate members or for any master to be present.  The font style and colour for members and masters can be changed.
 <div/><br/>
 
 <blockquote class="default">
@@ -86,6 +86,8 @@ Hints:
 Member rows in the list can be deleted if the member name is non-blank.  In this case, the "<b>Member</b>" row will start with a "<b>&#9949</b>" character.  Clicking the "<b>&#9949</b>" character will delete the row and will shift up rows below it.<div/><br/>
 
 Members in the torus group can be rearranged by selecting a row of the form "<b>Member [person] works with [master]</b>" and dragging it a destination row.  Note that you will need to select the textual components of the row (i.e. the "<b>Member</b>" or "<b>works with</b>") and avoid the "<b>&#9949</b>" in order to select the row.  Intermediate rows will be shifted up or down depending on the direction in which the source row is dragged.<div/><br/>
+
+It is possible to assign multiple masters to a member by creating adjacent rows with the same member name.  The set of masters are rendered with a "<b>/</b>" character between the master names. 
 
 <h2>Torus Circle</h2>
 
