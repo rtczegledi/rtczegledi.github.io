@@ -1570,6 +1570,14 @@ function myTrim( str ) {
     return str.replace(/^\s+|\s+$/g,"");
 }
 
+function normalizeAngle( angle ) {
+    if( angle < 0 ) {
+        return 360 + (angle % 360);
+    } else {
+        return angle % 360;
+    }
+}
+
 function createTextObject( objectType,
                            textArray, 
                            canvas, 
@@ -1588,7 +1596,7 @@ function createTextObject( objectType,
     obj.alignment = alignment;
     obj.origin = origin;
     obj.radius = radius;
-    obj.angle = angle % 360;
+    obj.angle = normalizeAngle( angle );
     obj.spacing = spacing;
 
     obj.font = ($(fontDesc.fontItalicID).checked ? "italic" : "normal") + " "     // font style
@@ -1735,7 +1743,7 @@ function createTextObject( objectType,
     };
 
     obj.setAngle = function( angle ) {
-        this.angle = angle % 360;
+        this.angle = normalizeAngle( angle );
     };
    
     obj.getName = function() {
@@ -2047,7 +2055,7 @@ function createProfilesElement( parentID ) {
 
 function createFontSelectionElements( parentID, fontDesc ) {
     let fontWeights = [ "normal", "bold" ];
-    let fontSizes = [ "10px", "12px", "14px", "16px", "18px" ];
+    let fontSizes = [ "10px", "12px", "14px", "16px", "18px", "20px", "22px" ];
 
     let fontStyles = [ "normal", "italic" ];
 
