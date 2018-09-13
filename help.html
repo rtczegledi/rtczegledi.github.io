@@ -54,7 +54,7 @@ blockquote.default{
 </style>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> August 2, 2018
+<b>Date:</b> September 13, 2018
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -99,6 +99,8 @@ The torus is drawn as a circle with overlayed smaller circles called <i>pegs</i>
   <li>METATRONS_CUBE : draw Metatron's cube</li>
   <li>DAISY : draw a daisy flower pattern</li>
   <li>PETALS : draw flower petals</li>
+  <li>GOLDEN_SPIRAL : draw random golden spiral pattern</li>
+  <li>METATRON_2 : draw a detailed Metatron's cube</li>
   <li>MESH : draw a wire mesh between all member pegs</li>
   <li>GEOMETRIC_1 : draw a wire pattern between all member pegs</li>
   <li>IMAGE : when supported, drag and drop an image</li>
@@ -132,14 +134,24 @@ Since torus images may be created for different days, layout configurations can 
 <hr>
 <h3>Revision History</h3>
 <ul>
-<li><b>August 2, 2018</b>
-    <ul>
-        <li>Increased text font size selection to 22px.</li>
-        <li>Corrected member name layout with respect to pegs when a "counter-clockwise" member placement is selected and some orientations for the first member are used.</li>
-        <li>Master names are layed out more intelligently with respect to member names.  The Debug enabled option will display the bounding rays for each member and master elements to diagnose the placement strategy.</li>
-        <li>Multiple masters can be assigned to a member by repeating the same member name sequentially in the member/master list.</li>
-        <li>Improved RANDOM mandala torus circle pattern algorithm.</li>
-    </ul>
+    <li>
+        <b>September 13, 2018</b>
+        <ul>
+            <li>Added GOLDEN_SPIRAL torus circle pattern algorithm.</li>
+            <li>Added METATRON_2 torus circle pattern algorithm.</li>
+        </ul>
+    </li>
+
+    <li>
+        <b>August 2, 2018</b>
+        <ul>
+            <li>Increased text font size selection to 22px.</li>
+            <li>Corrected member name layout with respect to pegs when a "counter-clockwise" member placement is selected and some orientations for the first member are used.</li>
+            <li>Master names are layed out more intelligently with respect to member names.  The Debug enabled option will display the bounding rays for each member and master elements to diagnose the placement strategy.</li>
+            <li>Multiple masters can be assigned to a member by repeating the same member name sequentially in the member/master list.</li>
+            <li>Improved RANDOM mandala torus circle pattern algorithm.</li>
+        </ul>
+    </li>
 </ul>
 </body>
 </html>

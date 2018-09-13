@@ -8,7 +8,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-// Date:        August 2, 2018
+// Date:        September 13, 2018
 //
 // ID Legend:
 //  $("_canvas")    - canvas element for drawing image
@@ -78,7 +78,8 @@ var OBJECT_TYPE = { TITLE:0, MEMBER:1, MASTER:2, RECIPIENT:3};
 
 var TORUS_TREATMENT = { NONE:0, HEART:1, RANDOM:2, FLOWER_OF_LIFE:3, METATRONS_CUBE:4,
                         DAISY:5, PETALS:6,
-                        MESH:7, GEOMETRIC_1:8, IMAGE:9};
+                        MESH:7, GEOMETRIC_1:8, IMAGE:9, GOLDEN_SPIRAL:10,
+                        METATRON_2:11};
 
 var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4 };
 
@@ -411,10 +412,8 @@ myRand.prototype.nextInt = function() {
     return this.state;
 }
 myRand.prototype.nextRange = function(start, end) {
-    let rangeSize = end - start;
-    let randomUnder1 = this.nextInt() / this.m;
-    let value = start + Math.floor( randomUnder1 * rangeSize );
-    return value;
+    this.state = (this.a * this.state + this.c) % this.m;
+    return start + Math.floor( this.state / this.m * (end-start) );
 }
 myRand.prototype.randColour = function(hex, opacity) {
 	// validate hex string
@@ -880,6 +879,157 @@ function iterateRandom( context, arcAngle, script ) {
     }
 }
 
+
+function goldenSpiral( obj, p, array, rnd, branch ) {
+    var ctx = p.context;
+    var startX = 0;
+    var startY = 0;
+    var length = p.length;
+    var flip = p.flip;
+    var angle = p.angle;
+    var lineWidth = p.lineWidth;
+    var side = length;
+    var startColour = p.startColour;
+    var fai = ((1 + Math.sqrt(5)) / 2);
+    var x1 = 0;
+    var y1 = 0;
+    var x2 = 0;
+    var y2 = 0;
+    var rotateAngle = angle * Math.PI/180;
+    var MIN_LENGTH = 5;
+    var DEGREE_FACTOR = Math.PI / 180;
+ 
+    ctx.translate( p.startX, p.startY );
+    ctx.rotate( rotateAngle );
+    for (var i = 0; i < 8 ; i++) {       
+        if( !flip ) {
+            setGoldenDraw( [0, -90, -180, 90][i & 3], i==0, i);
+        } else {
+            setGoldenDraw( [0, 90, -180, -90][i & 3], i==0, i);
+        }
+    }
+ 
+    function setGoldenDraw(deg,flag,i) {
+        if (flag) {
+            setXY();
+        } else {
+            startX = startX + x1 + x2;
+            startY = startY + y1 + y2;
+            side = Math.sqrt(x1 * x1 + y1 * y1);
+            setXY();
+        }
+ 
+        function setXY() {
+            x1 = Math.cos(deg * DEGREE_FACTOR) * side / fai;
+            y1 = Math.sin(deg * DEGREE_FACTOR) * side / fai;
+            x2 = Math.cos(deg * DEGREE_FACTOR) * side / (fai*fai);
+            y2 = Math.sin(deg * DEGREE_FACTOR) * side / (fai*fai);
+        }
+ 
+        var dx = x1 + x2;
+        var dy = y1 + y2;
+
+        if( i == 1 ) {
+            startY -= dy;
+        } else if (i > 1) {
+            var dis = fai * Math.sqrt(dx * dx + dy * dy);
+            ctx.lineWidth=lineWidth;
+            ctx.strokeStyle="#000000";
+            ctx.beginPath();
+            var x = startX + dx + Math.cos(deg * DEGREE_FACTOR)*dis;
+            var y = startY + dy + Math.sin(deg * DEGREE_FACTOR)*dis;
+            ctx.moveTo(x, y);
+            var step = 90 / (2*Math.PI*dis / 4);
+            var adjust = flip ? step : -step;
+            for( var k = 0; k < 90; k+=step ) {
+                deg += adjust;
+                var x = startX + dx + Math.cos(deg * DEGREE_FACTOR)*dis;
+                var y = startY + dy + Math.sin(deg * DEGREE_FACTOR)*dis;
+
+                if( (k % 30) < step ) {
+                    var absX = p.startX + x*Math.cos(-rotateAngle) + y*Math.sin(-rotateAngle);
+                    var absY = p.startY - x*Math.sin(-rotateAngle) + y*Math.cos(-rotateAngle);
+                    ctx.strokeStyle = pointColour( obj, {x:absX, y:absY}, startColour );
+                }
+                ctx.lineTo( x, y );
+
+                if( array && lineWidth > 1 ) {
+                    if( branch.outerCondition(k,step,i) ) {
+                        let len = branch.outerLength(rnd, length);
+                        if( len >= MIN_LENGTH ) {
+                            array.push( {context:     ctx,
+                                         startX:      p.startX + x*Math.cos(-rotateAngle) + y*Math.sin(-rotateAngle),
+                                         startY:      p.startY - x*Math.sin(-rotateAngle) + y*Math.cos(-rotateAngle),
+                                         length:      len,
+                                         flip:        !flip,
+                                         angle:       p.angle + deg,
+                                         lineWidth:   lineWidth-1,
+                                         startColour: startColour,
+                                         id:          "outer-k:"+k.toString()+"-i:"+i.toString()} );
+                        }
+                    }
+
+                    if( branch.innerCondition(k,step,i) ) {
+                        let len = branch.innerLength(rnd, length);
+                        if( len >=MIN_LENGTH ) {
+                            array.push( {context:     ctx,
+                                         startX:      p.startX + x*Math.cos(-rotateAngle) + y*Math.sin(-rotateAngle),
+                                         startY:      p.startY - x*Math.sin(-rotateAngle) + y*Math.cos(-rotateAngle),
+                                         length:      len,
+                                         flip:        flip,
+                                         angle:       (p.angle + deg + 180) % 360,
+                                         lineWidth:   lineWidth-1,
+                                         startColour: startColour,
+                                         id:          "inner-k:"+k.toString()+"-i:"+i.toString()} );
+                        }
+                    }
+                }
+            }
+            ctx.stroke();
+        }
+    }
+}
+
+
+function iterateSpiralRotate( context, obj, startColour ) {
+    var branchParms = [ 
+                            {
+                                outerCondition:     function(k,step,i)      { return i<4 && (k%30) < step; },
+                                outerLength:        function(rnd, length)   { return rnd.nextRange(length/4, length/2); },
+                                innerCondition:     function(k,step,i)      { return i<4 && (k%45) < step; },
+                                innerLength:        function(rnd,length)    { return rnd.nextRange(length/4, length/3); }
+                            },
+                            {
+                                outerCondition:     function(k,step,i)      { return i<4 && (k%60) < step; },
+                                outerLength:        function(rnd, length)   { return rnd.nextRange(length/4, length/2); },
+                                innerCondition:     function(k,step,i)      { return i<4 && (k%30) < step; },
+                                innerLength:        function(rnd,length)    { return rnd.nextRange(length/4, length/3); }
+                            }
+                      ];
+    let rnd = new myRand( computeSeed() );
+    let skipAngle = [60, 45, 90][rnd.nextRange(0, 3)];
+    var seedParms = {context:     context,
+                     startX:      obj.centerX(), 
+                     startY:      obj.centerY(),
+                     length:      rnd.nextRange( obj.boundingRadius/2, obj.boundingRadius ) ,
+                     flip:        rnd.nextRange( 0, 2 ) == 0,
+                     angle:       angle,
+                     lineWidth:   rnd.nextRange( 0, 6 )==0 ? 3 : 2,  
+                     startColour: startColour};
+    var branchSelect = rnd.nextRange( 0, branchParms.length );
+
+    for( var angle = 0; angle < 360; angle += skipAngle ) {
+        seedParms.angle = angle;
+        var array = [ seedParms ];
+
+        for( var i = 0; i < array.length; ++i ) {
+            context.save();
+                goldenSpiral( obj, array[i], array, rnd, branchParms[branchSelect] );
+            context.restore();
+        }
+    }
+}
+
 function polarToXY( radius, angle, offset ) {
     return { x:radius * Math.cos( angle * Math.PI / 180 ) + (offset == null ? 0 : offset.x),
              y:radius * Math.sin( angle * Math.PI / 180 ) + (offset == null ? 0 : offset.y),
@@ -1036,6 +1186,146 @@ function createScript( obj, arcAngle ) {
         //if( ++iter > 2 ) break;
     }
     return script;
+}
+
+function metatron2( context, obj, startColour ) {
+    var smallRadius = obj.boundingRadius / 9;
+    var largeRadius = 4*smallRadius;
+    var arr = [];
+    var MAX_OFFSET = 1; // 3 pixels
+    var CENTER = {x:0, y:0};
+
+    function computeAngle( p1, p2 ) {
+        var theta = Math.atan2( p1.y - p2.y, p1.x - p2.x );
+        return (theta >= 0) ? theta / Math.PI * 180
+                            : (theta + 2*Math.PI) / Math.PI * 180;
+    }
+
+    function addPoint( p ) {
+        var distanceFromCenter = distancePoints( p, CENTER );
+
+        if( distanceFromCenter > obj.boundingRadius-smallRadius+0.10 ) {
+            return false;
+        }
+
+        var angleFromCenter = computeAngle( p, CENTER );
+
+        if( distanceFromCenter > 7*smallRadius && ((angleFromCenter+0.05)%30) > 1 ) {
+            return false;
+        }
+
+        for( var i in arr ) {
+            if( distancePoints( arr[i], p ) < MAX_OFFSET ) {
+                return true;
+            }
+        }
+        p.id = arr.length;
+        p.lines = [];
+        arr.push( p );
+        p.distanceFromCenter = distanceFromCenter;
+        p.angleFromCenter = angleFromCenter;
+
+        context.strokeStyle = pointColour( obj, {x:obj.centerX()+p.x, y:obj.centerY()+p.y}, startColour );
+        context.lineWidth = 1;
+        context.beginPath();
+        context.arc( p.x, p.y, smallRadius, 0, 2*Math.PI );
+        context.stroke();
+
+        if( p == CENTER || Math.abs(distanceFromCenter - largeRadius) < MAX_OFFSET ) {
+            p.largeCircle = true;
+            context.strokeStyle = pointColour( obj, {x:obj.centerX()+p.x, y:obj.centerY()+p.y}, startColour );
+            context.lineWidth = 2;
+            context.beginPath();
+            context.arc( p.x, p.y, largeRadius, 0, 2*Math.PI );
+            context.stroke();
+        } else {
+            p.largeCircle = false;
+        }
+
+        var startAngle = 90;
+        for( let angle = startAngle; angle < 360+startAngle; angle+=60 ) {
+            let newX = p.x + 2*smallRadius * Math.cos( angle * Math.PI / 180 );
+            let newY = p.y + 2*smallRadius * Math.sin( angle * Math.PI / 180 );
+            addPoint( {x:newX, y:newY} );
+        }
+        return true;
+    }
+
+    addPoint( CENTER );
+
+    arr.sort( function(a,b){ 
+                return Math.abs(b.distanceFromCenter-a.distanceFromCenter) < 0.5
+                         ? b.angleFromCenter-a.angleFromCenter 
+                         : b.distanceFromCenter-a.distanceFromCenter; } );
+
+    for( var i in arr ) {
+        var p1 = arr[i];
+
+/*
+        context.strokeStyle = "blue";
+        context.beginPath();
+        context.arc( p1.x, p1.y, smallRadius/2, 0, 2*Math.PI );
+        context.fill();
+        context.stroke();
+*/
+
+        var targets = [];
+        for( var t in arr ) {
+            var p2 = arr[t]; 
+            if( p1 != p2 ) {
+                var angle = normalizeAngle( computeAngle( p2, p1 ) - p1.angleFromCenter );
+                if( Math.abs( angle ) < 1 ) {
+                    continue;
+                }
+
+                var node = {angle:      angle,
+                            distance:   distancePoints( p1, p2 ),
+                            center:     arr[t]};
+                var found = false;
+
+                for( var j in targets ) {
+                    var tj = targets[j];
+                    if( Math.abs(tj.angle - node.angle) < 1 ) {
+                        found = true;
+                        if( node.distance > tj.distance ) {
+                            targets[j] = node;
+                            break;
+                        }
+                    }
+                }
+                if( !found ) {
+                    targets.push( node );
+                }
+            }
+        }
+
+        targets.sort( function(a,b) { return b.angle - a.angle; } );
+
+        var rays = [0, 
+               //     Math.floor( targets.length * 4/27 ),
+               //     Math.floor( targets.length * 7/27 ),
+                    Math.floor( targets.length * 13/27 ),
+               //     Math.floor( targets.length * 19/27 ),
+               //     Math.floor( targets.length * 22/27 ),
+                    targets.length-1];
+    
+        context.strokeStyle = pointColour( obj, {x:obj.centerX()+p1.x, y:obj.centerY()+p1.y}, startColour );
+        for( var r=0; r < rays.length; ++r ) {
+            var t = targets[rays[r]];
+
+            if( p1.lines[t.center.id] ) {
+                continue;
+            }
+
+            context.beginPath();
+            context.moveTo( p1.x, p1.y );
+            context.strokeStyle = pointColour( obj, {x:obj.centerX()+t.center.x, y:obj.centerY()+t.center.y}, startColour );
+            context.lineTo( t.center.x, t.center.y );
+            context.stroke();
+
+            t.center.lines[p1.id] = true;
+        }
+    }
 }
 
 function drawSeatingArrangement() {
@@ -1328,6 +1618,32 @@ function drawSeatingArrangement() {
                         }
                     }
                     break;
+
+                case TORUS_TREATMENT.GOLDEN_SPIRAL:
+                    {
+                        let startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        context.save();
+                        context.beginPath();
+                        context.arc( obj.centerX(), obj.centerY(), 
+                                     obj.boundingRadius + 1, 0, 2*Math.PI );
+                        context.clip();
+                        context.stroke();
+
+                        iterateSpiralRotate( context, obj, startColour );
+                        context.restore();
+                    }
+                    break;
+
+                case TORUS_TREATMENT.METATRON_2:
+                    {
+                        let startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                    
+                        context.save();
+                        context.translate( obj.centerX(), obj.centerY() );
+                        metatron2( context, obj, startColour );
+                        context.restore();
+                    }
+                    break;
             }
 
             // Draw the torus
@@ -1360,11 +1676,20 @@ function drawSeatingArrangement() {
 }
 
 function pointColour( torusObj, point, startColour, method, opacity ) {
-    let radius = torusObj.boundingRadius * 0.75;
-    let p0 = torusObj.origin.polarToAbsXY( radius, 30 );
-    let p1 = torusObj.origin.polarToAbsXY( radius, 150 );
-    let p2 = torusObj.origin.polarToAbsXY( radius, 270 );
-    let maxDistance = distancePoints(p0, p1);
+    let p0, p1, p2, maxDistance;
+
+    if( torusObj.colourPoints == undefined ) {
+        let radius = torusObj.boundingRadius * 0.75;
+        torusObj.colourPoints = {};
+        torusObj.colourPoints.p0 = torusObj.origin.polarToAbsXY( radius, 30 );
+        torusObj.colourPoints.p1 = torusObj.origin.polarToAbsXY( radius, 150 );
+        torusObj.colourPoints.p2 = torusObj.origin.polarToAbsXY( radius, 270 );
+        torusObj.colourPoints.maxDistance = distancePoints(torusObj.colourPoints.p0, torusObj.colourPoints.p1);
+    }
+    p0 = torusObj.colourPoints.p0;
+    p1 = torusObj.colourPoints.p1;
+    p2 = torusObj.colourPoints.p2;
+    maxDistance = torusObj.colourPoints.maxDistance;
     let arr = [Math.min( distancePoints(point, p0), maxDistance ),
                Math.min( distancePoints(point, p1), maxDistance ), 
                Math.min( distancePoints(point, p2), maxDistance )];
@@ -2480,7 +2805,7 @@ function pageSetup() {
     createProfilesElement( "profiles" );
     loadMembers();
 
-    //$("tort").value = "2";  // XXX REMOVE
+    //$("tort").value = "11";  // XXX REMOVE
 
     buildCanvas();
 }
@@ -2668,6 +2993,8 @@ function pageSetup() {
                         <option value=4>METATRONS_CUBE</option>
                         <option value=5>DAISY</option>
                         <option value=6>PETALS</option>
+                        <option value=10>GOLDEN_SPIRAL</option>
+                        <option value=11>METATRON_2</option>
                         <option value=7>MESH (per members)</option>
                         <option value=8>GEOMETRIC_1 (per members)</option>
                         <option value=9>IMAGE</option>
