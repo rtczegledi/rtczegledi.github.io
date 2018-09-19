@@ -54,7 +54,7 @@ blockquote.default{
 </style>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> September 13, 2018
+<b>Date:</b> September 19, 2018
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -104,8 +104,9 @@ The torus is drawn as a circle with overlayed smaller circles called <i>pegs</i>
   <li>MESH : draw a wire mesh between all member pegs</li>
   <li>GEOMETRIC_1 : draw a wire pattern between all member pegs</li>
   <li>IMAGE : when supported, drag and drop an image</li>
+  <li>Picture '<i>PICTURE-NAME</i>' : display a preloaded image in the torus circle</li>
 </ul>  
-The colour of the torus treatment can be changed with the colour selector immediately following the "<b>circle treatment</b>" drop down menu. <div/><br/>
+The colour of the torus treatment can be changed with the colour selector immediately following the "<b>circle treatment</b>" drop down menu.   When displaying a <b>Picture</b> in the torus circle, adjusting this colour selector affects the opacity of the image.<div/><br/>
  
 <blockquote class="default">
 If many members and masters are specified then the generated image can look cluttered as the web page makes its best effort to place the text.  Try adjusting the "<b>circle size</b>" and "<b>Orientation for the first member</b>" values until a pleasing image is generated.
@@ -135,10 +136,42 @@ Since torus images may be created for different days, layout configurations can 
 <h3>Revision History</h3>
 <ul>
     <li>
+        <b>September 19, 2018</b>
+        <ul>
+            <li>Added </b>Picture '<i>PICTURE-NAME</i>'</b> torus circle image support where <i>PICTURE-NAME</i> is
+                a predefined image from
+                <ol>
+                    <li><b>Sacred Geometry 1</b></li>
+                    <li><b>Sacred Geometry 2</b></li>
+                    <li><b>Sacred Geometry 3</b></li>
+                    <li><b>Sacred Geometry 4</b></li>
+                    <li><b>Sacred Geometry 5</b></li>
+                    <li><b>Sacred Geometry 6</b></li>
+                    <li><b>Sacred Geometry 7</b></li>
+                    <li><b>Sacred Geometry 8</b></li>
+                    <li><b>Sacred Geometry 9</b></li>
+                    <li><b>Sacred Geometry 10</b></li>
+                    <li><b>Metatron</b></li>
+                    <li><b>Ocean</b></li>
+                    <li><b>Stained Glass</b></li>
+                    <li><b>Flower</b></li>
+                    <li><b>Flower 2</b></li>
+                    <li><b>Flower 3</b></li>
+                    <li><b>Clouds 1</b></li>
+                    <li><b>Clouds 2</b></li>
+                    <li><b>Clouds 3</b></li>
+                </ol>
+            </li>
+            <li>Changing the colour for the <b>circle treatment</b> for a '<i>PICTURE-NAME</i>' image will adjust the opacity of the image.</li>
+        </ul>
+    </li>
+ 
+    <li>
         <b>September 13, 2018</b>
         <ul>
             <li>Added GOLDEN_SPIRAL torus circle pattern algorithm.</li>
             <li>Added METATRON_2 torus circle pattern algorithm.</li>
+            <li>Made some performance optimizations</li>
         </ul>
     </li>
 

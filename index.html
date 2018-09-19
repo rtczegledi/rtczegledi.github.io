@@ -8,7 +8,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-// Date:        September 13, 2018
+// Date:        September 19, 2018
 //
 // ID Legend:
 //  $("_canvas")    - canvas element for drawing image
@@ -94,6 +94,28 @@ var g_PegTreatment = PEG_TREATMENT.CIRCLE;
 var g_CORSEnabled = true;
 
 var g_AllMembers = [];
+
+var g_Images = {
+                "Sacred Geometry 1":    {file:"sacred1.jpg",        type:"clip"},
+                "Sacred Geometry 2":    {file:"sacred2.jpg",        type:"clip"},
+                "Sacred Geometry 3":    {file:"sacred3.jpg",        type:"clip"},
+                "Sacred Geometry 4":    {file:"sacred4.jpg",        type:"clip"},
+                "Sacred Geometry 5":    {file:"sacred5.jpg",        type:"clip", scale:0.8},
+                "Sacred Geometry 6":    {file:"sacred6.jpg",        type:"clip"},
+                "Sacred Geometry 7":    {file:"sacred7.jpg",        type:"clip"},
+                "Sacred Geometry 8":    {file:"sacred8.jpg",        type:"clip"},
+                "Sacred Geometry 9":    {file:"sacred9.jpg",        type:"clip"},
+                "Sacred Geometry 10":   {file:"sacred10.jpg",       type:"clip"},
+                "Metatron":             {file:"picture1.jpg",       type:"clip"},
+                "Ocean":                {file:"picture2.jpg",       type:"clip"},
+                "Stained Glass":        {file:"picture3.jpg",       type:"clip"},
+                "Flower":               {file:"picture4.jpg",       type:"clip"},
+                "Flower 2":             {file:"picture5.jpg",       type:"clip"},
+                "Flower 3":             {file:"picture6.jpg",       type:"clip"},
+                "Clouds 1":             {file:"picture7.jpg",       type:"clip"},
+                "Clouds 2":             {file:"picture8.jpg",       type:"clip"},
+                "Clouds 3":             {file:"picture9.jpg",       type:"clip"}
+               };
 
 // NOTE: font description MUST include the font height in 'px'.
 var g_RecipientFontDesc = { 
@@ -1644,6 +1666,68 @@ function drawSeatingArrangement() {
                         context.restore();
                     }
                     break;
+
+                case -1:
+                    {
+                        var imageDesc = g_Images[$("tort").value];
+                        var image = imageDesc.image;
+                        if( image != undefined && image.complete ) {
+                            let opacity = Math.max( getOpacity( colorFromID(g_RecipientFontDesc.torusTreatmentColorID) ),
+                                                    5 );
+                            context.save();
+                            context.beginPath();
+                            context.arc( obj.centerX(), obj.centerY(), 
+                                         obj.boundingRadius + 1, 0, 2*Math.PI );
+                            context.clip();
+                            context.stroke();
+
+                            context.globalAlpha = opacity/100;
+
+                            let width = image.width;
+                            let height = image.height;
+
+                            switch( imageDesc.type ) {
+                                case "clip":
+                                    {
+                                        let centerX = imageDesc.centerX || width/2;
+                                        let centerY = imageDesc.centerY || height/2;
+                                        let radius = Math.min( centerX, centerY, width-centerX, height-centerY );
+                                        let scale = imageDesc.scale || 1;
+
+                                        radius *= scale;
+
+                                        context.drawImage( image,
+                                                           centerX-radius,
+                                                           centerY-radius,
+                                                           radius*2,
+                                                           radius*2,
+                                                           obj.centerX() - obj.boundingRadius,
+                                                           obj.centerY() - obj.boundingRadius,
+                                                           obj.boundingRadius * 2,
+                                                           obj.boundingRadius * 2 )
+                                    }
+                                    break;
+
+                                case "center":
+                                default:
+                                    {
+                                        let scale = 2 * obj.boundingRadius / Math.sqrt( width*width + height*height );
+                                        let newWidth = Math.floor( scale * width );
+                                        let newHeight = Math.floor( scale * height );
+
+                                        context.drawImage( image,
+                                                           obj.centerX() - newWidth/2,
+                                                           obj.centerY() - newHeight/2,
+                                                           newWidth,
+                                                           newHeight );
+                                    }
+                                    break;
+                            }
+
+                            context.restore();
+                        }
+                    }
+                    break;
             }
 
             // Draw the torus
@@ -1673,6 +1757,21 @@ function drawSeatingArrangement() {
             obj.debugBoundingBox( 0 );
         }
     }
+}
+
+function getOpacity( colour ) {
+	// validate hex string
+	let hex = String(colour).replace(/[^0-9a-f]/gi, '');
+	if (hex.length < 6) {
+		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+	}
+    var opacity = 255;
+
+	for (i = 0; i < 3; i++) {
+		c = parseInt(hex.substr(i*2,2), 16);
+        if( c < opacity ) opacity = c;
+    }
+    return Math.floor( (255-opacity)*100 / 255 );
 }
 
 function pointColour( torusObj, point, startColour, method, opacity ) {
@@ -1773,7 +1872,12 @@ function buildCanvas() {
 
     g_RecipientFontDesc.imageColor = g_Debug ? "yellow" : colorFromID("bgc");
 
-    g_TorusTreament = parseInt($("tort").value);
+    let tort = $("tort").value;
+    if( !isNaN(tort) && isFinite(tort) ) {
+        g_TorusTreament = parseInt(tort);
+    } else {
+        g_TorusTreament = -1;
+    }
     g_PegTreatment = parseInt($("pegt").value);
 
     if( $("t1").value !== "" )   g_Title.push( $("t1").value );
@@ -2805,6 +2909,24 @@ function pageSetup() {
     createProfilesElement( "profiles" );
     loadMembers();
 
+    let option = document.createElement( "option" );
+    option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
+    option.setAttribute( "disabled", "" );
+    option.innerHTML = "&nbsp;";
+    $("tort").appendChild( option );
+    
+    for( var im in g_Images ) {
+        var imageDesc = g_Images[im];
+
+        option = document.createElement( "option" );
+        option.setAttribute( "value", im );
+        option.innerHTML = "Picture '" + im + "'";
+        $("tort").appendChild( option );
+
+        imageDesc.image = new Image;
+        imageDesc.image.src = imageDesc.file;
+    }
+
     //$("tort").value = "11";  // XXX REMOVE
 
     buildCanvas();
@@ -2985,7 +3107,7 @@ function pageSetup() {
                   <td>circle treatment:</td>
                   <td>
                     <span class=tooltip>
-                      <select class=dropDown name=torusWidth id='tort' onChange='buildCanvas()'>
+                      <select class=dropDown name=torusTreatment id='tort' onChange='buildCanvas()'>
                         <option value=0>None</option>
                         <option value=1>HEART</option>
                         <option value=2>RANDOM</option>
