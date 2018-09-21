@@ -8,7 +8,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-// Date:        September 19, 2018
+// Date:        September 21, 2018
 //
 // ID Legend:
 //  $("_canvas")    - canvas element for drawing image
@@ -61,6 +61,7 @@
 //  $("torw")       - torus width in px
 //  $("torc")       - torus colour
 //  $("tort")       - torus treatment
+//  $("torlt")      - torus line treatment
 //  $("tortc")      - torus treament colour
 //  $("torpc")      - torus peg colour
 //  $("torpbc")     - torus peg border colour
@@ -82,6 +83,8 @@ var TORUS_TREATMENT = { NONE:0, HEART:1, RANDOM:2, FLOWER_OF_LIFE:3, METATRONS_C
                         METATRON_2:11};
 
 var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4 };
+
+var CIRCLE_TREATMENT = { SOLID:0, WAVE:1, RIPPLE:2 };
 
 var g_DragSrcEl = null;
 
@@ -185,6 +188,7 @@ var g_ElementDefaults = {
     tors:"100",         // torus size
     torw:"3",           // torus circle width
     tort:"0",           // torus treatment
+    torlt:"0",          // torus line treatment
     tortc:"000000",     // torus treatment colour
     tpc:"FF15C8",       // title group color
     pegt:"1",           // peg treatment
@@ -1731,8 +1735,10 @@ function drawSeatingArrangement() {
             }
 
             // Draw the torus
-            obj.drawCircle( colorFromID(obj.fontDesc.torusColorID), 
-                            parseInt( $("torw").value ), 0 );
+            obj.drawCircle( {color:colorFromID(obj.fontDesc.torusColorID), 
+                             width:parseInt( $("torw").value ),
+                             treatment:parseInt( $("torlt").value ),
+                             weaveColor:colorFromID(g_RecipientFontDesc.torusTreatmentColorID) } );
 
             // Draw the pegs
             for( let j = 0; j < pegs.length; ++j ) {
@@ -1751,8 +1757,8 @@ function drawSeatingArrangement() {
         obj.draw();
 
         if( g_Debug ) {
-            obj.drawCircle( obj.fontDesc.DebugColor, 1, 0 );
-            obj.drawCircle( obj.fontDesc.DebugColor, 1, obj.spacing );
+            obj.drawCircle( {color:obj.fontDesc.DebugColor} );
+            obj.drawCircle( {color:obj.fontDesc.DebugColor, spacing:obj.spacing} );
 
             obj.debugBoundingBox( 0 );
         }
@@ -2229,19 +2235,63 @@ function createTextObject( objectType,
         }
     };
 
-    obj.drawCircle = function( color, width, spacing, fillColour ) {
+    obj.drawCircle = function( args ) {
         let context = this.context;
 
-        context.fillStyle = fillColour;
-        context.strokeStyle = color || this.fontDesc.debugColor;
-        context.lineWidth = width;
-        context.beginPath();
-        context.arc( this.centerX(), this.centerY(), this.boundingRadius + spacing + 1, 0, 2*Math.PI );
-        if( fillColour != undefined ) {
-            context.fill();
+        context.fillStyle = args.fillColour;
+        context.lineWidth = args.width || 1;
+
+        var step = 2;
+        var radius = this.boundingRadius + (args.spacing || 0) + 1;
+        var ripple = 0;
+        var rippleStep = 60;
+
+        if( args.treatment == CIRCLE_TREATMENT.RIPPLE ) {
+            ripple = 0;
+            context.beginPath();
+            context.strokeStyle = args.weaveColor || "#000000";
+            for( var angle=0; angle<=360; angle += step ) {
+                var r = radius;
+
+                if( args.treatment == CIRCLE_TREATMENT.RIPPLE ) {
+                    r = Math.sin( ripple * Math.PI/180 );
+                    r = 3*r + radius;
+                }
+                var x2 = this.centerX() + r * Math.cos( angle * Math.PI/180 );
+                var y2 = this.centerY() + r * Math.sin( angle * Math.PI/180 );
+
+                if( angle == 0 ) {
+                    context.moveTo( x2, y2 );
+                } else {
+                    context.lineTo( x2, y2 );
+                }
+
+                ripple += rippleStep;
+            }
+            context.stroke();
         }
-        context.closePath();
+
+        context.beginPath();
+        context.strokeStyle = args.color || this.fontDesc.debugColor;
+        for( var angle=0; angle<=360; angle += step ) {
+            var r = radius;
+
+            if( args.treatment == CIRCLE_TREATMENT.WAVE || args.treatment == CIRCLE_TREATMENT.RIPPLE ) {
+                r = radius + 3 * Math.cos( ripple * Math.PI/180 );
+            }
+            var x1 = this.centerX() + r * Math.cos( angle * Math.PI/180 );
+            var y1 = this.centerY() + r * Math.sin( angle * Math.PI/180 );
+
+            if( angle == 0 ) {
+                context.moveTo( x1, y1 );
+            } else {
+                context.lineTo( x1, y1 );
+            }
+
+            ripple += rippleStep;
+        }
         context.stroke();
+
     };
 
     obj.debugBoundingBox = function( spacing ) {
@@ -2927,6 +2977,8 @@ function pageSetup() {
         imageDesc.image.src = imageDesc.file;
     }
 
+    var canvasEl = $("_canvas");
+    
     //$("tort").value = "11";  // XXX REMOVE
 
     buildCanvas();
@@ -3138,6 +3190,15 @@ function pageSetup() {
                       <option value=130>130px</option>
                       <option value=140>140px</option>
                       <option value=150>150px</option>
+                    </select>
+                  </td>
+                </tr><tr>
+                  <td>circle line treatment:</td>
+                  <td>
+                    <select class=dropDown name=torusLineTreatment id='torlt' onChange='buildCanvas()'>
+                      <option value=0>SOLID</option>
+                      <option value=1>WAVE</option>
+                      <option value=2>RIPPLE</option>
                     </select>
                   </td>
                 </tr><tr>

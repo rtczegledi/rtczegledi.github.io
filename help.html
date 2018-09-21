@@ -54,7 +54,7 @@ blockquote.default{
 </style>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> September 19, 2018
+<b>Date:</b> September 21, 2018
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -91,7 +91,13 @@ It is possible to assign multiple masters to a member by creating adjacent rows 
 
 <h2>Torus Circle</h2>
 
-The torus is drawn as a circle with overlayed smaller circles called <i>pegs</i> denoting where members are situated.  The torus circle size and width can be changed with the "<b>circl size</b>" and "<b>circle width</b>" drop down menus, respectively.  The "<b>circle treatment</b>" drop down menu offers a few treatment patterns for rendering images within the torus circle.  A few examples are:
+The torus is drawn as a circle with overlayed smaller circles called <i>pegs</i> denoting where members are situated.  The torus circle size and width can be changed with the "<b>circle size</b>" and "<b>circle width</b>" drop down menus, respectively.  The circle line treatment can be changed with the "<b>circle line treatment</b>" drop down menu with types
+<ul>
+  <li>SOLID : draw the circle as a solid regular line</li>
+  <li>WAVE : draw the circle as a wavy line</li>
+  <li>RIPPLE : draw the circle as two wavy lines superimposed</li>
+</ul>
+The "<b>circle treatment</b>" drop down menu offers a few treatment patterns for rendering images within the torus circle.  A few examples are:
 <ul>
   <li>HEART : draw a heart shape</li>
   <li>RANDOM : draw a random mandala pattern</li>
@@ -136,9 +142,22 @@ Since torus images may be created for different days, layout configurations can 
 <h3>Revision History</h3>
 <ul>
     <li>
+        <b>September 21, 2018</b>
+        <ul>
+            <li>Added "<b>circle line treatment</b>" drop down menu for rendering the torus circle line with
+                the following treatments
+                <ol>
+                    <li>SOLID</li>
+                    <li>WAVE</li>
+                    <li>RIPPLE</li>
+                </ol>
+            </li>
+        </ul>
+    </li>
+    <li>
         <b>September 19, 2018</b>
         <ul>
-            <li>Added </b>Picture '<i>PICTURE-NAME</i>'</b> torus circle image support where <i>PICTURE-NAME</i> is
+            <li>Added <b>Picture '<i>PICTURE-NAME</i>'</b> torus circle image support where <i>PICTURE-NAME</i> is
                 a predefined image from
                 <ol>
                     <li><b>Sacred Geometry 1</b></li>
