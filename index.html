@@ -2672,8 +2672,12 @@ function getUrlWithParameters() {
 }
 
 function composeMyURL() {
-    let url = getUrlWithParameters();
-    $("_myURL").innerHTML = "<b>" + url + "</b>";
+    if( g_Debug ) {
+        let url = getUrlWithParameters();
+        $("_myURL").innerHTML = "<b>" + url + "</b>";
+    } else {
+        $("_myURL").innerHTML = "";
+    }
 }
 
 function setCookie( name, value, days ) {
@@ -3049,7 +3053,7 @@ function pageSetup() {
     <script src="jsurl.js"></script>
 
     <div class="navbar">
-      <a class="active" href="index.html"><i class="fa fa-fw fa-home"></i> Home</a>
+      <!-- <a class="active" href="index.html"><i class="fa fa-fw fa-home"></i> Home</a> -->
       <a href="help.html" target="_blank"><i class="fa fa-fw fa-question-circle"></i> Help</a>
       <a id="downloadLink" href="#image"><i class="fa fa-fw fa-download"></i> Download</a> 
     </div>
