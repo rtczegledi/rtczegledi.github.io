@@ -1,60 +1,11 @@
 <html>
-<style>
-blockquote{
-  display:block;
-  background: #fff;
-  padding: 15px 20px 15px 45px;
-  margin: 0 0 20px;
-  position: relative;
-  
-  /*Font*/
-  font-family: Georgia, serif;
-  font-size: 14px;
-  line-height: 1.2;
-  color: #666;
-
-  /*Box Shadow - (Optional)*/
-  -moz-box-shadow: 2px 2px 15px #ccc;
-  -webkit-box-shadow: 2px 2px 15px #ccc;
-  box-shadow: 2px 2px 15px #ccc;
-
-  /*Borders - (Optional)*/
-  border-left-style: solid;
-  border-left-width: 15px;
-  border-right-style: solid;
-  border-right-width: 2px;    
-}
-
-blockquote::before{
-  content: "";
-  
-  /*Font*/
-  font-family: Georgia, serif;
-  font-size: 60px;
-  font-weight: bold;
-  color: #999;
-  
-  /*Positioning*/
-  position: absolute;
-  left: 10px;
-  top:5px;
-  
-}
-
-blockquote::after{
-  /*Reset to make sure*/
-  content: "";
-}
-
-blockquote.default{ 
-  border-left-color: #656d77;
-  border-right-color: #434a53;  
-}
-
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="common.css">
+<title>Help - Image Generator</title>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> September 21, 2018
+<b>Date:</b> October 14, 2018
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -65,14 +16,14 @@ This web page allows one to create an image file suitable for group torus medita
 	<li>the <b>Torus Circle</b>,</li>
 	<li>and the optional <b>Recipient</b> name in the center of the torus.</li>
 </ul>
-Changes to the torus information are immediately reflected in the torus image to the upper right of the page.  The image can be downloaded at any time by pressing the "<b><u>Download</u></b>" link at the top of the page.  For convenience, the default name of download image is constructed with the title name and the current date.  Note that this feature may not be available on all platforms (on an iPad the image just appears in a new tab).
+Changes to the torus information are immediately reflected in the torus image to the upper right of the page or the top of the page depending on the device's viewport size.  The image can be downloaded at any time by pressing the <span class="navbarExample"><i class="fa fa-fw fa-download"></i> <b>Download</b></span> navigation button.  For convenience, the default name of download image is constructed with the title name and the current date.  Note that this feature may not be available on all platforms (on an iPad the image just appears in a new tab).
 
 <h2>Group Torus Title</h2>
 The <b>Group Torus Title</b> consists of three text fields named "<b>Title 1</b>", "<b>Title 2</b>", and "<b>part (optional)</b>".  The contents of these three fields are drawn at the top of the image.  The "<b>Title 1</b>" field is used to automatically create the download filename with the current date appended.  That is, if this field has contents "Group Torus with the Archangels" then the download filename could default to "Group Torus with the Archangels - Jul 5, 2018.png".  The "<b>part (optional)</b>" field is typically left blank.  It can be used if multiple images are necessary with unique part names like "Group A" and "Group B".  The title font style, size, bold/italic/shadow attributes can be changed.  Finally, colours can be selected for the "<b>Title 1</b>"/"<b>Title 2</b>" lines as well as the "<b>part (optional)</b>" line.
 <div/><br/>
 
 <h2>Members / Masters</h2>
-Up to 16 set of members and optional masters can be added.  Each row is of the form "<b>Member [person] works with [master]</b>" where the master can be selected from a drop down menu.  The first member field that is not blank is considered special in that it is placed in the cardinal direction as specified by the "<b>Orientation for the first member</b>" drop down menu.  All the remaining members/masters are drawn around the torus ring in either a clockwise or counter-clockwise manner depending on the order selected by the drop down menu.  Note that there is no validation for duplicate members or for any master to be present.  The font style and colour for members and masters can be changed.
+Initially, 8 members and optional masters can be specified.  Additional rows can be added by pressing the <span id="addRowButtonExample">Add Row</span> button.  Each row is of the form "<b>Member [person] works with [master]</b>" where the master can be selected from a drop down menu.  The first member field that is not blank is considered special in that it is placed in the cardinal direction as specified by the "<b>Orientation for the first member</b>" drop down menu.  All the remaining members/masters are drawn around the torus ring in either a clockwise or counter-clockwise manner depending on the order selected by the drop down menu.  Note that there is no validation for duplicate members or for any master to be present.  The font style and colour for members and masters can be changed.
 <div/><br/>
 
 <blockquote class="default">
@@ -83,9 +34,11 @@ Hints:
   <li>Some browsers may allow the user to start typing in the name of a master from the drop down menu to quickly choose the name.   For instance, typing <b>l</b>-followed-by-<b>o</b> will select "LORD LANTO".  Hitting the ESC key will clear the search pattern.</li>
 </blockquote>
 
-Member rows in the list can be deleted if the member name is non-blank.  In this case, the "<b>Member</b>" row will start with a "<b>&#9949</b>" character.  Clicking the "<b>&#9949</b>" character will delete the row and will shift up rows below it.<div/><br/>
+Each member row can be moved down the list by pressing the "<b>&#8681;</b>" character at the start of the row.  This can be useful on devices which don't support drag and drop functionality like cell phones and tablets.<div/><br/>
 
-Members in the torus group can be rearranged by selecting a row of the form "<b>Member [person] works with [master]</b>" and dragging it a destination row.  Note that you will need to select the textual components of the row (i.e. the "<b>Member</b>" or "<b>works with</b>") and avoid the "<b>&#9949</b>" in order to select the row.  Intermediate rows will be shifted up or down depending on the direction in which the source row is dragged.<div/><br/>
+Member rows in the list can be deleted if the member name is non-blank.  In this case, the "<b>Member</b>" row will end with a "<b>&#9949;</b>" character.  Clicking the "<b>&#9949;</b>" character will delete the row and will shift up rows below it.<div/><br/>
+
+Members in the torus group can be rearranged by selecting a row of the form "<b>Member [person] works with [master]</b>" and dragging it a destination row.  Note that you will need to select the textual components of the row (i.e. the "<b>Member</b>" or "<b>works with</b>") and avoid the "<b>&#8681;</b>" and "<b>&#9949;</b>" in order to select the row.  Intermediate rows will be shifted up or down depending on the direction in which the source row is dragged.<div/><br/>
 
 It is possible to assign multiple masters to a member by creating adjacent rows with the same member name.  The set of masters are rendered with a "<b>/</b>" character between the master names. 
 
@@ -96,6 +49,7 @@ The torus is drawn as a circle with overlayed smaller circles called <i>pegs</i>
   <li>SOLID : draw the circle as a solid regular line</li>
   <li>WAVE : draw the circle as a wavy line</li>
   <li>RIPPLE : draw the circle as two wavy lines superimposed</li>
+  <li>RAY: draw short ray lines from the center of the torus</li>
 </ul>
 The "<b>circle treatment</b>" drop down menu offers a few treatment patterns for rendering images within the torus circle.  A few examples are:
 <ul>
@@ -141,6 +95,14 @@ Since torus images may be created for different days, layout configurations can 
 <hr>
 <h3>Revision History</h3>
 <ul>
+    <li>
+        <b>September 23, 2018</b>
+        <ul>
+            <li>Changed layout so that generated image is always displayed in upper right
+                corner of the browser window.
+            </li>
+        </ul>
+    </li>
     <li>
         <b>September 21, 2018</b>
         <ul>
@@ -205,5 +167,6 @@ Since torus images may be created for different days, layout configurations can 
         </ul>
     </li>
 </ul>
+
 </body>
 </html>

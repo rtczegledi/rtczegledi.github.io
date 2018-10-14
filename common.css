@@ -1,0 +1,247 @@
+* {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #eeeeee;
+}
+.navbarExample {
+  background-color: #555;
+  display: inline-block;
+  padding: 4px;
+  color: white;
+  border-right: 1px solid #bbb;
+}
+.navbar {
+  overflow: hidden;
+  background-color: #555;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1;
+}
+.navbar a {
+  float: left;
+  display: block;
+  padding: 12px;
+  color: white;
+  text-decoration: none;
+  font-size: 17px;
+  border-right: 1px solid #bbb;
+}
+.navbar a:hover {
+  background-color: #000;
+}
+.active {
+  background-color: #4caf50;
+}
+
+/* Main content */
+.main {
+    margin-top: 30px;   /* Add a top margin to avoid content overlay */
+    margin-left: 10px;
+    height: 100%;
+    display: flex;
+    flex-wrap: wrap-reverse;
+}
+
+/**********************************************************/
+#inputTable {
+  width: 600px;
+  height: auto;
+}
+#image {
+  padding: 20px;
+  right: 0;
+}
+#_canvas {
+  border: 2px solid green;
+}
+#debug {
+  background-color: #bbb;
+}
+
+/***************************************************************/
+[draggable] {
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Required to make elements draggable in old WebKit */
+  -khtml-user-drag: element;
+  -webkit-user-drag: element;
+}
+
+.dropDown {
+  background-color: #FFE2E1
+}
+.textInput {
+  background-color: #E2DDED;
+}
+.row {
+  border: 2px solid #666666;
+  background-color: #ccc;
+  margin-right: 5px;
+  -webkit-border-radius: 10px;
+  -ms-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  -webkit-box-shadow: inset 0 0 3px #000;
+  -ms-box-shadow: inset 0 0 3px #000;
+  box-shadow: inset 0 0 3px #000;
+  text-align: center;
+  cursor: grab;
+}
+.row header {
+  color: #fff;
+  text-shadow: #000 0 1px;
+  box-shadow: 5px;
+  padding: 5px;
+  background: -moz-linear-gradient(left center, rgb(0,0,0), rgb(79,79,79), rgb(21,21,21));
+  background: -webkit-gradient(linear, left top, right top,
+                               color-stop(0, rgb(0,0,0)),
+                               color-stop(0.50, rgb(79,79,79)),
+                               color-stop(1, rgb(21,21,21)));
+  background: -webkit-linear-gradient(left center, rgb(0,0,0), rgb(79,79,79), rgb(21,21,21));
+  background: -ms-linear-gradient(left center, rgb(0,0,0), rgb(79,79,79), rgb(21,21,21));
+  border-bottom: 1px solid #ddd;
+  -webkit-border-top-left-radius: 10px;
+  -moz-border-radius-topleft: 10px;
+  -ms-border-radius-topleft: 10px;
+  border-top-left-radius: 10px;
+  -webkit-border-top-right-radius: 10px;
+  -ms-border-top-right-radius: 10px;
+  -moz-border-radius-topright: 10px;
+  border-top-right-radius: 10px;
+}
+.row.over {
+  border: 2px dashed #000;
+}
+.rowMove {
+  cursor: pointer;
+  display: inline-block;
+  padding-right: 5px;
+}
+.rowDelete {
+  cursor: pointer;
+  display: inline-block;
+  visibility: hidden;
+  color: red;
+  padding-left: 5px;
+}
+.tooltip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px dotted black;
+}
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: auto; /*150px;*/
+    white-space: nowrap;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    top: 150%;
+    left: 5%; /*50%;*/
+    padding: 0 5px;
+    /*margin-left: -60px;*/
+    
+    /* Fade in tooltip - takes 1 second to go from 0% to 100% opac: */
+    opacity: 0;
+    transition: opacity 1s;
+}
+.tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 7%;    /*50%;*/
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent black transparent;
+}
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+#addRowButtonExample {
+    border: 2px solid blue;
+    padding: 2px;
+    text-align: center;
+    border-radius: 10px;
+    text-decoration: none;
+    color: white;
+    background-color: blue;
+}
+#addRowButton {
+    border: 2px solid blue;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    padding: 2px;
+    text-align: center;
+    border-radius: 10px;
+    text-decoration: none;
+    cursor: default;
+    color: white;
+    background-color: blue;
+}
+
+/********************************************************************/
+blockquote{
+  display:block;
+  background: #fff;
+  padding: 15px 20px 15px 45px;
+  margin: 0 0 20px;
+  
+  /*Font*/
+  font-family: Georgia, serif;
+  font-size: 14px;
+  line-height: 1.2;
+  color: #666;
+
+  /*Box Shadow - (Optional)*/
+  -moz-box-shadow: 2px 2px 15px #ccc;
+  -webkit-box-shadow: 2px 2px 15px #ccc;
+  box-shadow: 2px 2px 15px #ccc;
+
+  /*Borders - (Optional)*/
+  border-left-style: solid;
+  border-left-width: 15px;
+  border-right-style: solid;
+  border-right-width: 2px;    
+}
+
+blockquote::before{
+  content: "";
+  
+  /*Font*/
+  font-family: Georgia, serif;
+  font-size: 60px;
+  font-weight: bold;
+  color: #999;
+  
+  /*Positioning*/
+  position: absolute;
+  left: 10px;
+  top:5px;
+  
+}
+
+blockquote::after{
+  /*Reset to make sure*/
+  content: "";
+}
+
+blockquote.default{ 
+  border-left-color: #656d77;
+  border-right-color: #434a53;  
+}
+
