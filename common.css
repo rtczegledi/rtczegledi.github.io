@@ -124,6 +124,7 @@ body {
   cursor: pointer;
   display: inline-block;
   padding-right: 5px;
+  visibility: hidden;
 }
 .rowDelete {
   cursor: pointer;

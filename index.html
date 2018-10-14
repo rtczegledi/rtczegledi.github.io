@@ -2719,7 +2719,7 @@ function deleteRow( num ) {
 }
 
 function swapRows( topRow ) {
-    if( topRow >= 0 && topRow < g_Origin.maxMembers-2 ) {
+    if( topRow >= 0 && topRow < g_Origin.maxMembers-1 ) {
         let tempName = $("p" + topRow).value;
         let tempMaster = $("m" + topRow).value;
 
@@ -2932,11 +2932,35 @@ function addMemberMasterRow() {
 
    $("members").appendChild( element );
 
+    if( g_NumRows > 0 ) {
+        $("md" + (g_NumRows-1)).style.visibility = "visible";
+    }
+
     ++g_NumRows;
     if( g_NumRows > g_Origin.maxMembers ) {
         g_Origin.maxMembers = g_NumRows;
     }
 }
+
+
+function addDragHandlers() {
+    // Support for draggable elements.
+    let rows = document.querySelectorAll('#members .row');
+    [].forEach.call(rows, function(row) {
+      addEventHandler( row, 'dragstart', memberHandleDragStart );
+      addEventHandler( row, 'dragenter', memberHandleDragEnter );
+      addEventHandler( row, 'dragover', memberHandleDragOver );
+      addEventHandler( row, 'dragleave', memberHandleDragLeave );
+      addEventHandler( row, 'drop', memberHandleDrop );
+      addEventHandler( row, 'dragend', memberHandleDragEnd );
+    });
+}
+
+function addMemberButton() {
+    addMemberMasterRow();
+    addDragHandlers();
+}
+
 
 function pageSetup() {
     // Determine what fonts are supported.
@@ -2961,6 +2985,7 @@ function pageSetup() {
     for( let i = 0; i < g_Origin.maxMembers; ++i ) {
         addMemberMasterRow();
     }
+    addDragHandlers();
 
     // Populate the date in the title.
     $("t2").value = getDateString() + "    Duration: 20 min";
@@ -2977,17 +3002,6 @@ function pageSetup() {
                          if( name === "" ) name = "image.png";
                          this.download = name;
                      } );
-
-    // Support for draggable elements.
-    let rows = document.querySelectorAll('#members .row');
-    [].forEach.call(rows, function(row) {
-      addEventHandler( row, 'dragstart', memberHandleDragStart );
-      addEventHandler( row, 'dragenter', memberHandleDragEnter );
-      addEventHandler( row, 'dragover', memberHandleDragOver );
-      addEventHandler( row, 'dragleave', memberHandleDragLeave );
-      addEventHandler( row, 'drop', memberHandleDrop );
-      addEventHandler( row, 'dragend', memberHandleDragEnd );
-    });
 
     if( g_CORSEnabled ) {
         // If CORS is enabled then prevent image URLs being enterred.
@@ -3077,7 +3091,7 @@ function pageSetup() {
         </select> order.   Masters are on the<br> right (counter-clockwise) of members.<br></b></i>
         <div id="members"></div>
         
-        <div id="addRowButton" onClick="addMemberMasterRow()">Add Row</div>
+        <div id="addRowButton" onClick="addMemberButton()">Add Row</div>
   
         <p id="_error"></p>
   
