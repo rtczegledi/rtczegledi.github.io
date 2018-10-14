@@ -1577,6 +1577,7 @@ function drawSeatingArrangement() {
                         let points = [];
                         let startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
                         let angleStep = 360 / 6;
+                        let pegObj = g_ObjectArray[0];
 
                         points.push( {point:pegObj.origin.polarToAbsXY( 0, 0 ), colour:startColour} );
                         for( let r = 2*radius; r <= 4*radius; r += 2*radius ) {
