@@ -81,9 +81,18 @@ body {
 .textInput {
   background-color: #E2DDED;
 }
+.heading {
+  background-color: #39f;
+}
+.repeat {
+  background-color: #99ccff;
+}
+.repeat input[type="text"] {
+  background-color: #cce6ff;
+}
 .row {
   border: 2px solid #666666;
-  background-color: #ccc;
+  /*background-color: #ccc;*/
   margin-right: 5px;
   -webkit-border-radius: 10px;
   -ms-border-radius: 10px;
