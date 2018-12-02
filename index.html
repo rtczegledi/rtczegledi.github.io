@@ -8,7 +8,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-// Date:        September 23, 2018
+// Date:        December 2, 2018
 //
 // ID Legend:
 //  $("_canvas")    - canvas element for drawing image
@@ -88,6 +88,8 @@ var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4 };
 
 var CIRCLE_TREATMENT = { SOLID:0, WAVE:1, RIPPLE:2, RAY:3 };
 
+var ROW_TYPE = { EMPTY:0, HEADING:1, REPEAT:2 };
+
 var g_DragSrcEl = null;
 
 var g_TorusImage = null;
@@ -101,7 +103,25 @@ var g_CORSEnabled = true;
 var g_AllMembers = [];
 
 var g_Images = {
-                "Sacred Geometry 1":    {file:"sacred1.jpg",        type:"clip"},
+                "_1":{},        // separator 1
+
+                "A - Mandala 1":        {file:"a_mandala1.jpg",     type:"clip"},
+                "A - Mandala 2":        {file:"a_mandala2.jpg",     type:"clip"},
+                "A - Mandala 3":        {file:"a_mandala3.jpg",     type:"clip"},
+                "A - Mandala 4":        {file:"a_mandala4.jpg",     type:"clip"},
+                "A - Mandala 5":        {file:"a_mandala5.jpg",     type:"clip"},
+                "A - Mandala 6":        {file:"a_mandala6.jpg",     type:"clip"},
+                "A - Mandala 7":        {file:"a_mandala7.jpg",     type:"clip"},
+                "A - Mandala 8":        {file:"a_mandala8.jpg",     type:"clip"},
+                "A - Mandala 9":        {file:"a_mandala9.jpg",     type:"clip", scale:0.75},
+                "A - Mandala 10":       {file:"a_mandala10.jpg",    type:"clip"},
+                "A - Mandala 11":       {file:"a_mandala11.jpg",    type:"clip"},
+                "A - Mandala 12":       {file:"a_mandala12.jpg",    type:"clip"},
+                "A - Mandala 13":       {file:"a_mandala13.jpg",    type:"clip"},
+                "A - Mandala 14":       {file:"a_mandala14.jpg",    type:"clip", scale:0.9},
+
+                "_2":{},        // separator 2
+
                 "Sacred Geometry 3":    {file:"sacred3.jpg",        type:"clip"},
                 "Sacred Geometry 5":    {file:"sacred5.jpg",        type:"clip", scale:0.8},
                 "Sacred Geometry 6":    {file:"sacred6.jpg",        type:"clip"},
@@ -109,21 +129,9 @@ var g_Images = {
                 "Sacred Geometry 8":    {file:"sacred8.jpg",        type:"clip"},
                 "Sacred Geometry 9":    {file:"sacred9.jpg",        type:"clip"},
                 "Sacred Geometry 10":   {file:"sacred10.jpg",       type:"clip"},
-                "Flower":               {file:"picture4.jpg",       type:"clip"},
-                "Clouds 3":             {file:"picture9.jpg",       type:"clip"},
-                "Mandala 1":            {file:"mandala1.jpg",       type:"clip"},
-                "Mandala 2":            {file:"mandala2.jpg",       type:"clip"},
-                "Mandala 3":            {file:"mandala3.jpg",       type:"clip"},
                 "Mandala 4":            {file:"mandala4.jpg",       type:"clip"},
                 "Mandala 5":            {file:"mandala5.jpg",       type:"clip"},
-                "Mandala 6":            {file:"mandala6.jpg",       type:"clip"},
-                "Mandala 7":            {file:"mandala7.jpg",       type:"clip"},
-                "Mandala 8":            {file:"mandala8.jpg",       type:"clip"},
                 "Mandala 9":            {file:"mandala9.jpg",       type:"clip"},
-                "Mandala 10":           {file:"mandala10.jpg",      type:"clip"},
-                "Mandala 11":           {file:"mandala11.jpg",      type:"clip"},
-                "Mandala 12":           {file:"mandala12.jpg",      type:"clip"},
-                "Mandala 13":           {file:"mandala13.jpg",      type:"clip"}
                };
 
 // NOTE: font description MUST include the font height in 'px'.
@@ -1882,6 +1890,7 @@ function lastVisibleMember() {
 function buildCanvas() {
     resetGlobals();
     g_Debug = $("_debug").checked;
+    assignRowTypes();
 
     g_RecipientFontDesc.imageColor = g_Debug ? "yellow" : colorFromID("bgc");
 
@@ -1903,7 +1912,9 @@ function buildCanvas() {
 
         if( member !== "" ) {
             if( g_Members.length > 0 && member === g_Members[g_Members.length-1].member ) {
-                g_Members[g_Members.length-1].master += " / " + master;
+                if( master !== "" && g_Members[g_Members.length-1].master !== "" ) {
+                    g_Members[g_Members.length-1].master += " / " + master;
+                }
             } else {
                 g_Members.push( {member:member, master:master} );
             }
@@ -2706,34 +2717,56 @@ function eraseCookie( name ) {
     document.cookie = name+'=; Max-Age=-99999999;';  
 }
 
-function deleteRow( num ) {
-    if( num <= lastVisibleMember() ) {
-        while( num < g_Origin.maxMembers-1 ) {
-            $("p"+num).value = $("p"+(num+1)).value;
-            $("m"+num).value = $("m"+(num+1)).value;
-            ++num;
-        }
-        $("p"+num).value = "";
-        $("m"+num).value = "";
+function deleteRows( start, num ) {
+    let rows = [];
+    let last = lastVisibleMember();
+
+    for( let i=0; i < num; ++i ) {
+        rows.push( [ $("p"+(start+i)).value,
+                     $("m"+(start+i)).value ] );
+    }
+
+    while( start+num <= last ) {
+        $("p"+start).value = $("p"+(start+num)).value;
+        $("m"+start).value = $("m"+(start+num)).value;
+        ++start;
+    }
+
+    while( num-- ) {
+        $("p"+start).value = "";
+        $("m"+start).value = "";
+        ++start;
+    }
+    return rows;
+}
+
+function insertRows( start, rows ) {
+    let end = g_Origin.maxMembers-1;
+
+    while( end >= start+rows.length ) {
+        $("p"+end).value = $("p"+(end-rows.length)).value;
+        $("m"+end).value = $("m"+(end-rows.length)).value;
+        --end;
+    } 
+    for( let i=0; i<rows.length; ++i ) {
+        $("p"+(start+i)).value = rows[i][0];
+        $("m"+(start+i)).value = rows[i][1];
+    }
+}
+
+function deleteRowRedraw( num ) {
+    if( deleteRows( num, 1 ).length > 0 ) {
         buildCanvas();
     }
 }
 
-function swapRows( topRow ) {
-    if( topRow >= 0 && topRow < g_Origin.maxMembers-1 ) {
-        let tempName = $("p" + topRow).value;
-        let tempMaster = $("m" + topRow).value;
-
-        $("p"+topRow).value = $("p"+(topRow+1)).value;
-        $("m"+topRow).value = $("m"+(topRow+1)).value;
-
-        $("p"+ (topRow+1)).value = tempName;
-        $("m"+ (topRow+1)).value = tempMaster;
-
+function swapAdjacentRows( topRow ) {
+    let rows = deleteRows( topRow, 1 );
+    if( rows.length > 0 ) {
+        insertRows( topRow+1, rows );
         buildCanvas();
     }
 }
-
 function memberHandleDragStart(e) {
     this.style.opacity = '0.4';  // this / e.target is the source node.
     g_DragSrcEl = this;
@@ -2770,27 +2803,42 @@ function memberHandleDrop(e) {
     if( g_DragSrcEl != this ) {
         let srcRow = parseInt( g_DragSrcEl.id );
         let destRow = parseInt( this.id );
-        let tempName = $("p"+srcRow).value;
-        let tempMaster = $("m"+srcRow).value;
+        let srcRowCount = 1;
 
-        if( destRow > srcRow ) {
-            while( srcRow < destRow ) {
-                $("p"+srcRow).value = $("p"+(srcRow+1)).value;
-                $("m"+srcRow).value = $("m"+(srcRow+1)).value;
-                ++srcRow;
-            }
-            $("p"+srcRow).value = tempName;
-            $("m"+srcRow).value = tempMaster;
-        } else {
-            while( srcRow > destRow ) {
-                $("p"+srcRow).value = $("p"+(srcRow-1)).value;
-                $("m"+srcRow).value = $("m"+(srcRow-1)).value;
+        // Avoid grouping adjacent Member rows if the source and destination
+        //  rows have the same name.
+        if( $("p"+srcRow).value !== $("p"+destRow).value ) {
+            // Identify the heading for (i.e. first row with the Member name).
+            while( srcRow > 0 && $("p"+srcRow).value === $("p"+(srcRow-1)).value ) {
                 --srcRow;
             }
+
+            // Identify the number of consecutive rows with the same Member name.
+            while( srcRow+srcRowCount < g_Origin.maxMembers && $("p"+srcRow).value===$("p"+(srcRow+srcRowCount)).value ) {
+                ++srcRowCount;
+            }
+
+            // Identify the ROW_TYPE of the destination row (i.e. REPEAT/HEADING/EMPTY).  This
+            //  will determine if the source rows should be moved before or after the destination
+            //  rows.
+            let destType = getRowType( destRow );
+            if( srcRow < destRow || destType == ROW_TYPE.REPEAT ) {
+                // Move the source rows after the block of destination Member rows.
+                while( ++destRow <= g_Origin.maxMembers-1 && $("p"+destRow).value === $("p"+(destRow-1)).value ) {
+                }
+            }
+
+            if( srcRow < destRow ) {
+                destRow -= srcRowCount;
+            }
         }
-        $("p"+srcRow).value = tempName;
-        $("m"+srcRow).value = tempMaster;
-        buildCanvas();
+
+        if( srcRow != destRow ) {
+            let rows = deleteRows( srcRow, srcRowCount );
+            insertRows( destRow, rows );
+            
+            buildCanvas();
+        }
     }
 
     let rows = document.querySelectorAll('#members .row');
@@ -2883,6 +2931,21 @@ function saveMembers() {
     setCookie( "membersList", g_AllMembers.join( "/" ) );
 }
 
+function getRowType( row ) {
+    if( row >= 0 && row < g_Origin.maxMembers ) {
+        let name = $("p" + row).value;
+
+        if( name !== "" ) {
+            if( row > 0 && $("p" + (row-1)).value === name ) {
+                return ROW_TYPE.REPEAT;
+            } else {
+                return ROW_TYPE.HEADING;
+            }
+        }
+    }
+    return ROW_TYPE.EMPTY;
+}
+
 function loadMembers() {
     let cookie = getCookie( "membersList" );
 
@@ -2910,10 +2973,10 @@ function loadMembers() {
 function addMemberMasterRow() {
    let i = g_NumRows;
    let element = document.createElement( "div" );
-   element.setAttribute( "class", "row" );
+   element.setAttribute( "class", "empty row" );
    element.setAttribute( "draggable", "true" );
    element.setAttribute( "id", "" + i );
-   let str = "<div class='rowMove' id='md" + i + "' onclick='swapRows(" + i + ")'>" +
+   let str = "<div class='rowMove' id='md" + i + "' onclick='swapAdjacentRows(" + i + ")'>" +
                "<span class='tooltip'>&#8681;" +
                         "<span class='tooltiptext'>Move this row down</span></span> " +
              "</div>" +
@@ -2927,7 +2990,7 @@ function addMemberMasterRow() {
        str += "<option value=\"" + name + "\">" + name + "</option>\n";
    }
    str += "</select>";
-   str += "<div class='rowDelete' id='tr" + i + "' onClick='deleteRow(" + i + ")'>" +
+   str += "<div class='rowDelete' id='tr" + i + "' onClick='deleteRowRedraw(" + i + ")'>" +
             "<span class='tooltip'>&#9949;" +
                      "<span class='tooltiptext'>Delete this row</span></span>\n" +
           "</div>";
@@ -2943,6 +3006,27 @@ function addMemberMasterRow() {
     if( g_NumRows > g_Origin.maxMembers ) {
         g_Origin.maxMembers = g_NumRows;
     }
+}
+
+
+function assignRowTypes() {
+    let rows = document.querySelectorAll('#members .row');
+    [].forEach.call(rows, function(row) {
+        let num = parseInt( row.id );
+        switch( getRowType( num ) ) {
+            case ROW_TYPE.EMPTY:
+                row.setAttribute( "class", "row" );
+                break;
+
+            case ROW_TYPE.HEADING:
+                row.setAttribute( "class", "heading row" );
+                break;
+
+            case ROW_TYPE.REPEAT:
+                row.setAttribute( "class", "repeat row" );
+                break;
+        }
+    });
 }
 
 
@@ -3034,18 +3118,18 @@ function pageSetup() {
     createProfilesElement( "profiles" );
     loadMembers();
 
-    let option = document.createElement( "option" );
-    option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
-    option.setAttribute( "disabled", "" );
-    option.innerHTML = "&nbsp;";
-    $("tort").appendChild( option );
-    
     for( var im in g_Images ) {
         var imageDesc = g_Images[im];
 
-        option = document.createElement( "option" );
-        option.setAttribute( "value", im );
-        option.innerHTML = "Picture '" + im + "'";
+        let option = document.createElement( "option" );
+        if( im[0] == "_" ) {        // separator sentinel
+            option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
+            option.setAttribute( "disabled", "" );
+            option.innerHTML = "&nbsp;";
+        } else {
+            option.setAttribute( "value", im );
+            option.innerHTML = "Picture '" + im + "'";
+        }
         $("tort").appendChild( option );
 
         imageDesc.image = new Image;

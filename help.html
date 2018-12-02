@@ -5,7 +5,7 @@
 <title>Help - Image Generator</title>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> October 14, 2018
+<b>Date:</b> December 2, 2018
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -38,7 +38,12 @@ Each member row can be moved down the list by pressing the "<b>&#8681;</b>" char
 
 Member rows in the list can be deleted if the member name is non-blank.  In this case, the "<b>Member</b>" row will end with a "<b>&#9949;</b>" character.  Clicking the "<b>&#9949;</b>" character will delete the row and will shift up rows below it.<div/><br/>
 
-Members in the torus group can be rearranged by selecting a row of the form "<b>Member [person] works with [master]</b>" and dragging it a destination row.  Note that you will need to select the textual components of the row (i.e. the "<b>Member</b>" or "<b>works with</b>") and avoid the "<b>&#8681;</b>" and "<b>&#9949;</b>" in order to select the row.  Intermediate rows will be shifted up or down depending on the direction in which the source row is dragged.<div/><br/>
+Member rows in the torus group can be rearranged by selecting a row of the form "<b>Member [person] works with [master]</b>" and dragging it to a destination row.  Note that you will need to select the textual components of the row (i.e. the "<b>Member</b>" or "<b>works with</b>") and avoid the "<b>&#8681;</b>" and "<b>&#9949;</b>" in order to select the row.  Intermediate rows will be shifted up or down depending on the direction in which the source row is dragged.  Multiple adjacent rows with the same member name (called a 'block') can be rearranged using the following rules:
+<ol>
+    <li>If the member name of the source and destination rows are the same then the individual rows with the block will be rearranged.</li>
+    <li>If the destination row is the start of a block of rows (i.e. the first row of a block of rows with the same member name) then the source block of rows will be moved BEFORE the destination block.</li>
+    <li>Otherwise, if the destination row is the repeating member name (i.e. beyond the first row of the block) then source block of rows will be moved AFTER the destination block.</li>
+</ol><div/><br/>
 
 It is possible to assign multiple masters to a member by creating adjacent rows with the same member name.  The set of masters are rendered with a "<b>/</b>" character between the master names. 
 
@@ -95,6 +100,38 @@ Since torus images may be created for different days, layout configurations can 
 <hr>
 <h3>Revision History</h3>
 <ul>
+    <li>
+        <b>December 2, 2018</b>
+        <ul>
+            <li>The background colour of Member/Master rows reflect if the member name is
+                unique (header), a repeating name, or unspecified.  This helps to identify blocks of
+                adjacent member names.</b>
+            <li>Blocks of member rows can be moved together.  If the target row is the member name
+                header then the source block of member rows will be moved before the target row.
+                If the target row is a repeating name then the source block of rows will be moved
+                after the target block of members.</li>
+            <li>Added the torus images "<b>a_mandala[1-14].jpg</b>" (A - Mandala [1-14]).  Set of new torus images will be prefixed with a letter ('A' in this case).</li>
+            <li>Removed torus images
+                <ol>
+                    <li><b>sacred1.jpg</b> (Sacred Geometry 1)</li>
+                    <li><b>picture4.jpg</b> (Flower)</li>
+                    <li><b>picture9.jpg</b> (Clouds 3)</li>
+                    <li><b>mandala1.jpg</b> (Mandala 1)</li>
+                    <li><b>mandala2.jpg</b> (Mandala 2)</li>
+                    <li><b>mandala3.jpg</b> (Mandala 3)</li>
+                    <li><b>mandala6.jpg</b> (Mandala 6)</li>
+                    <li><b>mandala7.jpg</b> (Mandala 7)</li>
+                    <li><b>mandala8.jpg</b> (Mandala 8)</li>
+                    <li><b>mandala10.jpg</b> (Mandala 10)</li>
+                    <li><b>mandala11.jpg</b> (Mandala 11)</li>
+                    <li><b>mandala12.jpg</b> (Mandala 12)</li>
+                    <li><b>mandala13.jpg</b> (Mandala 13)</li>
+                </ol>
+            </li>
+            <li>Arbitrary separator lines can be inserted into the list of torus images.</li>
+        </ul>
+    </li>
+
     <li>
         <b>October 14, 2018</b>
         <ul>
