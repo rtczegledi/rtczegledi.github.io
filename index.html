@@ -103,7 +103,28 @@ var g_CORSEnabled = true;
 var g_AllMembers = [];
 
 var g_Images = {
-                "_1":{},        // separator 1
+                "_3":{},        // separator 3
+
+                "B - Mandala 1":        {file:"b_mandala1.jpg",     type:"clip"},
+                "B - Mandala 2":        {file:"b_mandala2.jpg",     type:"clip", centerX:235, centerY:226, scale:0.7},
+                "B - Mandala 3":        {file:"b_mandala3.jpg",     type:"clip", centerX:243, centerY:197, scale:0.8},
+                "B - Mandala 4":        {file:"b_mandala4.jpg",     type:"clip"},
+                "B - Mandala 5":        {file:"b_mandala5.jpg",     type:"clip"},
+                "B - Mandala 6":        {file:"b_mandala6.jpg",     type:"clip", centerX:232, centerY:226},
+                "B - Mandala 7":        {file:"b_mandala7.jpg",     type:"clip"},
+                "B - Mandala 8":        {file:"b_mandala8.jpg",     type:"clip"},
+                "B - Mandala 9":        {file:"b_mandala9.jpg",     type:"clip", centerX:199, centerY:199},
+                "B - Mandala 10":       {file:"b_mandala10.jpg",    type:"clip", scale:0.8},
+                "B - Mandala 11":       {file:"b_mandala11.jpg",    type:"clip"},
+                "B - Mandala 12":       {file:"b_mandala12.jpg",    type:"clip"},
+                "B - Mandala 13":       {file:"b_mandala13.jpg",    type:"clip"},
+                "B - Mandala 14":       {file:"b_mandala14.jpg",    type:"clip", scale:0.8},
+                "B - Mandala 15":       {file:"b_mandala15.jpg",    type:"clip"},
+                "B - Mandala 16":       {file:"b_mandala16.jpg",    type:"clip"},
+                "B - Mandala 17":       {file:"b_mandala17.jpg",    type:"clip"},
+                "B - Mandala 18":       {file:"b_mandala18.jpg",    type:"clip"},
+
+                "_2":{},        // separator 2
 
                 "A - Mandala 1":        {file:"a_mandala1.jpg",     type:"clip"},
                 "A - Mandala 2":        {file:"a_mandala2.jpg",     type:"clip"},
@@ -120,7 +141,7 @@ var g_Images = {
                 "A - Mandala 13":       {file:"a_mandala13.jpg",    type:"clip"},
                 "A - Mandala 14":       {file:"a_mandala14.jpg",    type:"clip", scale:0.9},
 
-                "_2":{},        // separator 2
+                "_1":{},        // separator 1
 
                 "Sacred Geometry 3":    {file:"sacred3.jpg",        type:"clip"},
                 "Sacred Geometry 5":    {file:"sacred5.jpg",        type:"clip", scale:0.8},
@@ -406,8 +427,20 @@ var Detector = function() {
                            "Arial Black", "Arial Narrow", "Bookman Old Style", "Century",
                            "Century Gothic", "Comic Sans MS", "Courier", "Courier New", "Georgia", "Gentium",
                            "Impact", "King", "Lucida Console", "Lalit", "Modena", "Monotype Corsiva", "Papyrus",
-                           "Tahoma", "TeX", "Times", "Times New Roman", "Trebuchet MS", "Verdana", "Verona"];
+                           "Tahoma", "TeX", "Times", "Times New Roman", "Trebuchet MS", "Verdana", "Verona",
+                            // Windows 10 fonts
+                            "Bradley Hund ITC", "Buxton Sketch", "Cooper Black", "Elephant",
+                            "Gabriola", "Kristen ITC", "Lucida Calligraphy", "Lucida Handwriting",
+                            "Monotype Corsiva",
+
+                            // MacOS fonts
+                            "Arial Rounded MT Bold", "Avenir Next", "Baskerville", "Brush Script MT Italic",
+                            "Chalkboard", "DIN Alternate Bold", "Herculanum", "Luminari", "Phosphate",
+                            "Sovoye LET", "SignPainter", "Snell Roundhand", "Zapfino" ];
+
         let detectedFonts = [];
+
+        commonFonts.sort();
 
         for( let i=0; i < commonFonts.length; ++i ) {
             if( detect(commonFonts[i]) ) {
@@ -1892,6 +1925,9 @@ function buildCanvas() {
     g_Debug = $("_debug").checked;
     assignRowTypes();
 
+    saveMembers();
+    loadMembers();
+
     g_RecipientFontDesc.imageColor = g_Debug ? "yellow" : colorFromID("bgc");
 
     let tort = $("tort").value;
@@ -2949,9 +2985,7 @@ function getRowType( row ) {
 function loadMembers() {
     let cookie = getCookie( "membersList" );
 
-    if( cookie == null ) {
-        g_AllMembers = [];
-    } else {
+    if( cookie != null ) {
         g_AllMembers = cookie.split( "/" );
     }
 
