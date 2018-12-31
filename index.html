@@ -5,10 +5,12 @@
   <meta charset="utf-8"/>
   <script type="text/javascript">
 
+
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-// Date:        December 2, 2018
+var g_Version = "December 29, 2018";
+
 //
 // ID Legend:
 //  $("_canvas")    - canvas element for drawing image
@@ -57,6 +59,7 @@
 //  $("mc")         - master colour
 
 //  $("bgc")        - background colour
+//  $("bgt")        - background treatment
 //  $("o")          - orientation
 //  $("or")         - torus addition order
 //  $("tors")       - torus size in px
@@ -69,6 +72,7 @@
 //  $("torpbc")     - torus peg border colour
 //  $("tori")       - torus image
 //  $("pegt")       - peg treatment
+//  $("pegr")       - peg rotate
 //  $("pegw")       - peg width
 //  $("_error")     - error string
 //  $("f")          - image filename
@@ -84,9 +88,9 @@ var TORUS_TREATMENT = { NONE:0, HEART:1, RANDOM:2, FLOWER_OF_LIFE:3, METATRONS_C
                         MESH:7, GEOMETRIC_1:8, IMAGE:9, GOLDEN_SPIRAL:10,
                         METATRON_2:11};
 
-var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4 };
+var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4, STAR:5 };
 
-var CIRCLE_TREATMENT = { SOLID:0, WAVE:1, RIPPLE:2, RAY:3 };
+var CIRCLE_TREATMENT = { SOLID:0, WAVE:1, RIPPLE:2, RAY:3, SPIRAL:4 };
 
 var ROW_TYPE = { EMPTY:0, HEADING:1, REPEAT:2 };
 
@@ -102,7 +106,33 @@ var g_CORSEnabled = true;
 
 var g_AllMembers = [];
 
+var g_Background_images = {
+                //"_1":{},        // separator 1
+
+                "BGA - Ocean 1":        {file:"bga_ocean1.jpg",     type:"center"},
+                "BGA - Ocean 2":        {file:"bga_ocean2.jpg",     type:"center"},
+                "BGA - Ocean 3":        {file:"bga_ocean3.jpg",     type:"center"},
+
+                "BGA - Ripple 1":       {file:"bga_ripple1.jpg",    type:"center"},
+                "BGA - Ripple 2":       {file:"bga_ripple2.jpg",    type:"center"},
+                "BGA - Ripple 3":       {file:"bga_ripple3.jpg",    type:"center"},
+
+                "BGA - Snow 1":         {file:"bga_snow1.jpg",      type:"center"},
+                "BGA - Snow 2":         {file:"bga_snow2.jpg",      type:"center"},
+                "BGA - Snow 3":         {file:"bga_snow3.jpg",      type:"center"},
+
+                "BGA - Line Art 1":     {file:"bga_lineart1.jpg",   type:"center"},
+                "BGA - Line Art 2":     {file:"bga_lineart2.jpg",   type:"center", clipHeight:234},
+                "BGA - Line Art 3":     {file:"bga_lineart3.jpg",   type:"center"},
+                "BGA - Line Art 4":     {file:"bga_lineart4.jpg",   type:"center"},
+                "BGA - Line Art 5":     {file:"bga_lineart5.png",   type:"tile"}
+};
+
 var g_Images = {
+                "_5":{},        // separator 3
+
+                "C - Mandala 1":        {file:"c_mandala1.jpg",     type:"clip"},
+
                 "_3":{},        // separator 3
 
                 "B - Mandala 1":        {file:"b_mandala1.jpg",     type:"clip"},
@@ -140,6 +170,11 @@ var g_Images = {
                 "A - Mandala 12":       {file:"a_mandala12.jpg",    type:"clip"},
                 "A - Mandala 13":       {file:"a_mandala13.jpg",    type:"clip"},
                 "A - Mandala 14":       {file:"a_mandala14.jpg",    type:"clip", scale:0.9},
+
+                "_4":{},        // separator 4
+
+                "C - Angel":            {file:"angel.jpg",          type:"clip"},
+                "C - Crystal":          {file:"crystal.jpg",        type:"clip"},
 
                 "_1":{},        // separator 1
 
@@ -220,6 +255,7 @@ var g_ElementDefaults = {
     or:"counter",       // counter-clockwise additions
 
     bgc:"FFFFFF",       // background colour
+    bgt:"0",            // background treatment
     tors:"100",         // torus size
     torw:"3",           // torus circle width
     tort:"0",           // torus treatment
@@ -228,6 +264,7 @@ var g_ElementDefaults = {
     tpc:"FF15C8",       // title group color
     pegt:"1",           // peg treatment
     pegw:"6",           // peg width
+    pegr:"0",           // peg rotate
 
     torc:"000000",      // torus color
     torpc:"FF0000",     // torus peg color
@@ -301,7 +338,7 @@ var g_Origin = {
 
     memberStartAngle:           90,             // initial angle for member name
 
-    cropSpacing:                5,              // px spacing from entire image to border
+    cropSpacing:                20,             // px spacing from entire image to border
 
     titleSpacing:               20,             // px spacing from title to any member/master name
 
@@ -317,8 +354,11 @@ var g_Origin = {
     },
 
     polarToAbsXYWithOffset : function( radius, angle, offsetX, offsetY ) {
-        return this.absXY( offsetX + radius * Math.cos( angle * Math.PI / 180 ),
-                           offsetY + radius * Math.sin( angle * Math.PI / 180 ) );
+        let result = this.absXY( offsetX + radius * Math.cos( angle * Math.PI / 180 ),
+                                 offsetY + radius * Math.sin( angle * Math.PI / 180 ) );
+        result.radius = radius;
+        result.angle = angle;
+        return result;
     },
 
     polarToAbsXY : function( radius, angle ) {
@@ -428,6 +468,7 @@ var Detector = function() {
                            "Century Gothic", "Comic Sans MS", "Courier", "Courier New", "Georgia", "Gentium",
                            "Impact", "King", "Lucida Console", "Lalit", "Modena", "Monotype Corsiva", "Papyrus",
                            "Tahoma", "TeX", "Times", "Times New Roman", "Trebuchet MS", "Verdana", "Verona",
+
                             // Windows 10 fonts
                             "Bradley Hund ITC", "Buxton Sketch", "Cooper Black", "Elephant",
                             "Gabriola", "Kristen ITC", "Lucida Calligraphy", "Lucida Handwriting",
@@ -732,7 +773,7 @@ function drawHeart( context, xCenter, yCenter, size, borderColour, innerColour )
     context.strokeWeight = 3;
     context.shadowOffsetX = 4.0;
     context.shadowOffsetY = 4.0;
-    context.lineWidth = size < 20 ? 1 : 5;
+    context.lineWidth = size <= 20 ? 1 : 5;
     context.beginPath();
     context.moveTo( x, y+d/4 );
     context.quadraticCurveTo( x,y, x+d/4, y);
@@ -751,16 +792,48 @@ function drawHeart( context, xCenter, yCenter, size, borderColour, innerColour )
     context.stroke();
 }
 
-function drawPeg( context, x, y ) {
+function drawStar( context, xCenter, yCenter, spikes, outerRadius, innerRadius, borderColour, innerColour ) {
+    let rot = Math.PI/2*3;
+    let step = Math.PI / spikes;
+
+    context.strokeStyle = borderColour;
+    context.lineWidth = outerRadius <= 10 ? 1 : 5;
+    context.beginPath();
+    context.moveTo( xCenter, yCenter-outerRadius );
+    for( let i=0; i < spikes; ++i ) {
+        context.lineTo( xCenter + Math.cos( rot ) * outerRadius,
+                        yCenter + Math.sin( rot ) * outerRadius );
+        rot += step;
+
+        context.lineTo( xCenter + Math.cos( rot ) * innerRadius,
+                        yCenter + Math.sin( rot ) * innerRadius );
+        rot += step;
+    }
+    context.lineTo( xCenter, yCenter-outerRadius );
+    if( innerColour != undefined ) {
+        context.fillStyle = innerColour;
+        context.fill();
+    }
+    context.closePath();
+    context.stroke();
+}
+
+function drawPeg( context, x, y, angle ) {
     let colour = colorFromID(g_RecipientFontDesc.torusPegColorID);
     let borderColour = colorFromID(g_RecipientFontDesc.torusPegBorderColorID);
     let pegSize = g_Origin.torusRingPegSize;
+
+    context.save();
+    context.translate( x, y );
+    if( $("pegr").checked ) {
+        context.rotate( normalizeAngle(angle-270) * Math.PI/180 );
+    }
 
     if( g_PegTreatment == PEG_TREATMENT.CIRCLE ) {
         context.strokeStyle = borderColour;
         context.lineWidth = 1;
         context.beginPath();
-        context.arc( x, y, pegSize, 0, 2*Math.PI );
+        context.arc( 0, 0, pegSize, 0, 2*Math.PI );
         context.fillStyle = colour;
         context.fill();
         context.closePath();
@@ -769,10 +842,10 @@ function drawPeg( context, x, y ) {
         context.strokeStyle = borderColour;
         context.lineWidth = 1;
         context.beginPath();
-        context.moveTo( x-pegSize, y-pegSize );
-        context.lineTo( x+pegSize, y-pegSize );
-        context.lineTo( x+pegSize, y+pegSize );
-        context.lineTo( x-pegSize, y+pegSize );
+        context.moveTo( -pegSize, -pegSize );
+        context.lineTo( +pegSize, -pegSize );
+        context.lineTo( +pegSize, pegSize );
+        context.lineTo( -pegSize, pegSize );
         context.fillStyle = colour;
         context.fill();
         context.closePath();
@@ -781,17 +854,21 @@ function drawPeg( context, x, y ) {
         context.strokeStyle = borderColour;
         context.lineWidth = 1;
         context.beginPath();
-        context.moveTo( x, y-pegSize );
-        context.lineTo( x+pegSize, y );
-        context.lineTo( x, y+pegSize );
-        context.lineTo( x-pegSize, y );
+        context.moveTo( 0, -pegSize );
+        context.lineTo( pegSize, 0 );
+        context.lineTo( 0, +pegSize );
+        context.lineTo( -pegSize, 0 );
         context.fillStyle = colour;
         context.fill();
         context.closePath();
         context.stroke();
     } else if( g_PegTreatment == PEG_TREATMENT.HEART ) {
-        drawHeart( context, x, y, pegSize*2, borderColour, colour );
+        drawHeart( context, 0, 0, pegSize*2, borderColour, colour );
+    } else if( g_PegTreatment == PEG_TREATMENT.STAR ) {
+        drawStar( context, 0, 0, 5, pegSize, pegSize/2, borderColour, colour );
     }
+
+    context.restore();
 }
 
 function iterateSacred( obj, radius, x, y, centerArray ) {
@@ -1455,8 +1532,88 @@ function drawSeatingArrangement() {
         if( i == 0 ) {
             pegs = [];
 
-            context.fillStyle = g_RecipientFontDesc.imageColor;
-            context.fillRect( 0, 0, newWidth, newHeight );
+            if( $("bgt").value === "0" ) {
+                context.fillStyle = g_RecipientFontDesc.imageColor;
+                context.fillRect( 0, 0, newWidth, newHeight );
+            } else {
+                var imageDesc = g_Background_images[$("bgt").value];
+                var image = imageDesc.image;
+                if( image != undefined && image.complete ) {
+                    let opacity = Math.max( getOpacity( colorFromID("bgc") ), 5 );
+            
+                    context.save();
+                        context.globalAlpha = opacity/100;
+
+                        let width = image.width;
+                        let height = image.height;
+
+                        let clipX = imageDesc.clipX || 0;
+                        let clipY = imageDesc.clipY || 0;
+                        let clipWidth = imageDesc.clipWidth || (width-clipX);
+                        let clipHeight = imageDesc.clipHeight || (height-clipY);
+                        let startX = 0;
+                        let startY = 0;
+
+                        switch( imageDesc.type ) {
+                            case "tile":
+                                // tile the clipped image in the background
+                                for( let y=startY; y < newHeight; y += clipHeight ) {
+                                    for( let x=startX; x < newWidth; x += clipWidth ) {
+                                        context.drawImage( image,
+                                                           clipX,
+                                                           clipY,
+                                                           clipWidth,
+                                                           clipHeight,
+                                                           x,
+                                                           y,
+                                                           clipWidth,
+                                                           clipHeight );    
+                                    }
+                                }
+                                break;
+
+                            case "center":
+                                {
+                                    let centerX = imageDesc.centerX || (clipWidth / 2 + clipX);
+                                    let centerY = imageDesc.centerY || (clipHeight / 2 + clipY);
+                                    let maxX = Math.min( centerX - clipX, clipWidth - (centerX - clipX) );
+                                    let maxY = Math.min( centerY - clipY, clipHeight - (centerY - clipY) );
+                                    maxX = Math.min( maxX, newHeight*maxX / newWidth );
+                                    maxY = Math.min( maxY, newWidth*maxY / newHeight );
+
+                                    context.drawImage( image,
+                                                       centerX - maxX,
+                                                       centerY - maxY,
+                                                       2 * maxX,
+                                                       2 * maxY,
+                                                       startX,
+                                                       startY,
+                                                       newWidth,
+                                                       newHeight );
+                                }
+                                break;
+
+                            case "stretch":
+                                {
+                                    let stretchX = newWidth - startX;
+                                    let stretchY = newHeight - startY;
+
+                                    // stretch background image
+                                    context.drawImage( image,
+                                                       clipX,
+                                                       clipY,
+                                                       clipWidth,
+                                                       clipHeight,
+                                                       startX,
+                                                       startY,
+                                                       stretchX,
+                                                       stretchY );    
+                                }
+                                break;
+                        }
+                    context.restore();
+                }
+            }
 
             // Compute all the peg locations
             for( let j = 0; j < g_ObjectArray.length; ++j ) {
@@ -1790,7 +1947,7 @@ function drawSeatingArrangement() {
 
             // Draw the pegs
             for( let j = 0; j < pegs.length; ++j ) {
-                drawPeg( context, pegs[j].x, pegs[j].y );
+                drawPeg( context, pegs[j].x, pegs[j].y, pegs[j].angle );
             }
         } else {
             if( g_Debug ) {
@@ -2342,6 +2499,32 @@ function createTextObject( objectType,
                 context.lineTo( x2, y2 );
                 context.stroke();
             }
+        } else if( args.treatment == CIRCLE_TREATMENT.SPIRAL ) {
+            context.beginPath();
+            context.strokeStyle = args.color || this.fontDesc.debugColor;
+
+            step = 0.4;
+            let smallRadius = 5;
+            let smallAngle = 0;
+            let smallStep = 20;
+
+            for( var angle=0; angle <= 360; angle += step ) {
+                var x1 = this.centerX() + radius * Math.cos( angle * Math.PI/180 );
+                var y1 = this.centerY() + radius * Math.sin( angle * Math.PI/180 );
+
+                x1 += smallRadius * Math.cos( smallAngle * Math.PI/180 );
+                y1 += smallRadius * Math.sin( smallAngle * Math.PI/180 );
+
+                if( smallAngle == 0 ) {
+                    context.moveTo( x1, y1 );
+                } else {
+                    context.lineTo( x1, y1 );
+                }
+
+                smallAngle += smallStep;
+            }
+            context.stroke();
+
         } else {
             context.beginPath();
             context.strokeStyle = args.color || this.fontDesc.debugColor;
@@ -3084,6 +3267,8 @@ function addMemberButton() {
 
 
 function pageSetup() {
+    $("version").innerHTML = "Version: " + g_Version;
+
     // Determine what fonts are supported.
     g_DetectedFonts = (new Detector()).identifyCommonFonts();
 
@@ -3170,6 +3355,24 @@ function pageSetup() {
         imageDesc.image.src = imageDesc.file;
     }
 
+    for( var bgm in g_Background_images ) {
+        var imageDesc = g_Background_images[bgm];
+
+        let option = document.createElement( "option" );
+        if( im[0] == "_" ) {        // separator sentinel
+            option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
+            option.setAttribute( "disabled", "" );
+            option.innerHTML = "&nbsp;";
+        } else {
+            option.setAttribute( "value", bgm );
+            option.innerHTML = "Picture '" + bgm + "'";
+        }
+        $("bgt").appendChild( option );
+
+        imageDesc.image = new Image;
+        imageDesc.image.src = imageDesc.file;
+    }
+
     //$("tort").value = "11";  // XXX REMOVE
 
     buildCanvas();
@@ -3191,6 +3394,7 @@ function pageSetup() {
       <!-- <a class="active" href="index.html"><i class="fa fa-fw fa-home"></i> Home</a> -->
       <a href="help.html" target="_blank"><i class="fa fa-fw fa-question-circle"></i> Help</a>
       <a id="downloadLink" href="#image"><i class="fa fa-fw fa-download"></i> Download</a> 
+      <span id=version>Version ?</span>
     </div>
 
     <div id="membersDatalist"></div>
@@ -3210,10 +3414,10 @@ function pageSetup() {
             <option value='counter'>counter-clockwise</option>
             <option value='clockwise'>clockwise</option>
         </select> order.   Masters are on the<br> right (counter-clockwise) of members.<br></b></i>
-        <div id="members"></div>
-        
         <div id="addRowButton" onClick="addMemberButton()">Add Row</div>
   
+        <div id="members"></div>
+        
         <p id="_error"></p>
   
         Member font <span id='memberProperties'></span>
@@ -3244,7 +3448,21 @@ function pageSetup() {
         <table border=0>
           <tr>
             <td>Background colour:</td>
-            <td><input class="jscolor" id='bgc' value="FFFFFF" size='6' onchange='buildCanvas()'></td>
+            <td>
+              <table border=1>
+                <tr>
+                  <td><input class="jscolor" id='bgc' value="FFFFFF" size='6' onchange='buildCanvas()'></td>
+                  <td>
+                      <span class=tooltip>
+                        <select class=dropDown name=backgroundTreatment id='bgt' onChange='buildCanvas()'>
+                          <option value=0>None</option>
+                        </select>
+                        <span class=tooltiptext>Pattern to display in background</span>
+                      </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
           </tr><tr>
             <td>Torus circle</td>
             <td>
@@ -3294,6 +3512,7 @@ function pageSetup() {
                       <option value=1>WAVE</option>
                       <option value=2>RIPPLE</option>
                       <option value=3>RAY</option>
+                      <option value=4>SPIRAL</option>
                     </select>
                   </td>
                 </tr><tr>
@@ -3332,7 +3551,9 @@ function pageSetup() {
                       <option value=2>Square</option>
                       <option value=3>Diamond</option>
                       <option value=4>Heart</option>
+                      <option value=5>Star</option>
                     </select>
+                    Rotate <input type=checkbox id='pegr' onChange='buildCanvas()'>
                   </td>
                 </tr><tr>
                   <td>peg width:</td>
