@@ -5,7 +5,7 @@
 <title>Help - Image Generator</title>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> December 18, 2018
+<b>Date:</b> December 30, 2018
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -49,12 +49,15 @@ It is possible to assign multiple masters to a member by creating adjacent rows 
 
 <h2>Torus Circle</h2>
 
+<p>The image background can be modified by the row entitied "<b>Background</b>".  This row consists of a "<b>colour</b>" to use and a "<b>treatment</b>" drop down menu.  If the treatment type is "None" then the selected colour will solid fill the image background.  Otherwise, the treatment image will be drawn in the background image.  The opacity of the background image can be altered by changing the colour.</p>
+
 The torus is drawn as a circle with overlayed smaller circles called <i>pegs</i> denoting where members are situated.  The torus circle size and width can be changed with the "<b>circle size</b>" and "<b>circle width</b>" drop down menus, respectively.  The circle line treatment can be changed with the "<b>circle line treatment</b>" drop down menu with types
 <ul>
   <li>SOLID : draw the circle as a solid regular line</li>
   <li>WAVE : draw the circle as a wavy line</li>
   <li>RIPPLE : draw the circle as two wavy lines superimposed</li>
   <li>RAY: draw short ray lines from the center of the torus</li>
+  <li>SPIRAL: draw a looping spiral</li>
 </ul>
 The "<b>circle treatment</b>" drop down menu offers a few treatment patterns for rendering images within the torus circle.  A few examples are:
 <ul>
@@ -83,7 +86,10 @@ The size of torus pegs can be changed with the "<b>peg width</b>" drop down menu
   <li>Square</li>
   <li>Diamond</li>
   <li>Heart</li>
+  <li>Star</li>
 </ul>
+A "<b>Rotate</b>" checkbox beside the "<b>peg treatment</b>", when checked, will cause the drawn peg to be oriented so that the bottom of the checkbox image faces the centre of the torus. 
+
 The internal and border colours of pegs can be changed with the "<b>peg colour</b>" and "<b>peg border colour</b>" selectors.
 <div/><br/>
 
@@ -100,6 +106,47 @@ Since torus images may be created for different days, layout configurations can 
 <hr>
 <h3>Revision History</h3>
 <ul>
+    <li>
+        <b>December 30, 2018</b>
+        <ul>
+            <li>The program version is displayed on the navigation bar.</li>
+            <li>Introduced background treatment images as a drop down menu with <b>Background colour</b>:
+                <ol>
+                    <li>BGA - Ocean 1</li>
+                    <li>BGA - Ocean 2</li>
+                    <li>BGA - Ocean 3</li>
+                    <li>BGA - Ripple 1</li>
+                    <li>BGA - Ripple 2</li>
+                    <li>BGA - Ripple 3</li>
+                    <li>BGA - Snow 1</li>
+                    <li>BGA - Snow 2</li>
+                    <li>BGA - Snow 3</li>
+                    <li>BGA - Line Art 1</li>
+                    <li>BGA - Line Art 2</li>
+                    <li>BGA - Line Art 3</li>
+                    <li>BGA - Line Art 4</li>
+                    <li>BGA - Line Art 5</li>
+                </ol>
+                The opacity of the background image can be modified by changing the background colour.
+            </li>
+            <li>Added <b>circle treatment</b> images:
+                <ol>
+                    <li>C - Angel</li>
+                    <li>C - Crystal</li>
+                    <li>C - Mandala 1</li>
+                </ol>
+            </li>
+            <li>Increased the spacing distance of the entire drawn image to the border from 5 to 20 pixels.</li>
+            <li>Added a <b>Star</b> peg treatment image which draws a 5-point star.</li>
+            <li>Peg images like the heart image can be rotated with a new <b>Rotate</b> checkbox option for the <b>peg treatment</b>.
+                When active, the images are rotated so that the bottom of the images faces the center of the torus.</li>
+            <li>Added a <b>Spiral</b> option to the <b>circle line treatment</b> drop down menu.</li>
+            <li>The <b>Add Row</b> button for adding a new member/master row was moved before the list of members so that
+                pressing this button doesn't move it down the page.</li>
+            
+        </ul>
+    </li>
+
     <li>
         <b>December 18, 2018</b>
         <ul>

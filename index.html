@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-var g_Version = "December 29, 2018";
+var g_Version = "December 30, 2018";
 
 //
 // ID Legend:
@@ -129,10 +129,6 @@ var g_Background_images = {
 };
 
 var g_Images = {
-                "_5":{},        // separator 3
-
-                "C - Mandala 1":        {file:"c_mandala1.jpg",     type:"clip"},
-
                 "_3":{},        // separator 3
 
                 "B - Mandala 1":        {file:"b_mandala1.jpg",     type:"clip"},
@@ -175,6 +171,7 @@ var g_Images = {
 
                 "C - Angel":            {file:"angel.jpg",          type:"clip"},
                 "C - Crystal":          {file:"crystal.jpg",        type:"clip"},
+                "C - Mandala 1":        {file:"c_mandala1.jpg",     type:"clip"},
 
                 "_1":{},        // separator 1
 
@@ -3447,12 +3444,13 @@ function pageSetup() {
         <h2>Torus Circle</h2>
         <table border=0>
           <tr>
-            <td>Background colour:</td>
+            <td>Background:</td>
             <td>
               <table border=1>
                 <tr>
-                  <td><input class="jscolor" id='bgc' value="FFFFFF" size='6' onchange='buildCanvas()'></td>
+                  <td>colour <input class="jscolor" id='bgc' value="FFFFFF" size='6' onchange='buildCanvas()'></td>
                   <td>
+                      treatment
                       <span class=tooltip>
                         <select class=dropDown name=backgroundTreatment id='bgt' onChange='buildCanvas()'>
                           <option value=0>None</option>
