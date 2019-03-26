@@ -4,79 +4,93 @@
   <title>Image Generator</title>
   <link rel="icon" href="favicon2.ico">
   <meta charset="utf-8"/>
+  <script src="dexie.js"></script>
   <script type="text/javascript">
 
+  "use strict"
 
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-var g_Version = "January 13, 2019";
+var g_Version = "March 25, 2019";
 
-//
-// ID Legend:
-//  $("_canvas")    - canvas element for drawing image
-//  $("_debug")     - checkbox for enabling debug mode
-//  $("_myURL")     - URL name with parameters
-//  $("_profile")   - profile name
-//  $("_imageInput") - elements for accepting image URL
+// NOTE: font description MUST include the font height in 'px'.
+const ID = {
+    CANVAS :                        {tag:"_canvas"},      // canvas element for drawing image
+    DEBUG :                         {tag:"_debug"},       // checkbox for enabling debug mode
+    MY_URL :                        {tag:"_myURL"},       // URL name with parameters
+    PROFILE :                       {tag:"_profile"},     // profile name
+    ERROR_STRING :                  {tag:"_error"},
+    MEMBER_ROWS :                   {tag:"_members"},
+    MEMBERS_DATA_LIST :             {tag:"_membersDataList"},
+    VERSION :                       {tag:"_version"},
+    DOWNLOAD_LINK :                 {tag:"_downloadLink"},
+    DESCRIPTION :                   {tag:"_description"},
+    SNAPSHOTS_LIST :                {tag:"_snapshots"},
+    SNAPSHOT_ :                     {tag:"_snapshot_"},
 
-//  $("t1")         - title string 1
-//  $("t2")         - title string 2
-//  $("tp")         - title part (e.g. "Group A")
-//  $("tff")        - title font family
-//  $("tfb")        - title font bold selected
-//  $("tfi")        - title font italic selected 
-//  $("tfs")        - title font shadow selected
-//  $("tfp")        - title font size
-//  $("tc")         - title colour
-//  $("tpc")        - title part colour
+    TITLE_1 :                       {tag:"t1",      save:"Group Torus", db:true},
+    TITLE_2 :                       {tag:"t2",      save:"",            db:true},
+    TITLE_PART :                    {tag:"tp",      save:""},
+    TITLE_FONT_FAMILY :             {tag:"tff",     save:"Arial"},
+    TITLE_FONT_BOLD :               {tag:"tfb",     save:true},
+    TITLE_FONT_ITALIC :             {tag:"tfi",     save:false},
+    TITLE_FONT_SHADOW :             {tag:"tfs",     save:false},
+    TITLE_FONT_SIZE :               {tag:"tfp",     save:"16px"},
+    TITLE_COLOUR :                  {tag:"tc",      save:"3605FF"},
+    TITLE_PART_COLOUR :             {tag:"tpc",     save:"FF15C8"},
 
-//  $("rep")        - recipient name in center of torus
-//  $("rff")        - recipient font family
-//  $("rfb")        - recipient font bold selected
-//  $("rfi")        - recipient font italic selected
-//  $("rfs")        - recipient font shadow selected
-//  $("rfp")        - recipient font size
-//  $("rc")         - recipient colour
+    RECIPIENT_NAME :                {tag:"rep",     save:""},
+    RECIPIENT_FONT_FAMILY :         {tag:"rff",     save:"Arial"},
+    RECIPIENT_FONT_BOLD :           {tag:"rfb",     save:true},
+    RECIPIENT_FONT_ITALIC :         {tag:"rfi",     save:false},
+    RECIPIENT_FONT_SHADOW :         {tag:"rfs",     save:false},
+    RECIPIENT_FONT_SIZE :           {tag:"rfp",     save:"14px"},
+    RECIPIENT_COLOUR :              {tag:"rc",      save:"14811E"},
 
-//  $("tr#")        - trash member/master # (from 0)
-//  $("mu#")        - move member/master # up (from 0)
-//  $("md#")        - move member/master # down (from 0)
+    TRASH_ROW_ :                    {tag:"tr_"},                        // trash member/master # (from 0)
+    MOVE_ROW_UP_ :                  {tag:"mu_"},                        // move member/master # up (from 0)
+    MOVE_ROW_DOWN_ :                {tag:"md_"},                        // move member/master # down (from 0)
 
-//  $("p#")         - member # (from 0)
-//  $("pff")        - member font family
-//  $("pfb")        - member font bold selected
-//  $("pfi")        - member font italic selected
-//  $("pfs")        - member font shadow selected
-//  $("pfp")        - member font size
-//  $("pc")         - member colour
+    MEMBER_ :                       {tag:"p_",      save:""},           // member # (from 0)
+    MEMBER_FONT_FAMILY :            {tag:"pff",     save:"Arial"},
+    MEMBER_FONT_BOLD :              {tag:"pfb",     save:true},
+    MEMBER_FONT_ITALIC :            {tag:"pfi",     save:false},
+    MEMBER_FONT_SHADOW :            {tag:"pfs",     save:false},
+    MEMBER_FONT_SIZE :              {tag:"pfp",     save:"14px"},
+    MEMBER_COLOUR :                 {tag:"pc",      save:"000000"},
 
-//  $("m#")         - master # (from 0)
-//  $("mff")        - master font family
-//  $("mfb")        - master font bold selected
-//  $("mfi")        - master font italic selected
-//  $("mfs")        - master font shadow selected
-//  $("mfp")        - master font size
-//  $("mc")         - master colour
+    MASTER_ :                       {tag:"m_",      save:""},           // master # (from 0)
+    MASTER_FONT_FAMILY :            {tag:"mff",     save:"Arial"},
+    MASTER_FONT_BOLD :              {tag:"mfb",     save:true},
+    MASTER_FONT_ITALIC :            {tag:"mfi",     save:false},
+    MASTER_FONT_SHADOW :            {tag:"mfs",     save:false},
+    MASTER_FONT_SIZE :              {tag:"mfp",     save:"14px"},
+    MASTER_COLOUR :                 {tag:"mc",      save:"FF0000"},
 
-//  $("bgc")        - background colour
-//  $("bgt")        - background treatment
-//  $("o")          - orientation
-//  $("or")         - torus addition order
-//  $("tors")       - torus size in px
-//  $("torw")       - torus width in px
-//  $("torc")       - torus colour
-//  $("tort")       - torus treatment
-//  $("torlt")      - torus line treatment
-//  $("tortc")      - torus treament colour
-//  $("torpc")      - torus peg colour
-//  $("torpbc")     - torus peg border colour
-//  $("tori")       - torus image
-//  $("pegt")       - peg treatment
-//  $("pegr")       - peg rotate
-//  $("pegw")       - peg width
-//  $("_error")     - error string
-//  $("f")          - image filename
+    BACKGROUND_COLOUR :             {tag:"bgc",     save:"FFFFFF"},
+    BACKGROUND_TREATMENT :          {tag:"bgt",     save:"0"},
+    ORIENTATION :                   {tag:"o",       save:"270"},
+    TORUS_ADDITION_ORDER :          {tag:"or",      save:"counter"},
+    TORUS_SIZE :                    {tag:"tors",    save:"100"},
+    TORUS_WIDTH :                   {tag:"torw",    save:"3"},
+    TORUS_COLOUR :                  {tag:"torc",    save:"000000"},
+    TORUS_TREATMENT :               {tag:"tort",    save:"0"},
+    TORUS_LINE_TREATMENT :          {tag:"torlt",   save:"0"},
+    TORUS_LINE_RAINBOW :            {tag:"torlr",   save:false},
+    TORUS_TREATMENT_COLOUR :        {tag:"tortc",   save:"000000"},
+    TORUS_PEG_COLOUR :              {tag:"torpc",   save:"FF0000"},
+    TORUS_PEG_BORDER_COLOUR :       {tag:"torpbc",  save:"000000"},
+    TORUS_IMAGE :                   {tag:"tori"},
+    PEG_TREATMENT :                 {tag:"pegt",    save:"1"},
+    PEG_ROTATE :                    {tag:"pegr",    save:"0"},
+    PEG_WIDTH :                     {tag:"pegw",    save:"6"},
+
+    IMAGE_FILENAME :                {tag:"f"}
+};
+
+var g_TagToID = {};             // e.g.     g_TagToID["pegw"] = "PEG_WIDTH"
+var g_ElementDefaults = {};     // e.g.     g_ElementDefaults["pegw"] = "6"
 
 var g_Debug = false;
 
@@ -86,8 +100,8 @@ var OBJECT_TYPE = { TITLE:0, MEMBER:1, MASTER:2, RECIPIENT:3};
 
 var TORUS_TREATMENT = { NONE:0, HEART:1, RANDOM:2, FLOWER_OF_LIFE:3, METATRONS_CUBE:4,
                         DAISY:5, PETALS:6,
-                        MESH:7, GEOMETRIC_1:8, IMAGE:9, GOLDEN_SPIRAL:10,
-                        METATRON_2:11};
+                        MESH:7, GEOMETRIC_1:8, GOLDEN_SPIRAL:10,
+                        METATRON_2:11, SHADED_SPHERE:12};
 
 var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4, STAR:5 };
 
@@ -103,12 +117,22 @@ var g_TorusTreament = TORUS_TREATMENT.NONE;
 
 var g_PegTreatment = PEG_TREATMENT.CIRCLE;
 
-var g_CORSEnabled = true;
-
 var g_AllMembers = [];
 
 var g_Background_images = {
-                //"_1":{},        // separator 1
+                "BGD - Line Art 1":     {file:"bgd_lineart1.png",   type:"center"},
+                "BGD - Line Art 2":     {file:"bgd_lineart2.png",   type:"center"},
+                "BGD - Line Art 3":     {file:"bgd_lineart3.jpg",   type:"center"},
+                "BGD - Line Art 4":     {file:"bgd_lineart4.jpg",   type:"center"},
+                "BGD - Line Art 5":     {file:"bgd_lineart5.jpg",   type:"center"},
+                "BGD - Line Art 6":     {file:"bgd_lineart6.png",   type:"center"},
+                "BGD - Sky 1":          {file:"bgd_sky1.jpg",       type:"center"},
+                "BGD - Swirl 1":        {file:"bgd_swirl1.jpg",     type:"center"},
+                "BGD - Swirl 2":        {file:"bgd_swirl2.gif",     type:"center"},
+                "BGD - Leaves 1":       {file:"bgd_leaves1.jpg",    type:"center"},
+                "BGD - Flowers 1":      {file:"bgd_flowers1.jpg",   type:"center"},
+
+                "_1":{},        // separator
 
                 "BGA - Ocean 1":        {file:"bga_ocean1.jpg",     type:"center"},
                 "BGA - Ocean 2":        {file:"bga_ocean2.jpg",     type:"center"},
@@ -118,10 +142,6 @@ var g_Background_images = {
                 "BGA - Ripple 2":       {file:"bga_ripple2.jpg",    type:"center"},
                 "BGA - Ripple 3":       {file:"bga_ripple3.jpg",    type:"center"},
 
-                "BGA - Snow 1":         {file:"bga_snow1.jpg",      type:"center"},
-                "BGA - Snow 2":         {file:"bga_snow2.jpg",      type:"center"},
-                "BGA - Snow 3":         {file:"bga_snow3.jpg",      type:"center"},
-
                 "BGA - Line Art 1":     {file:"bga_lineart1.jpg",   type:"center"},
                 "BGA - Line Art 2":     {file:"bga_lineart2.jpg",   type:"center", clipHeight:234},
                 "BGA - Line Art 3":     {file:"bga_lineart3.jpg",   type:"center"},
@@ -130,10 +150,17 @@ var g_Background_images = {
 };
 
 var g_Images = {
-                "_3":{},        // separator 3
+                "_5":{},        // separator
+
+                "D - Line Art 1":       {file:"d_lineart1.png",     type:"clip"},
+                "D - Line Art 2":       {file:"d_lineart2.png",     type:"clip"},
+                "D - Flower 1":         {file:"d_flower1.jpg",      type:"clip"},
+                "D - Flowers 2":        {file:"d_flowers2.jpg",     type:"clip"},
+                "D - Flower 3":         {file:"d_flower3.jpg",      type:"clip"},
+
+                "_4":{},        // separator
 
                 "B - Mandala 1":        {file:"b_mandala1.jpg",     type:"clip"},
-                "B - Mandala 2":        {file:"b_mandala2.jpg",     type:"clip", centerX:235, centerY:226, scale:0.7},
                 "B - Mandala 3":        {file:"b_mandala3.jpg",     type:"clip", centerX:243, centerY:197, scale:0.8},
                 "B - Mandala 4":        {file:"b_mandala4.jpg",     type:"clip"},
                 "B - Mandala 5":        {file:"b_mandala5.jpg",     type:"clip"},
@@ -151,30 +178,24 @@ var g_Images = {
                 "B - Mandala 17":       {file:"b_mandala17.jpg",    type:"clip"},
                 "B - Mandala 18":       {file:"b_mandala18.jpg",    type:"clip"},
 
-                "_2":{},        // separator 2
+                "_3":{},        // separator
 
-                "A - Mandala 1":        {file:"a_mandala1.jpg",     type:"clip"},
-                "A - Mandala 2":        {file:"a_mandala2.jpg",     type:"clip"},
                 "A - Mandala 3":        {file:"a_mandala3.jpg",     type:"clip"},
                 "A - Mandala 4":        {file:"a_mandala4.jpg",     type:"clip"},
                 "A - Mandala 5":        {file:"a_mandala5.jpg",     type:"clip"},
-                "A - Mandala 6":        {file:"a_mandala6.jpg",     type:"clip"},
                 "A - Mandala 7":        {file:"a_mandala7.jpg",     type:"clip"},
                 "A - Mandala 8":        {file:"a_mandala8.jpg",     type:"clip"},
                 "A - Mandala 9":        {file:"a_mandala9.jpg",     type:"clip", scale:0.75},
                 "A - Mandala 10":       {file:"a_mandala10.jpg",    type:"clip"},
                 "A - Mandala 11":       {file:"a_mandala11.jpg",    type:"clip"},
-                "A - Mandala 12":       {file:"a_mandala12.jpg",    type:"clip"},
-                "A - Mandala 13":       {file:"a_mandala13.jpg",    type:"clip"},
                 "A - Mandala 14":       {file:"a_mandala14.jpg",    type:"clip", scale:0.9},
 
-                "_4":{},        // separator 4
+                "_2":{},        // separator
 
                 "C - Angel":            {file:"angel.jpg",          type:"clip"},
                 "C - Crystal":          {file:"crystal.jpg",        type:"clip"},
-                "C - Mandala 1":        {file:"c_mandala1.jpg",     type:"clip"},
 
-                "_1":{},        // separator 1
+                "_1":{},        // separator
 
                 "Sacred Geometry 3":    {file:"sacred3.jpg",        type:"clip"},
                 "Sacred Geometry 5":    {file:"sacred5.jpg",        type:"clip", scale:0.8},
@@ -183,93 +204,13 @@ var g_Images = {
                 "Sacred Geometry 8":    {file:"sacred8.jpg",        type:"clip"},
                 "Sacred Geometry 9":    {file:"sacred9.jpg",        type:"clip"},
                 "Sacred Geometry 10":   {file:"sacred10.jpg",       type:"clip"},
-                "Mandala 4":            {file:"mandala4.jpg",       type:"clip"},
                 "Mandala 5":            {file:"mandala5.jpg",       type:"clip"},
                 "Mandala 9":            {file:"mandala9.jpg",       type:"clip"},
                };
 
-// NOTE: font description MUST include the font height in 'px'.
-var g_RecipientFontDesc = { 
-    fontFamilyID:               "rff",
-    fontBoldID:                 "rfb",
-    fontItalicID:               "rfi",
-    fontSizeID:                 "rfp",
-    fontShadowID:               "rfs",
+const   DEBUG_COLOUR    = "green";
+var     g_Image_colour  = "white";
 
-    textColorID:                "rc",
-    debugColor:                 "green",
-
-    torusColorID:               "torc",         // extra colour attribute for torus
-    torusPegColorID:            "torpc",        // extra colour attribute for torus peg
-    torusPegBorderColorID:      "torpbc",       // extra colour attribute for torus peg border 
-    torusTreatmentColorID:      "tortc",        // extra colour attribute for torus treatment
-    imageColor:                 "white"         // extra colour attribute for image
-};
-
-var g_TitleFontDesc = { 
-    fontFamilyID:               "tff",
-    fontBoldID:                 "tfb",
-    fontItalicID:               "tfi",
-    fontSizeID:                 "tfp",
-    fontShadowID:               "tfs",
-
-    textColorID:                "tc",
-    titleGroupColorID:          "tpc",        // extra color attribute to title group
-    debugColor:                 "green"
-};
-
-var g_MemberFontDesc = { 
-    fontFamilyID:               "pff",
-    fontBoldID:                 "pfb",
-    fontItalicID:               "pfi",
-    fontSizeID:                 "pfp",
-    fontShadowID:               "pfs",
-
-    textColorID:                "pc",
-    debugColor:                 "green"
-};
-
-var g_MasterFontDesc = { 
-    fontFamilyID:               "mff",
-    fontBoldID:                 "mfb",
-    fontItalicID:               "mfi",
-    fontSizeID:                 "mfp",
-    fontShadowID:               "mfs",
-
-    textColorID:                "mc",
-    debugColor:                 "green"
-};
-
-var g_ElementDefaults = {
-                        // Font Family      bold?       italic?      shadow?        Font Size   Text Color
-    /* Title */         tff:"Arial",        tfb:"true", tfi:"false", tfs:"false",   tfp:"16px", tc:"3605FF",       
-    /* Recipient */     rff:"Arial",        rfb:"true", rfi:"false", rfs:"false",   rfp:"14px", rc:"14811E",
-    /* Member */        pff:"Arial",        pfb:"true", pfi:"false", pfs:"false",   pfp:"14px", pc:"000000",
-    /* Master */        mff:"Arial",        mfb:"true", mfi:"false", mfs:"false",   mfp:"14px", mc:"000000",
-
-    t1:"Group Torus",   // Title 1 string
-
-    o:"270",            // orientation
-    or:"counter",       // counter-clockwise additions
-
-    bgc:"FFFFFF",       // background colour
-    bgt:"0",            // background treatment
-    tors:"100",         // torus size
-    torw:"3",           // torus circle width
-    tort:"0",           // torus treatment
-    torlt:"0",          // torus line treatment
-    tortc:"000000",     // torus treatment colour
-    tpc:"FF15C8",       // title group color
-    pegt:"1",           // peg treatment
-    pegw:"6",           // peg width
-    pegr:"0",           // peg rotate
-
-    torc:"000000",      // torus color
-    torpc:"FF0000",     // torus peg color
-    torpbc:"000000",    // torus peg border colour
-    pc:"000000",        // member color
-    mc:"FF0000"         // master color
-};
 
 var g_MastersList = [
     "",
@@ -283,7 +224,7 @@ var g_MastersList = [
     "Mother Mary",                  "Isis",                 "Serapis Bey",
     "St John, the Baptist",         "Eros",                 "Ma'at",
     "Amen Bey",                     "Ptah",                 "Thomas Merton",
-    "Portia",                       "Anubis",               "Quetzacoatl",
+    "Portia",                       "Anubis",               "Quetzalcoatl",
     "Freya",                        "Moses",                "Vesta",
     "Chananda",                     "Yogananda",            "Gautama Buddha",
     "Maitreya",                     "Cha Ara",              "Hinenuitepo",
@@ -340,11 +281,9 @@ var g_Origin = {
 
     titleSpacing:               20,             // px spacing from title to any member/master name
 
-    maxMembers:                 8,              // maximum number of members supported
+    initialMaxMembers:          8,              // initial number of members
+    maxMembers:                 0,              // maximum number of members
     maxDropDownMembers:         15,             // maximum number of members in drop down list
-
-    maxProfiles:                7,              // maximum number of cookie profiles supported
-    maxCookieDays:              365,            // maximum days to keep a cookie
 
     absXY : function( relX, relY ) {
         return { x: Math.round( this.imageCenterX + relX ),
@@ -379,7 +318,8 @@ var g_DetectedFonts = {};
 var g_Title = [];
 var g_Members = [];
 var g_ObjectArray = [];
-var g_NumRows = 0;
+var g_Database;
+var g_SavedSnapshots = [];
 
 
 function resetGlobals() {
@@ -389,11 +329,89 @@ function resetGlobals() {
     g_Origin.resetImageCenter();
 }
 
-function resetCookies() {
-    for( let i = 0; i < g_Origin.maxProfiles; ++i ) {
-        eraseCookie( "profile" + i );
+
+var g_Canvas = null;
+function getCanvas( verify = true ) {
+    if( g_Canvas == null ) {
+        g_Canvas = $(ID.CANVAS);
     }
+    return g_Canvas;
 }
+
+
+// Define the database.
+function initializeDatabase() {
+    let databaseName = "image_gen_database";
+    g_Database = new Dexie( databaseName );
+
+    if( false ) {
+        g_Database.delete().then( () => {
+            console.log( "initializeDatabase: database successfully deleted" );
+        }).catch( err => {
+            console.error( "initializeDatabase: could not delete database" );
+        });
+    }
+
+    g_Database.version(1).stores( {
+        members: '&name',
+        masters: '&name',
+        torus: '++_id,_timestamp'
+    } );
+
+    g_Database.open().then( function() {
+        console.log( "initializeDatabase: opened database" );
+    }).catch( function(e) {
+        console.error( "initializeDatabase: Database open failed: " + e.stack );
+    });
+}
+
+
+async function addTorusDataToDatabase( data ) {
+    await g_Database.torus.add( data ).then( function() {
+        console.log( "addTorusDataToDatabase: Added torus data to database" );
+    }).catch( e => {
+        console.error( "addTorusDataToDatabase: couldn't add to database: " + e.stack );
+    });
+}
+
+
+async function getTorusData() {
+    g_SavedSnapshots = [];
+    g_Database.torus.orderBy("_timestamp").reverse().each( function(obj) {
+        g_SavedSnapshots.push( obj );
+        console.log( `getTorusData: added _id:${obj._id}, _timestamp:${obj._timestamp.toLocaleString()}, t1:'${obj.t1}', t2:'${obj.t2}'` );
+
+        let now = new Date();
+        if( now.getDay() == obj._timestamp.getDay() ) {
+            // Found a recent snapshot that was created on the same weekday.  Load
+            //  it's style information.
+            initializeElementsFromHash( obj );
+            buildCanvasLite();      // avoid loadMembers()/saveMembers()
+        }
+    
+    }).catch( e => {
+        console.error( "getTorusData: couldn't read torus definitions: " + e.stack );
+    }).then( () => {
+        for( let i=0; i < g_SavedSnapshots.length; ++i ) {
+            addSnapshotInfo( g_SavedSnapshots[i] );
+        }
+    });
+}
+
+
+async function addMembersToDatabase( members ) {
+    await g_Database.members.bulkAdd( members ).then( function(lastKey) {
+        console.log( "addMembersToDatabase: last id was: " + lastKey );
+    }).catch( Dexie.BulkError, function(e) {
+        for( let i=0; i < e.failures.length; ++i ) {
+            let err = e.failures[i];
+            if( err.name !== "ConstraintError" ) {
+                console.error( "addMembersToDatabase: error: " + err );
+            }
+        }
+    });
+}
+
 
 /**
  * JavaScript code to detect available availability of a
@@ -493,11 +511,22 @@ var Detector = function() {
     this.identifyCommonFonts = identifyCommonFonts;
 };
 
+
+function masterElement( n ) {
+    return $(ID.MASTER_.tag + n);
+}
+
+
+function memberElement( n ) {
+    return $(ID.MEMBER_.tag + n);
+}
+
+
 function computeSeed() {
     let seed = 12345;
     for( let i = 0; i < g_Origin.maxMembers; ++i ) {
-        let member = $("p" + i).value;
-        let master = $("m" + i).value;
+        let member = memberElement(i).value;
+        let master = masterElement(i).value;
         
         if( member !== "" ) {
             for( let j = 0; j < member.length; ++j ) {
@@ -512,6 +541,7 @@ function computeSeed() {
     }
     return seed;
 }
+
 
 function myRand(seed) {
     this.m = 0x80000000;    // 2**31
@@ -533,7 +563,7 @@ myRand.prototype.randColour = function(hex, opacity) {
 	if (hex.length < 6) {
 		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
 	}
-    let bgHex = colorFromID("bgc");
+    let bgHex = colorFromID(ID.BACKGROUND_COLOUR);
 	bgHex = String(bgHex).replace(/[^0-9a-f]/gi, '');
 	if (bgHex.length < 6) {
 		bgHex = bgHex[0]+bgHex[0]+bgHex[1]+bgHex[1]+bgHex[2]+bgHex[2];
@@ -541,8 +571,8 @@ myRand.prototype.randColour = function(hex, opacity) {
 
 	let rgba = "rgba(", c, i;
 	for (i = 0; i < 3; i++) {
-		hexVal = parseInt(hex.substr(i*2,2), 16);
-		bgHexVal = parseInt(bgHex.substr(i*2,2), 16);
+		let hexVal = parseInt(hex.substr(i*2,2), 16);
+		let bgHexVal = parseInt(bgHex.substr(i*2,2), 16);
 
         if( hexVal < bgHexVal ) {
             c = this.nextRange( hexVal, bgHexVal );
@@ -562,8 +592,13 @@ myRand.prototype.randColour = function(hex, opacity) {
 
 
 function $(id) {
-    return document.getElementById(id);
+    if( typeof id == "object" && "tag" in id ) {     // assume element from ID
+        return document.getElementById(id.tag);
+    } else {
+        return document.getElementById(id);
+    }
 }
+
 
 function massageName( name ) {
     let arr = [];
@@ -608,9 +643,11 @@ function massageName( name ) {
     return arr;
 }
 
+
 function colorFromID( id ) {
     return "#" + $(id).value;
 }
+
 
 function createSeatingArrangement() {
     let memberAngle = g_Origin.memberStartAngle;
@@ -625,18 +662,17 @@ function createSeatingArrangement() {
     let maxRadius = g_Origin.imageCenterY;
     let obj;
     let result = "";
-    let context = $("_canvas").getContext("2d");
+    let context = getCanvas().getContext("2d");
 
-    if( $("or").value === "counter" ) {
+    if( $(ID.TORUS_ADDITION_ORDER).value === "counter" ) {
         step = -step;
     }
 
     // Create the center object.
     obj = createTextObject( OBJECT_TYPE.RECIPIENT,
-                            massageName( $("rep").value ),
-                            $("_canvas"), 
+                            massageName( $(ID.RECIPIENT_NAME).value ),
                             context,
-                            g_RecipientFontDesc, 
+                            "RECIPIENT",
                             ALIGNMENT.CENTER, 
                             g_Origin, 
                             0,      // radius
@@ -651,9 +687,8 @@ function createSeatingArrangement() {
     for( let i = 0; i < g_Members.length; ++i ) {
         obj = createTextObject( OBJECT_TYPE.MEMBER,
                                 massageName( g_Members[i].member ),
-                                $("_canvas"), 
                                 context,
-                                g_MemberFontDesc, 
+                                "MEMBER",
                                 ALIGNMENT.AUTO, 
                                 g_Origin, 
                                 memberRadius,
@@ -673,7 +708,7 @@ function createSeatingArrangement() {
 
         if( result != null ) {
             // Return the member placement error.
-            return result;
+            return result.msg;
         }
     }
 
@@ -682,9 +717,8 @@ function createSeatingArrangement() {
         if( g_Members[i].master !== "" ) {
             obj = createTextObject( OBJECT_TYPE.MASTER,
                                     massageName( g_Members[i].master ),
-                                    $("_canvas"), 
                                     context,
-                                    g_MasterFontDesc, 
+                                    "MASTER",
                                     ALIGNMENT.AUTO, 
                                     g_Origin, 
                                     masterRadius,
@@ -693,26 +727,49 @@ function createSeatingArrangement() {
             g_ObjectArray.push( obj );
 
             let memberMin, memberMax;
-            if( $("or").value === "counter" ) {
+            if( $(ID.TORUS_ADDITION_ORDER).value === "counter" ) {
                 memberMax = g_ObjectArray[ memberStartIndex + i ];
                 memberMin = g_ObjectArray[ memberStartIndex + ((i+1) % g_Members.length) ];
             } else {
-                memberMin = g_ObjectArray[ memberStartIndex + i ];
-                memberMax = g_ObjectArray[ memberStartIndex + ((i-1) % g_Members.length) ];
+                memberMax = g_ObjectArray[ memberStartIndex + i ];
+                memberMin = g_ObjectArray[ memberStartIndex + ((i+g_Members.length-1) % g_Members.length) ];
             }
 
-            let angleA = memberMin.computeMaxAngle();
-            let angleB = memberMax.computeMinAngle();
-            
+            let boundingAngle, centerAngle, angleA, angleB;
+
+            // Compute the angle between the bounding boxes of Members
+            angleA = memberMin.computeMaxAngle();
+            angleB = memberMax.computeMinAngle();
             if( angleA < angleB ) {
-                obj.setAngle( (angleA + angleB) / 2 );
+                boundingAngle = (angleA + angleB) / 2;
             } else {
-                obj.setAngle( (angleA + angleB + 360) / 2 );
+                boundingAngle = (angleA + angleB + 360) / 2;
+            }
+
+            // Compute the angle between the center of Member names.
+            angleA = memberMin.computeCenterAngle();
+            angleB = memberMax.computeCenterAngle();
+            if( angleA < angleB ) {
+                centerAngle = (angleA + angleB) / 2;
+            } else {
+                centerAngle = (angleA + angleB + 360) / 2;
             }
 
             // Attempt to place the master.
             for( let r = masterRadius; r < maxRadius; r += radiusStep ) {
                 obj.setRadius( r );
+
+                // Test if this Master text can fit withing the bounding boxes
+                //  of Members.
+                obj.setAngle( boundingAngle );
+                result = testOverlap();
+                if( result == null ) {
+                    break;
+                }
+
+                // Test if this Master text can fit within the text centers of
+                //  Members.
+                obj.setAngle( centerAngle );
                 result = testOverlap();
                 if( result == null ) {
                     break;
@@ -721,7 +778,7 @@ function createSeatingArrangement() {
 
             if( result != null ) {
                 // Return the master placement error.
-                return result;
+                return result.msg;
             }
         }
         masterAngle += step;
@@ -731,18 +788,17 @@ function createSeatingArrangement() {
     let title = [];
     for( let i = 0; i < g_Title.length; ++i ) {
         title.push( {text:myTrim(g_Title[i]),
-                     color:colorFromID(g_TitleFontDesc.textColorID)} );
+                     color:colorFromID(ID.TITLE_COLOUR)} );
     }
-    if( $("tp").value !== "" ) {
-        title.push( {text:myTrim($("tp").value), 
-                     color:colorFromID(g_TitleFontDesc.titleGroupColorID)} );
+    if( $(ID.TITLE_PART).value !== "" ) {
+        title.push( {text:myTrim($(ID.TITLE_PART).value), 
+                     color:colorFromID(ID.TITLE_PART_COLOUR)} );
     }
 
     obj = createTextObject( OBJECT_TYPE.TITLE,
                             title,
-                            $("_canvas"), 
                             context,
-                            g_TitleFontDesc, 
+                            "TITLE",
                             ALIGNMENT.CENTER, 
                             g_Origin, 
                             titleRadius,
@@ -759,8 +815,9 @@ function createSeatingArrangement() {
         } 
     }
 
-    return result;
+    return result ? result.msg : null;
 }
+
 
 function drawHeart( context, xCenter, yCenter, size, borderColour, innerColour ) {
     let x = xCenter-(size/2);
@@ -790,6 +847,7 @@ function drawHeart( context, xCenter, yCenter, size, borderColour, innerColour )
     context.stroke();
 }
 
+
 function drawStar( context, xCenter, yCenter, spikes, outerRadius, innerRadius, borderColour, innerColour ) {
     let rot = Math.PI/2*3;
     let step = Math.PI / spikes;
@@ -816,14 +874,15 @@ function drawStar( context, xCenter, yCenter, spikes, outerRadius, innerRadius, 
     context.stroke();
 }
 
+
 function drawPeg( context, x, y, angle ) {
-    let colour = colorFromID(g_RecipientFontDesc.torusPegColorID);
-    let borderColour = colorFromID(g_RecipientFontDesc.torusPegBorderColorID);
+    let colour = colorFromID(ID.TORUS_PEG_COLOUR);
+    let borderColour = colorFromID(ID.TORUS_PEG_BORDER_COLOUR);
     let pegSize = g_Origin.torusRingPegSize;
 
     context.save();
     context.translate( x, y );
-    if( $("pegr").checked ) {
+    if( $(ID.PEG_ROTATE).checked ) {
         context.rotate( normalizeAngle(angle-270) * Math.PI/180 );
     }
 
@@ -869,6 +928,7 @@ function drawPeg( context, x, y, angle ) {
     context.restore();
 }
 
+
 function iterateSacred( obj, radius, x, y, centerArray ) {
     let d = distance( x, y, 0, 0 );
     let visible = d <= obj.boundingRadius;
@@ -896,6 +956,7 @@ function iterateSacred( obj, radius, x, y, centerArray ) {
     }
     return false;
 }
+
 
 function plotRuleStep( context, script ) {
     let rule = script.rule;
@@ -985,6 +1046,7 @@ function plotRuleStep( context, script ) {
         context.fill();
     }
 }
+
 
 function iterateRandom( context, arcAngle, script ) {
     if( script.constructor === Array ) {
@@ -1178,12 +1240,14 @@ function iterateSpiralRotate( context, obj, startColour ) {
     }
 }
 
+
 function polarToXY( radius, angle, offset ) {
     return { x:radius * Math.cos( angle * Math.PI / 180 ) + (offset == null ? 0 : offset.x),
              y:radius * Math.sin( angle * Math.PI / 180 ) + (offset == null ? 0 : offset.y),
              radius:radius,
              angle:angle };
 }
+
 
 // Shallow object clone function.
 function cloneAndReflect( obj ) {
@@ -1212,12 +1276,13 @@ function createScript( obj, arcAngle ) {
     let radius = obj.boundingRadius;
     let angle = 0;
     let last;
+    let thisRadius;
 
     function randColour( opacity ) {
         if( opacity == null ) {
             opacity = rnd.nextRange( 1, 4 ) / 10;
         }
-        return rnd.randColour( colorFromID(g_RecipientFontDesc.torusTreatmentColorID), opacity );
+        return rnd.randColour( colorFromID(ID.TORUS_TREATMENT_COLOUR), opacity );
     }
 
     var iter = 0;
@@ -1335,6 +1400,7 @@ function createScript( obj, arcAngle ) {
     }
     return script;
 }
+
 
 function metatron2( context, obj, startColour ) {
     var smallRadius = obj.boundingRadius / 9;
@@ -1476,13 +1542,14 @@ function metatron2( context, obj, startColour ) {
     }
 }
 
+
 function drawSeatingArrangement() {
-    let     minX = maxX = g_Origin.imageCenterX;
-    let     minY = maxY = g_Origin.imageCenterY;
+    let     maxX, minX = maxX = g_Origin.imageCenterX;
+    let     maxY, minY = maxY = g_Origin.imageCenterY;
 
     // Restore the canvas to configured dimensions.
-    $("_canvas").width = g_Origin.imageWidth;
-    $("_canvas").height = g_Origin.imageHeight;
+    getCanvas().width = g_Origin.imageWidth;
+    getCanvas().height = g_Origin.imageHeight;
     
     // Compute the image dimensions for cropping.
     if( g_ObjectArray.length > 0 ) {
@@ -1515,8 +1582,9 @@ function drawSeatingArrangement() {
     // Resize and fill the canvas
     let newWidth = maxX-minX;
     let newHeight = maxY-minY;
-    $("_canvas").width = newWidth;
-    $("_canvas").height = newHeight;
+    getCanvas().width = newWidth;
+    getCanvas().height = newHeight;
+
     
     // Alter the image 'center' before the redraw.
     g_Origin.setImageCenter( g_ObjectArray[0].centerX() - minX,
@@ -1526,18 +1594,21 @@ function drawSeatingArrangement() {
     for( let i = 0; i < g_ObjectArray.length; ++i ) {
         let obj     = g_ObjectArray[i];
 
-        context = obj.context;
+        let context = obj.context;
         if( i == 0 ) {
-            pegs = [];
+            let pegs = [];
 
-            if( $("bgt").value === "0" ) {
-                context.fillStyle = g_RecipientFontDesc.imageColor;
+            if( $(ID.BACKGROUND_TREATMENT).value === "0" ) {
+                context.fillStyle = g_Image_colour;
                 context.fillRect( 0, 0, newWidth, newHeight );
             } else {
-                var imageDesc = g_Background_images[$("bgt").value];
+                context.fillStyle = 'white';
+                context.fillRect( 0, 0, newWidth, newHeight );
+
+                var imageDesc = g_Background_images[$(ID.BACKGROUND_TREATMENT).value];
                 var image = imageDesc.image;
                 if( image != undefined && image.complete ) {
-                    let opacity = Math.max( getOpacity( colorFromID("bgc") ), 5 );
+                    let opacity = Math.max( getOpacity( colorFromID(ID.BACKGROUND_COLOUR) ), 5 );
             
                     context.save();
                         context.globalAlpha = opacity/100;
@@ -1625,9 +1696,9 @@ function drawSeatingArrangement() {
 
             switch( g_TorusTreament ) {
                 case TORUS_TREATMENT.MESH:
-                    for( j =0; j < pegs.length; ++j ) {
+                    for( let j =0; j < pegs.length; ++j ) {
                         for( let k = j+1; k < pegs.length; ++k ) {
-                            context.strokeStyle = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                            context.strokeStyle = colorFromID(ID.TORUS_TREATMENT_COLOUR);
                             context.lineWidth = 1;
                             context.beginPath();
                             context.moveTo( pegs[j].x, pegs[j].y );
@@ -1656,12 +1727,12 @@ function drawSeatingArrangement() {
 
                 case TORUS_TREATMENT.HEART:
                     drawHeart( context, obj.centerX(), obj.centerY(), obj.boundingRadius, 
-                                colorFromID(g_RecipientFontDesc.torusTreatmentColorID) );
+                                colorFromID(ID.TORUS_TREATMENT_COLOUR) );
                     break;
 
                 case TORUS_TREATMENT.RANDOM:
                     {
-                        let startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
                         let seed = computeSeed();
                         let rnd = new myRand( seed );
 
@@ -1702,9 +1773,9 @@ function drawSeatingArrangement() {
                             let pegObj = g_ObjectArray[j];
 
                             if( pegObj.objectType == OBJECT_TYPE.MEMBER ) {
-                                let pointA;
+                                let point;
 
-                                context.strokeStyle = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                                context.strokeStyle = colorFromID(ID.TORUS_TREATMENT_COLOUR);
                                 context.lineWidth = 1;
                                 context.beginPath();
                                 point = pegObj.origin.polarToAbsXY( obj.boundingRadius, pegObj.angle );
@@ -1742,11 +1813,11 @@ function drawSeatingArrangement() {
                     {
                         let centerArray = [];
                         let radius = Math.floor( obj.boundingRadius/3 );
-                        let startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
 
                         iterateSacred( obj, radius, 0, 0, centerArray );
                         context.lineWidth = 1;
-                        context.strokeStyle = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        context.strokeStyle = colorFromID(ID.TORUS_TREATMENT_COLOUR);
                         for( let j = 0; j < centerArray.length; ++j ) {
                             let point = obj.origin.absXY( centerArray[j].centerX, centerArray[j].centerY );
 
@@ -1771,7 +1842,7 @@ function drawSeatingArrangement() {
                     {
                         let radius = obj.boundingRadius/5;
                         let points = [];
-                        let startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
                         let angleStep = 360 / 6;
                         let pegObj = g_ObjectArray[0];
 
@@ -1813,7 +1884,7 @@ function drawSeatingArrangement() {
 
                 case TORUS_TREATMENT.DAISY:
                     {
-                        let startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
                         let width = obj.boundingRadius / 6;
                          
                         for( let radius = width/2; radius < obj.boundingRadius; radius += width/2 ) {
@@ -1833,7 +1904,7 @@ function drawSeatingArrangement() {
 
                 case TORUS_TREATMENT.PETALS:
                     {
-                        let startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
                         for( let angle=0; angle < 360; angle+=20 ) {
                             let center = obj.origin.polarToAbsXY( obj.boundingRadius/2, angle );
                             context.beginPath();
@@ -1850,7 +1921,7 @@ function drawSeatingArrangement() {
 
                 case TORUS_TREATMENT.GOLDEN_SPIRAL:
                     {
-                        let startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
                         context.save();
                         context.beginPath();
                         context.arc( obj.centerX(), obj.centerY(), 
@@ -1865,7 +1936,7 @@ function drawSeatingArrangement() {
 
                 case TORUS_TREATMENT.METATRON_2:
                     {
-                        let startColour = colorFromID(g_RecipientFontDesc.torusTreatmentColorID);
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
                     
                         context.save();
                         context.translate( obj.centerX(), obj.centerY() );
@@ -1874,12 +1945,38 @@ function drawSeatingArrangement() {
                     }
                     break;
 
+                case TORUS_TREATMENT.SHADED_SPHERE:
+                    {
+                        let radius = obj.boundingRadius;
+                        let startRadius = radius * (1/8);
+                        let endRadius = radius;
+                        let gradient = context.createRadialGradient( obj.centerX()-15,
+                                                                     obj.centerY()-15,
+                                                                     startRadius,
+                                                                     obj.centerX()+5,
+                                                                     obj.centerY()+5,
+                                                                     endRadius );
+                        let colors = ['white', colorFromID(ID.TORUS_TREATMENT_COLOUR)];
+                        for( let i = 0; i < colors.length; ++i ) {
+                            gradient.addColorStop( i / (colors.length-1), colors[i] );
+                        }
+
+                        context.save();
+                            context.beginPath();
+                            context.fillStyle = gradient;
+                            context.arc( obj.centerX(), obj.centerY(), radius, 0, 2*Math.PI );
+                            context.fill();
+                            context.stroke();
+                        context.restore();
+                    }
+                    break;
+
                 case -1:
                     {
-                        var imageDesc = g_Images[$("tort").value];
+                        var imageDesc = g_Images[$(ID.TORUS_TREATMENT).value];
                         var image = imageDesc.image;
                         if( image != undefined && image.complete ) {
-                            let opacity = Math.max( getOpacity( colorFromID(g_RecipientFontDesc.torusTreatmentColorID) ),
+                            let opacity = Math.max( getOpacity( colorFromID(ID.TORUS_TREATMENT_COLOUR) ),
                                                     5 );
                             context.save();
                             context.beginPath();
@@ -1938,10 +2035,10 @@ function drawSeatingArrangement() {
             }
 
             // Draw the torus
-            obj.drawCircle( {color:colorFromID(obj.fontDesc.torusColorID), 
-                             width:parseInt( $("torw").value ),
-                             treatment:parseInt( $("torlt").value ),
-                             weaveColor:colorFromID(g_RecipientFontDesc.torusTreatmentColorID) } );
+            obj.drawCircle( {color:colorFromID(ID.TORUS_COLOUR), 
+                             width:parseInt( $(ID.TORUS_WIDTH).value ),
+                             treatment:parseInt( $(ID.TORUS_LINE_TREATMENT).value ),
+                             weaveColor:colorFromID(ID.TORUS_TREATMENT_COLOUR) } );
 
             // Draw the pegs
             for( let j = 0; j < pegs.length; ++j ) {
@@ -1968,6 +2065,7 @@ function drawSeatingArrangement() {
     }
 }
 
+
 function getOpacity( colour ) {
 	// validate hex string
 	let hex = String(colour).replace(/[^0-9a-f]/gi, '');
@@ -1976,12 +2074,13 @@ function getOpacity( colour ) {
 	}
     var opacity = 255;
 
-	for (i = 0; i < 3; i++) {
-		c = parseInt(hex.substr(i*2,2), 16);
+	for(let i = 0; i < 3; i++) {
+		let c = parseInt(hex.substr(i*2,2), 16);
         if( c < opacity ) opacity = c;
     }
     return Math.floor( (255-opacity)*100 / 255 );
 }
+
 
 function pointColour( torusObj, point, startColour, method, opacity ) {
     let p0, p1, p2, maxDistance;
@@ -2045,6 +2144,7 @@ function pointColour( torusObj, point, startColour, method, opacity ) {
 	return rgb;
 }
 
+
 function colorLuminance(hex, lum) {
 	// validate hex string
 	hex = String(hex).replace(/[^0-9a-f]/gi, '');
@@ -2064,10 +2164,11 @@ function colorLuminance(hex, lum) {
 	return rgb;
 }
 
+
 function lastVisibleMember() {
     let lastVisible = g_Origin.maxMembers - 1;
     while( lastVisible >= 0 ) {
-        if( $("p" + lastVisible).value !== "" ) {
+        if( memberElement(lastVisible).value !== "" ) {
             break;
         }
         --lastVisible;
@@ -2075,31 +2176,50 @@ function lastVisibleMember() {
     return lastVisible;
 }
 
-function buildCanvas() {
-    resetGlobals();
-    g_Debug = $("_debug").checked;
-    assignRowTypes();
 
+function saveSnapshotInDatabase( downloaded ) {
+    let snapshot = getPageParameters( true, true );
+    snapshot._downloaded = downloaded;
+        
+    g_Database.torus.add( snapshot ).then( function() {
+        console.log( `saveSnapshotInDatabase: Added torus data to database; _id=${snapshot._id}, _timestamp=${snapshot._timestamp.toLocaleString()}, t1='${snapshot.t1}', t2='${snapshot.t2}'` );
+        g_SavedSnapshots.unshift( snapshot );
+        addSnapshotInfo( snapshot, false );
+    }).catch( e => {
+        console.log( "saveSnapshotInDatabase: couldn't add to database: " + e.stack );
+    });
+}
+
+
+function buildCanvas() {
     saveMembers();
     loadMembers();
+    buildCanvasLite();
+}
 
-    g_RecipientFontDesc.imageColor = g_Debug ? "yellow" : colorFromID("bgc");
 
-    let tort = $("tort").value;
+function buildCanvasLite() {
+    resetGlobals();
+    g_Debug = $(ID.DEBUG).checked;
+    assignRowTypes();
+
+    g_Image_colour = g_Debug ? "yellow" : colorFromID(ID.BACKGROUND_COLOUR);
+
+    let tort = $(ID.TORUS_TREATMENT).value;
     if( !isNaN(tort) && isFinite(tort) ) {
         g_TorusTreament = parseInt(tort);
     } else {
         g_TorusTreament = -1;
     }
-    g_PegTreatment = parseInt($("pegt").value);
+    g_PegTreatment = parseInt($(ID.PEG_TREATMENT).value);
 
-    if( $("t1").value !== "" )   g_Title.push( $("t1").value );
-    if( $("t2").value !== "" )   g_Title.push( $("t2").value );
+    if( $(ID.TITLE_1).value !== "" )   g_Title.push( $(ID.TITLE_1).value );
+    if( $(ID.TITLE_2).value !== "" )   g_Title.push( $(ID.TITLE_2).value );
 
     let lastVisible = lastVisibleMember();
     for( let i = 0; i < g_Origin.maxMembers; ++i ) {
-        let member = $("p" + i).value;
-        let master = $("m" + i).value;
+        let member = memberElement(i).value;
+        let master = masterElement(i).value;
 
         if( member !== "" ) {
             if( g_Members.length > 0 && member === g_Members[g_Members.length-1].member ) {
@@ -2112,89 +2232,55 @@ function buildCanvas() {
         }
 
         if( i <= lastVisible ) {
-            $("tr" + i).style.visibility = "visible";
+            $(ID.TRASH_ROW_.tag + i).style.visibility = "visible";
         } else {
-            $("tr" + i).style.visibility = "hidden";
+            $(ID.TRASH_ROW_.tag + i).style.visibility = "hidden";
         }
     }
 
     setDefaultFilename();
 
-    g_Origin.memberStartAngle = parseInt( $("o").value );
-    g_Origin.torusRingSize = parseInt( $("tors").value );
-    g_Origin.torusRingPegSize = parseInt( $("pegw").value );
+    g_Origin.memberStartAngle = parseInt( $(ID.ORIENTATION).value );
+    g_Origin.torusRingSize = parseInt( $(ID.TORUS_SIZE).value );
+    g_Origin.torusRingPegSize = parseInt( $(ID.PEG_WIDTH).value );
     if( g_Origin.torusRingSize < 100 || g_Origin.torusRingSize > 300 ) {
         g_Origin.torusRingSize = 100;
     }
     let result = createSeatingArrangement();
     if( result == null ) {
-        $("_error").innerHTML = "";
+        $(ID.ERROR_STRING).innerHTML = "";
         drawSeatingArrangement();
     } else {
-        $("_error").innerHTML = result;
+        $(ID.ERROR_STRING).innerHTML = result;
     }
 
+    $(ID.DESCRIPTION).innerHTML = getMemberDescription( getPageParameters(true, false) );
     composeMyURL();
 }
 
-function newImage() {
-    g_TorusImage = new Image;
-    g_TorusImage.crossOrigin = "Anonymous";
-    g_TorusImage.onload = function() { buildCanvas(); }
-    g_TorusImage.src = $("tori").value;
-
-    // make sure the load event fires for cached images too
-    if( g_TorusImage.complete || g_TorusImage.complete === undefined ) {
-        g_TorusImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-        g_TorusImage.src = $("tori").value;
-    }
-}
-
-function testCORS() {
-    let testImage = new Image;
-    testImage.src = "http://maps.gstatic.com/mapfiles/api-3/images/google_white5.png";
-    testImage.onload = function() {
-        let canvas = $("_testCanvas");
-        let context = canvas.getContext("2d");
-        context.drawImage( testImage, 0, 0, 10, 10 ); 
-    
-        // Cross-Origin Resource Sharing (CORS) is a W3C specification that
-        //  allows cross-domain communication from the browser.  Note that
-        //  often cross-domain refers to resources that have different hostnames.
-        //  When CORS isn't enabled, it prevents this program from including
-        //  images to be embedded in the downloaded image (although they could
-        //  still be rendered).  We'll detect this scenario and prevent images
-        //  from being embedded.
-        let violation = false;
-        try {
-            let junkHref = canvas.toDataURL("image/png");
-        } catch( err ) {
-            violation = true;
-        }
-        g_CORSEnabled = violation;
-    }
-}
 
 function testOverlap() {
     for( let i = 1; i < g_ObjectArray.length; ++i ) {
         let obj = g_ObjectArray[i];
 
         if( obj.intersectsCircle( g_ObjectArray[0] ) ) {
-            return "object '" + obj.getName() + "' intersects torus circle";
+            return {msg: "object '" + obj.getName() + "' intersects torus circle"};
         }
     }
     
     for( let i = 0; i < g_ObjectArray.length; ++i ) {
         let obj = g_ObjectArray[i];
         if( obj.exceedsImageBoundary() ) {
-            return "object '" + obj.getName() + "' exceeds image boundary";
+            return {msg:"object '" + obj.getName() + "' exceeds image boundary"};
         }
 
         for( let j = i+1; j < g_ObjectArray.length; ++j ) {
             let outerObj = g_ObjectArray[j];
             if( obj.intersectsBoundingBox( outerObj ) ) {
-                return "object '" + obj.getName() + "' intersects with '" 
-                        + outerObj.getName() + "'";
+                return {msg:"object '" + obj.getName() + "' intersects with '" 
+                            + outerObj.getName() + "'",
+                        objA:obj,
+                        objB:outerObj};
             }
         }
     }
@@ -2202,17 +2288,21 @@ function testOverlap() {
     return null;    // no intersection
 }
 
+
 function distance( x1, y1, x2, y2 ) {
     return Math.sqrt( Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2) );
 }
+
 
 function distancePoints( p1, p2 ) {
     return distance( p1.x, p1.y, p2.x, p2.y );
 }
 
+
 function myTrim( str ) {
     return str.replace(/^\s+|\s+$/g,"");
 }
+
 
 function normalizeAngle( angle ) {
     if( angle < 0 ) {
@@ -2222,9 +2312,9 @@ function normalizeAngle( angle ) {
     }
 }
 
+
 function createTextObject( objectType,
                            textArray, 
-                           canvas, 
                            context,
                            fontDesc, 
                            alignment, 
@@ -2235,7 +2325,6 @@ function createTextObject( objectType,
     let obj = {};
     obj.objectType = objectType;
     obj.textArray = textArray;
-    obj.canvas = canvas;
     obj.fontDesc = fontDesc;
     obj.alignment = alignment;
     obj.origin = origin;
@@ -2243,11 +2332,11 @@ function createTextObject( objectType,
     obj.angle = normalizeAngle( angle );
     obj.spacing = spacing;
 
-    obj.font = ($(fontDesc.fontItalicID).checked ? "italic" : "normal") + " "     // font style
-             + ($(fontDesc.fontBoldID).checked ? "bold" : "normal") + " "         // font weight
-             + $(fontDesc.fontSizeID).value + " " 
-             + $(fontDesc.fontFamilyID).value;
-    obj.shadowEnabled = $(fontDesc.fontShadowID).checked;
+    obj.font = ($(ID[fontDesc + "_FONT_ITALIC"]).checked ? "italic" : "normal") + " "     // font style
+             + ($(ID[fontDesc + "_FONT_BOLD"]).checked ? "bold" : "normal") + " "         // font weight
+             + $(ID[fontDesc + "_FONT_SIZE"]).value + " " 
+             + $(ID[fontDesc + "_FONT_FAMILY"]).value;
+    obj.shadowEnabled = $(ID[fontDesc + "_FONT_SHADOW"]).checked;
     obj.context = context;
     obj.context.font = obj.font;
 
@@ -2261,7 +2350,7 @@ function createTextObject( objectType,
         if( width > maxWidth ) maxWidth = width;
     }
 
-    obj.fontHeight = parseInt($(fontDesc.fontSizeID).value);   // e.g. "14px"
+    obj.fontHeight = parseInt($(ID[fontDesc + "_FONT_SIZE"]).value);   // e.g. "14px"
     obj.boundingWidth = maxWidth;
     obj.boundingHeight = obj.fontHeight * textArray.length;
 
@@ -2344,6 +2433,11 @@ function createTextObject( objectType,
         } else {
             return (theta + 2*Math.PI) / Math.PI * 180;
         }
+    };
+
+    obj.computeCenterAngle = function() {
+        let center = this.toAbsXY();
+        return this.computeAngle( center.x, center.y );
     };
 
     obj.computeMinAngle = function() {
@@ -2430,15 +2524,25 @@ function createTextObject( objectType,
             this.context.font = this.font;
             if( this.shadowEnabled ) {
                 // Create a shadow effect for the text
-                shadow = colorLuminance( this.line[i].color || colorFromID(this.fontDesc.textColorID),
-                                         -0.1 ); 
+                let shadow = colorLuminance( this.line[i].color || colorFromID(ID[this.fontDesc + "_COLOUR"]),
+                                             -0.1 ); 
                 this.context.shadowColor = shadow;
                 this.context.shadowBlur = 10;
-                this.context.lineWidth = 1; 
+                this.context.strokeStyle = 'white';
+                this.context.miterLimit = 1; 
+                this.context.lineJoin = 'round';
+                this.context.lineWidth = 2; 
                 this.context.strokeText( this.line[i].text, x, y );
                 this.context.shadowBlur = 0; 
+            } else {
+                // Add a slight outline to improve contrast with the background.
+                this.context.strokeStyle = 'white';
+                this.context.miterLimit = 2; 
+                this.context.lineJoin = 'round';
+                this.context.lineWidth = 2; 
+                this.context.strokeText( this.line[i].text, x, y );
             }
-            this.context.fillStyle = this.line[i].color || colorFromID(this.fontDesc.textColorID);
+            this.context.fillStyle = this.line[i].color || colorFromID(ID[this.fontDesc + "_COLOUR"]);
             this.context.fillText( this.line[i].text, x, y );
             y = y + this.fontHeight;
         }
@@ -2450,10 +2554,35 @@ function createTextObject( objectType,
         context.fillStyle = args.fillColour;
         context.lineWidth = args.width || 1;
 
-        var step = 2;
-        var radius = this.boundingRadius + (args.spacing || 0) + 1;
-        var ripple = 0;
-        var rippleStep = 60;
+        let step = 2;
+        let radius = this.boundingRadius + (args.spacing || 0) + 1;
+        let ripple = 0;
+        let rippleStep = 60;
+
+        let rainbow = $(ID.TORUS_LINE_RAINBOW).checked;
+        let gradient;
+        if( rainbow ) {
+            gradient = context.createLinearGradient( this.centerX() - radius,
+                                                     this.centerY() - radius,
+                                                     this.centerX() + radius,
+                                                     this.centerY() + radius );
+            gradient.addColorStop(0, 'red');
+            gradient.addColorStop(1 / 6, 'orange');
+            gradient.addColorStop(2 / 6, 'yellow');
+            gradient.addColorStop(3 / 6, 'green');
+            gradient.addColorStop(4 / 6, 'blue');
+            gradient.addColorStop(5 / 6, 'indigo');
+            gradient.addColorStop(1, 'violet');
+        }
+
+        function getColour() {
+            if( args.color ) {
+                return rainbow ? gradient   //`hsla(${angle},100%,50%,1.0)`
+                               : args.color;
+            } else {
+                return DEBUG_COLOUR;
+            }
+        }
 
         if( args.treatment == CIRCLE_TREATMENT.RIPPLE ) {
             ripple = 0;
@@ -2482,7 +2611,7 @@ function createTextObject( objectType,
 
         if( args.treatment == CIRCLE_TREATMENT.RAY ) {
             step = 5;
-            context.strokeStyle = args.color || this.fontDesc.debugColor;
+            context.strokeStyle = getColour();
             for( var angle=0; angle<=360; angle += step ) {
                 var r = radius;
 
@@ -2499,7 +2628,7 @@ function createTextObject( objectType,
             }
         } else if( args.treatment == CIRCLE_TREATMENT.SPIRAL ) {
             context.beginPath();
-            context.strokeStyle = args.color || this.fontDesc.debugColor;
+            context.strokeStyle = getColour();
 
             step = 0.4;
             let smallRadius = 5;
@@ -2525,7 +2654,7 @@ function createTextObject( objectType,
 
         } else {
             context.beginPath();
-            context.strokeStyle = args.color || this.fontDesc.debugColor;
+            context.strokeStyle = getColour();
             for( var angle=0; angle<=360; angle += step ) {
                 var r = radius;
 
@@ -2550,7 +2679,7 @@ function createTextObject( objectType,
 
     obj.debugBoundingBox = function( spacing ) {
         let context = this.context;
-        context.strokeStyle = this.fontDesc.debugColor;
+        context.strokeStyle = DEBUG_COLOUR;
         context.lineWidth = 1;
         context.beginPath();
         context.moveTo( this.left()-spacing, this.top()-spacing );
@@ -2578,6 +2707,14 @@ function createTextObject( objectType,
         context.moveTo( torusCenter.x, torusCenter.y );
         context.lineTo( maxPoint.x, maxPoint.y );
         context.stroke();
+
+        if( this.objectType == OBJECT_TYPE.MASTER ) {
+            context.strokeStyle = "black";
+            context.beginPath();
+            context.moveTo( torusCenter.x, torusCenter.y );
+            context.lineTo( this.centerX(), this.centerY() );
+            context.stroke();
+        }
     };
 
     obj.exceedsImageBoundary = function() {
@@ -2689,112 +2826,26 @@ function setDefaultFilename() {
 
     // NOTE: This may be a bit annoying to create the default filename based on the group title.
     //       We'll see how it goes.
-    $("f").value = $("t1").value + " - " + 
+    $(ID.IMAGE_FILENAME).value = $(ID.TITLE_1).value + " - " + 
                    shortMonthNames[day.getMonth()] + " " + day.getDate() + ", " + day.getFullYear() + ".png";
 
 }
 
-function getProfiles() {
-    let profiles = [];
-    for( let i = 0; i < g_Origin.maxProfiles; ++i ) {
-        let cookie = getCookie( "profile"+i );
-        if( cookie != null ) {
-            let url = new Url( "?" + cookie );
-            profiles.push( url.query );
-        }
-    }
-    return profiles;
+
+function saveSnapshot() {
+    saveSnapshotInDatabase( false );
 }
 
-function setProfiles() {
-    let u = getUrlWithParameters();
-    let profiles = getProfiles();
-    let found = false;
-
-    u.query["day"] = (new Date()).getDay();
-    for( let i = 0; i < profiles.length; ++i ) {
-        if( profiles[i]["t1"] === u.query["t1"] ) {
-            // found the profiles with the same title. Update it
-            //  and move it to the top of the list.
-            profiles.splice( i, 1 );         // remove old object
-            profiles.splice( 0, 0, u.query );   // insert replacement
-            found = true;
-            break;
-        }
-    }
-
-    if( !found ) {
-        // add the object to the start of the list
-        profiles.unshift( u.query );
-        // possibly remove the extra entry
-        if( profiles.length >= g_Origin.maxProfiles ) {
-            profiles.splice( g_Origin.maxProfiles, profiles.length );
-        }
-    }
-
-    for( let i = 0; i < profiles.length && i < g_Origin.maxProfiles; ++i ) {
-        setCookie( "profile"+i, profiles[i].toString(), g_Origin.maxCookieDays );
-    }
-}
-
-function selectProfile() {
-    let profiles = getProfiles();
-    let num = parseInt($("profile").value);
-
-    // Set default element values
-    initializeElementsFromHash( g_ElementDefaults );
-
-    // Set values to selected profile.
-    if( num >= 0 && num < profiles.length ) {
-        initializeElementsFromHash( profiles[num] );
-    }
-
-    buildCanvas();
-}
-
-function saveProfile() {
-    setProfiles();
-    createProfilesElement( "profiles" );
-}
-
-function createProfilesElement( parentID ) {
-    let weekDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    let profiles = getProfiles();
-    let current = $("t1").value;
-    let str = "<select class=dropDown name=profile id=profile onChange='selectProfile()'>\n";
-    str += "<option value='-1'>Default</option>\n";
-    for( let i = 0; i < profiles.length; ++i ) {
-        str += "<option value='" + i + "'";
-        if( profiles[i]["t1"] === current ) {
-            str += " selected";
-        } 
-        str += ">" + profiles[i]["t1"];
-        let day = profiles[i]["day"];
-        if( weekDays[day] != undefined ) {
-            str += " ("+weekDays[day]+")";
-        }
-        str += "</option>\n";
-    }
-    str += "</select>";
-    let element = document.createElement( "span" );
-    element.innerHTML = str;
-
-    let last = $(parentID).lastChild;
-    if( last != null ) {
-        $(parentID).removeChild( last );
-    }
-    $(parentID).appendChild( element );
-}
 
 function createFontSelectionElements( parentID, fontDesc ) {
     let fontWeights = [ "normal", "bold" ];
-    let fontSizes = [ "10px", "12px", "14px", "16px", "18px", "20px", "22px" ];
+    let fontSizes = [ "10px", "12px", "14px", "16px", "18px", "20px", "22px", "24px", "26px" ];
 
     let fontStyles = [ "normal", "italic" ];
 
     // font family selection
     let element = document.createElement( "span" );
-    let str = "<select class=dropDown name=fontFamily id='" + fontDesc.fontFamilyID + "' onchange='buildCanvas()'>\n";
+    let str = "<select class=dropDown name=fontFamily id='" + ID[fontDesc + "_FONT_FAMILY"].tag + "' onchange='buildCanvas()'>\n";
     for( let i = 0; i < g_DetectedFonts.length; ++i ) {
         str += "<option value='" + g_DetectedFonts[i] + "'";
         str += ">" + g_DetectedFonts[i] + "</option>\n";
@@ -2805,7 +2856,7 @@ function createFontSelectionElements( parentID, fontDesc ) {
 
     // font size selection
     element = document.createElement( "span" );
-    str = "<select class=dropDown name=fontSize id='" + fontDesc.fontSizeID + "' onchange='buildCanvas()'>\n";
+    str = "<select class=dropDown name=fontSize id='" + ID[fontDesc + "_FONT_SIZE"].tag + "' onchange='buildCanvas()'>\n";
     for( let i = 0; i < fontSizes.length; ++i ) {
         str += "<option value='" + fontSizes[i] + "'";
         str += ">" + fontSizes[i] + "</option>\n";
@@ -2816,35 +2867,55 @@ function createFontSelectionElements( parentID, fontDesc ) {
 
     // font bold selection
     element = document.createElement( "span" );
-    str = "<B>Bold</B><input type=checkbox id='" + fontDesc.fontBoldID + "' onchange='buildCanvas()'>\n";
+    str = "<B>Bold</B><input type=checkbox id='" + ID[fontDesc + "_FONT_BOLD"].tag + "' onchange='buildCanvas()'>\n";
     element.innerHTML = str;
     $(parentID).appendChild( element );
 
     // font italic selection
     element = document.createElement( "span" );
-    str = "<I>Italic</I><input type=checkbox id='" + fontDesc.fontItalicID + "' onchange='buildCanvas()'>\n";
+    str = "<I>Italic</I><input type=checkbox id='" + ID[fontDesc + "_FONT_ITALIC"].tag + "' onchange='buildCanvas()'>\n";
     element.innerHTML = str;
     $(parentID).appendChild( element );
 
     // font shadow selection
     element = document.createElement( "span" );
-    str = "<U>Shadow</U><input type=checkbox id='" + fontDesc.fontShadowID + "' onchange='buildCanvas()'>\n";
+    str = "<U>Shadow</U><input type=checkbox id='" + ID[fontDesc + "_FONT_SHADOW"].tag + "' onchange='buildCanvas()'>\n";
     element.innerHTML = str;
     $(parentID).appendChild( element );
 }
 
-function initializeElementsFromHash( hash ) {
+
+function initializeElementsFromHash( hash, full = false ) {
+    if( full ) {
+        // Reset the Member/Master rows
+        for( let i = 0; i < g_Origin.maxMembers; ++i ) {
+            memberElement(i).value = "";
+            masterElement(i).value = "";
+        }
+
+        while( g_Origin.maxMembers < hash._rows ) {
+            addMemberMasterRow();
+        }
+    }
+
     let all = document.getElementsByTagName("*");
     for( let i = 0; i < all.length; ++i ) {
         let el = all[i];
-        if( hash[el.id] != undefined ) {
+        if( el.id in hash ) {
+            let underscore = el.id.search("_");
+
+            if( !full && underscore>0 ) {
+                // Ignore row elements.
+                continue;
+            }
+ 
             let defaultValue = hash[el.id];
 
             if( el.nodeName === "SELECT" ) {
                 el.value = defaultValue;
             } else if( el.nodeName === "INPUT" ) {
                 if( el.type.toLowerCase() === "checkbox" ) {
-                    el.checked = (defaultValue === "true");
+                    el.checked = defaultValue;
                 } else if( el.type.toLowerCase()==="select-one" ) {
                     el.value = defaultValue;
                 } else if( el.type.toLowerCase()==="text") {
@@ -2861,121 +2932,134 @@ function initializeElementsFromHash( hash ) {
     }
 }
 
+
 function setParametersFromUrl( url ) {
     let u = new Url( url );
-
     initializeElementsFromHash( u.query );
 }
 
-function getUrlWithParameters() {
-    let url = new Url();
-    let all = document.getElementsByTagName("*");
-    let hash = g_ElementDefaults;
 
-    url.clearQuery();   // remove all query string parameters
+function getPageParameters( full, getImage ) {
+    let all = document.getElementsByTagName("*");
+    let hash = {};
+
+    if( full ) {
+        hash._version = g_Version;
+        hash._timestamp = new Date();
+        hash._rows = g_Origin.maxMembers;
+        if( getImage ) {
+            try {
+                hash._image = getCanvas().toDataURL( "image/png" );
+            } catch( e ) {
+                // Sometimes Chrome messes up with a 'tainted canvas' exception.  This
+                //  appears to be unpredictable.  We shouldn't be prevented from saving
+                //  the torus settings.
+                console.log( "getPageParameters: unable to get snapshot image: " + e );
+            }
+        }
+    }
     for( let i = 0; i < all.length; ++i ) {
         let el = all[i];
+        let id = el.id;
+        let underscore = id.search( "_" );
 
-        if( hash[el.id] != undefined ) {
-            let defaultValue = hash[el.id];
+        if( full && underscore > 0 ) {           // ignore leading '_'
+            // Found a variable element (e.g. "p_3").  Remove the number component.
+            id = id.substring( 0, underscore+1 );
+        }
+
+        if( id in g_TagToID ) {
+            let defaultValue = ID[g_TagToID[id]].save;
+
+            if( full && ID[g_TagToID[id]].db ) {
+                // Force addition of this element.
+                defaultValue = null;
+            }
 
             if( el.nodeName === "SELECT" ) {
                 if( el.value !== defaultValue ) {
-                    url.query[el.id] = el.value;
+                    hash[el.id] = el.value;
                 }
             } else if( el.nodeName === "INPUT" ) {
                 if( el.type.toLowerCase() === "checkbox" ) {
                     if( el.checked != defaultValue ) {
-                        url.query[el.id] = el.checked;
+                        hash[el.id] = el.checked;
                     }
                 } else if( el.type.toLowerCase()==="select-one"
                         || el.type.toLowerCase()==="text" ) {
                     if( el.value !== defaultValue ) {
-                        url.query[el.id] = el.value;
+                        hash[el.id] = el.value;
                     }
                 }
             }
         }
     }
+    return hash;
+}
+
+
+function getUrlWithParameters( includeRows = false ) {
+    let url = new Url();
+    Object.assign( url.query, getPageParameters( includeRows, false ) );
     return url;
 }
+
 
 function composeMyURL() {
     if( g_Debug ) {
         let url = getUrlWithParameters();
-        $("_myURL").innerHTML = "<b>" + url + "</b>";
+        $(ID.MY_URL).innerHTML = "<b>" + url + "</b>";
     } else {
-        $("_myURL").innerHTML = "";
+        $(ID.MY_URL).innerHTML = "";
     }
 }
 
-function setCookie( name, value, days ) {
-    let expires = "";
-    if (days) {
-        let date = new Date();
-        date.setTime(date.getTime() + (days*24*60*60*1000));
-        expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-}
-
-function getCookie( name ) {
-    let nameEQ = name + "=";
-    let ca = document.cookie.split(';');
-    for(let i=0;i < ca.length;i++) {
-        let c = ca[i];
-        while (c.charAt(0)==' ') c = c.substring(1,c.length);
-        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-    }
-    return null;
-}
-
-function eraseCookie( name ) {   
-    document.cookie = name+'=; Max-Age=-99999999;';  
-}
 
 function deleteRows( start, num ) {
     let rows = [];
     let last = lastVisibleMember();
 
     for( let i=0; i < num; ++i ) {
-        rows.push( [ $("p"+(start+i)).value,
-                     $("m"+(start+i)).value ] );
+        rows.push( [ memberElement(start+i).value,
+                     masterElement(start+i).value ] );
     }
 
     while( start+num <= last ) {
-        $("p"+start).value = $("p"+(start+num)).value;
-        $("m"+start).value = $("m"+(start+num)).value;
+        memberElement(start).value = memberElement(start+num).value;
+        masterElement(start).value = masterElement(start+num).value;
         ++start;
     }
 
     while( num-- ) {
-        $("p"+start).value = "";
-        $("m"+start).value = "";
+        memberElement(start).value = "";
+        masterElement(start).value = "";
         ++start;
     }
     return rows;
 }
 
+
 function insertRows( start, rows ) {
     let end = g_Origin.maxMembers-1;
 
     while( end >= start+rows.length ) {
-        $("p"+end).value = $("p"+(end-rows.length)).value;
-        $("m"+end).value = $("m"+(end-rows.length)).value;
+        memberElement(end).value = memberElement(end-rows.length).value;
+        masterElement(end).value = masterElement(end-rows.length).value;
         --end;
     } 
     for( let i=0; i<rows.length; ++i ) {
-        $("p"+(start+i)).value = rows[i][0];
-        $("m"+(start+i)).value = rows[i][1];
+        memberElement(start+i).value = rows[i][0];
+        masterElement(start+i).value = rows[i][1];
     }
 }
+
 
 function deleteRowRedraw( num ) {
     if( deleteRows( num, 1 ).length > 0 ) {
         buildCanvas();
     }
 }
+
 
 function swapAdjacentRows( topRow ) {
     let rows = deleteRows( topRow, 1 );
@@ -2984,6 +3068,8 @@ function swapAdjacentRows( topRow ) {
         buildCanvas();
     }
 }
+
+
 function memberHandleDragStart(e) {
     this.style.opacity = '0.4';  // this / e.target is the source node.
     g_DragSrcEl = this;
@@ -2991,6 +3077,7 @@ function memberHandleDragStart(e) {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData( "text/html", this.innerHTML);
 }
+
 
 function memberHandleDragOver(e) {
     if (e.preventDefault) {
@@ -3001,14 +3088,17 @@ function memberHandleDragOver(e) {
     return false;
 }
 
+
 function memberHandleDragEnter(e) {
     // this / e.target is the current hover target.
     this.classList.add('over');
 }
 
+
 function memberHandleDragLeave(e) {
     this.classList.remove('over');  // this / e.target is previous target element.
 }
+
 
 function memberHandleDrop(e) {
     // this / e.target is current target element.
@@ -3024,14 +3114,15 @@ function memberHandleDrop(e) {
 
         // Avoid grouping adjacent Member rows if the source and destination
         //  rows have the same name.
-        if( $("p"+srcRow).value !== $("p"+destRow).value ) {
+        if( memberElement(srcRow).value !== memberElement(destRow).value ) {
             // Identify the heading for (i.e. first row with the Member name).
-            while( srcRow > 0 && $("p"+srcRow).value === $("p"+(srcRow-1)).value ) {
+            while( srcRow > 0 && memberElement(srcRow).value === memberElement(srcRow-1).value ) {
                 --srcRow;
             }
 
             // Identify the number of consecutive rows with the same Member name.
-            while( srcRow+srcRowCount < g_Origin.maxMembers && $("p"+srcRow).value===$("p"+(srcRow+srcRowCount)).value ) {
+            while( srcRow+srcRowCount < g_Origin.maxMembers 
+                && memberElement(srcRow).value===memberElement(srcRow+srcRowCount).value ) {
                 ++srcRowCount;
             }
 
@@ -3041,7 +3132,8 @@ function memberHandleDrop(e) {
             let destType = getRowType( destRow );
             if( srcRow < destRow || destType == ROW_TYPE.REPEAT ) {
                 // Move the source rows after the block of destination Member rows.
-                while( ++destRow <= g_Origin.maxMembers-1 && $("p"+destRow).value === $("p"+(destRow-1)).value ) {
+                while( ++destRow <= g_Origin.maxMembers-1 
+                    && memberElement(destRow).value === memberElement(destRow-1).value ) {
                 }
             }
 
@@ -3058,7 +3150,7 @@ function memberHandleDrop(e) {
         }
     }
 
-    let rows = document.querySelectorAll('#members .row');
+    let rows = document.querySelectorAll('#'+ID.MEMBER_ROWS.tag+' .row');
     [].forEach.call(rows, function (row) {
         row.classList.remove('over');
         row.style.opacity = "";
@@ -3066,44 +3158,18 @@ function memberHandleDrop(e) {
 
     return false;
 }
+
 
 function memberHandleDragEnd(e) {
     // this/e.target is the source node.
 
-    let rows = document.querySelectorAll('#members .row');
+    let rows = document.querySelectorAll('#'+ID.MEMBER_ROWS.tag+' .row');
     [].forEach.call(rows, function (row) {
         row.classList.remove('over');
         row.style.opacity = "";
     });
 }
 
-function imageHandleDrop(e) {
-    // this / e.target is current target element.
-
-    if (e.preventDefault) {
-        e.preventDefault(); // Necessary. Allows us to drop.
-    }
-
-    if (e.stopPropagation) {
-        e.stopPropagation(); // stops the browser from redirecting.
-    }
-
-    let url = e.dataTransfer.getData( "URL" );
-    if( url ) {
-        // If an image is being drag-and-drop'd then set the image treatment immediately.
-        $("tori").value = url;
-        $("tort").value = TORUS_TREATMENT.IMAGE;
-        newImage();
-    }
-    return false;
-}
-
-function cancel(e) {
-    if (e.preventDefault) {
-        e.preventDefault(); // Necessary. Allows us to drop.
-    }
-    return false;
-}
 
 function addEventHandler(obj, evt, handler) {
     if(obj.addEventListener) {
@@ -3118,42 +3184,28 @@ function addEventHandler(obj, evt, handler) {
     }
 }
 
+
 function saveMembers() {
     for( let i = 0; i < g_Origin.maxMembers; ++i ) {
-        let member = $("p" + i).value;
+        let member = memberElement(i).value;
         if( member !== "" ) {
-            let found = false;
-
-            for( let j = 0; j < g_AllMembers.length; ++j ) {
-                if( member === g_AllMembers[j] ) {
-                    // Found the member in the list.  Update it and move
-                    //  it to the top of the list.
-                    g_AllMembers.splice( j, 1 );            // remove the old entry
-                    g_AllMembers.splice( 0, 0, member );    // insert replacement
-                    found = true;
-                    break;
-                }
-            }
-
-            if( !found ) {
-                // Add the member to the start of the list.
-                g_AllMembers.unshift( member );
-                if( g_AllMembers.length >= g_Origin.maxDropDownMembers ) {
-                    g_AllMembers.splice( g_Origin.maxDropDownMembers,
-                                         g_Origin.length );
-                }
+            if( g_AllMembers.find( x => member===x.name ) == undefined ) {
+                g_AllMembers.push( {name:member, added:new Date()} );
             }
         }
     }
-    setCookie( "membersList", g_AllMembers.join( "/" ) );
+    if( g_AllMembers.length > 0 ) {
+        addMembersToDatabase( g_AllMembers );
+    }
 }
+
 
 function getRowType( row ) {
     if( row >= 0 && row < g_Origin.maxMembers ) {
-        let name = $("p" + row).value;
+        let name = memberElement(row).value;
 
         if( name !== "" ) {
-            if( row > 0 && $("p" + (row-1)).value === name ) {
+            if( row > 0 && memberElement(row-1).value === name ) {
                 return ROW_TYPE.REPEAT;
             } else {
                 return ROW_TYPE.HEADING;
@@ -3163,41 +3215,51 @@ function getRowType( row ) {
     return ROW_TYPE.EMPTY;
 }
 
+
 function loadMembers() {
-    let cookie = getCookie( "membersList" );
+    g_Database.members.orderBy('name').keys( names => {
+        for( let i in names ) {
+            let name = names[i]; 
+            if( g_AllMembers.find( x => name===x.name ) == undefined ) {
+                g_AllMembers.push( {name:name} );
+                console.log( `loadMembers: found '${name}` );
+            }
+        }
+    } ).then( function() {
+        console.log( `loadMembers: have ${g_AllMembers.length} members` );
+        let element = document.createElement( "datalist" );
+        let str = "";
+        element.setAttribute( "id", "membersList" );
+        for( let i = 0; i < g_AllMembers.length; ++i ) {
+            str += "<option value='" + g_AllMembers[i].name + "'>\n";
+            console.log( `loadMembers:          member ${g_AllMembers[i].name}` );
+        }
+        element.innerHTML = str;
 
-    if( cookie != null ) {
-        g_AllMembers = cookie.split( "/" );
-    }
-
-    let element = document.createElement( "datalist" );
-    let str = "";
-    element.setAttribute( "id", "membersList" );
-    for( let i = 0; i < g_AllMembers.length; ++i ) {
-        str += "<option value='" + g_AllMembers[i] + "'>\n";
-    }
-    element.innerHTML = str;
-
-    let last = $("membersDatalist").lastChild;
-    if( last != null ) {
-        $("membersDatalist").removeChild( last );
-    }
-    $("membersDatalist").appendChild( element );
+        let last = $(ID.MEMBERS_DATA_LIST).lastChild;
+        if( last != null ) {
+            $(ID.MEMBERS_DATA_LIST).removeChild( last );
+        }
+        $(ID.MEMBERS_DATA_LIST).appendChild( element );
+    }).catch( err => {
+        console.error( "loadMembers: caught error: " + err.stack );
+    });
 }
 
+
 function addMemberMasterRow() {
-   let i = g_NumRows;
+   let i = g_Origin.maxMembers;
    let element = document.createElement( "div" );
    element.setAttribute( "class", "empty row" );
    element.setAttribute( "draggable", "true" );
    element.setAttribute( "id", "" + i );
-   let str = "<div class='rowMove' id='md" + i + "' onclick='swapAdjacentRows(" + i + ")'>" +
+   let str = "<div class='rowMove' id='" + ID.MOVE_ROW_DOWN_.tag + i + "' onclick='swapAdjacentRows(" + i + ")'>" +
                "<span class='tooltip'>&#8681;" +
                         "<span class='tooltiptext'>Move this row down</span></span> " +
              "</div>" +
-             "Member <input class=textInput type='text' name='member' id='p" + i + "' list=membersList" +
+             "Member <input class=textInput type='text' name='member' id='" + ID.MEMBER_.tag + i + "' list=membersList" +
              " onChange='buildCanvas()'/>" +
-             " works with <select class=dropDown name=masters id='m" + i + "' onChange='buildCanvas()'>\n";
+             " works with <select class=dropDown name=masters id='" + ID.MASTER_.tag + i + "' onChange='buildCanvas()'>\n";
 
    g_MastersList.sort();
    for( let j = 0; j < g_MastersList.length; ++j ) {
@@ -3205,27 +3267,24 @@ function addMemberMasterRow() {
        str += "<option value=\"" + name + "\">" + name + "</option>\n";
    }
    str += "</select>";
-   str += "<div class='rowDelete' id='tr" + i + "' onClick='deleteRowRedraw(" + i + ")'>" +
+   str += "<div class='rowDelete' id='" + ID.TRASH_ROW_.tag + i + "' onClick='deleteRowRedraw(" + i + ")'>" +
             "<span class='tooltip'>&#9949;" +
                      "<span class='tooltiptext'>Delete this row</span></span>\n" +
           "</div>";
    element.innerHTML = str;
 
-   $("members").appendChild( element );
+   $(ID.MEMBER_ROWS).appendChild( element );
 
-    if( g_NumRows > 0 ) {
-        $("md" + (g_NumRows-1)).style.visibility = "visible";
+    if( g_Origin.maxMembers > 0 ) {
+        $(ID.MOVE_ROW_DOWN_.tag + (g_Origin.maxMembers-1)).style.visibility = "visible";
     }
 
-    ++g_NumRows;
-    if( g_NumRows > g_Origin.maxMembers ) {
-        g_Origin.maxMembers = g_NumRows;
-    }
+    ++g_Origin.maxMembers;
 }
 
 
 function assignRowTypes() {
-    let rows = document.querySelectorAll('#members .row');
+    let rows = document.querySelectorAll('#'+ID.MEMBER_ROWS.tag+' .row');
     [].forEach.call(rows, function(row) {
         let num = parseInt( row.id );
         switch( getRowType( num ) ) {
@@ -3247,7 +3306,7 @@ function assignRowTypes() {
 
 function addDragHandlers() {
     // Support for draggable elements.
-    let rows = document.querySelectorAll('#members .row');
+    let rows = document.querySelectorAll('#'+ID.MEMBER_ROWS.tag+' .row');
     [].forEach.call(rows, function(row) {
       addEventHandler( row, 'dragstart', memberHandleDragStart );
       addEventHandler( row, 'dragenter', memberHandleDragEnter );
@@ -3264,75 +3323,190 @@ function addMemberButton() {
 }
 
 
-function pageSetup() {
-    $("version").innerHTML = "Version: " + g_Version;
+function getMemberDescription( obj, nl = "<br/>" ) {
+    let str = "";
+    let i=0;
+    let result = [];
+    for( let i=0; i<obj._rows; ++i ) {
+        let memberID = ID.MEMBER_.tag + i;
+        let masterID = ID.MASTER_.tag + i;
 
-    // Determine what fonts are supported.
-    g_DetectedFonts = (new Detector()).identifyCommonFonts();
-
-    testCORS();
-
-    // Update the canvas to configured dimensions.
-    let canvas = $("_canvas");
-    canvas.width = g_Origin.imageWidth;
-    canvas.height = g_Origin.imageHeight;
-    addEventHandler( canvas, "dragover", cancel );
-    addEventHandler( canvas, "dragenter", cancel );
-    addEventHandler( canvas, "drop", imageHandleDrop );
-
-    createFontSelectionElements( "titleProperties", g_TitleFontDesc );
-    createFontSelectionElements( "recipientProperties", g_RecipientFontDesc );
-    createFontSelectionElements( "memberProperties", g_MemberFontDesc );
-    createFontSelectionElements( "masterProperties", g_MasterFontDesc );
-
-    // Create the Members/Masters forms.
-    for( let i = 0; i < g_Origin.maxMembers; ++i ) {
-        addMemberMasterRow();
-    }
-    addDragHandlers();
-
-    // Populate the date in the title.
-    $("t2").value = getDateString() + "    Duration: 20 min";
-
-    // Update the "Download image" anchor element to download the canvas as a PNG file.
-    let dl = $("downloadLink");
-    addEventHandler( dl,
-                     "click", 
-                     function() { 
-                         saveMembers();
-                         loadMembers();
-                         this.href = _canvas.toDataURL("image/png");
-                         let name = $("f").value;
-                         if( name === "" ) name = "image.png";
-                         this.download = name;
-                     } );
-
-    if( g_CORSEnabled ) {
-        // If CORS is enabled then prevent image URLs being enterred.
-        $("_imageInput").style.display = "none";
-    }
-
-    // Set default element values
-    initializeElementsFromHash( g_ElementDefaults );
-
-    if( window.location.href.indexOf( "?" ) != -1 ) {
-        // Set element values from URL parameters
-        setParametersFromUrl( window.location.href );
-    } else {
-        let profiles = getProfiles();
-        let day = (new Date()).getDay();
-
-        // Try to find the last profile created on this weekday
-        for( let i = 0; i < profiles.length; ++i ) {
-            if( parseInt(profiles[i]["day"]) == day ) {
-                // Set values to selected profile.
-                initializeElementsFromHash( profiles[i] );
-                break;
+        if( memberID in obj ) {
+            let member = obj[memberID];
+            if( result.length==0 || member!==result[result.length-1][0] ) {
+                result.push( [member, []] );
+            }
+            if( masterID in obj ) {
+                result[result.length-1][1].push( obj[masterID] );
             }
         }
     }
 
-    createProfilesElement( "profiles" );
+    if( result.length > 0 ) {
+        let start = 0;
+        do {
+            if( str.length > 0 ) str += nl;
+            str += `${result[start][0]}: ` + result[start][1].join( ", " );
+            if( obj[ID.TORUS_ADDITION_ORDER.tag] ) {
+                // clockwise order
+                start = (start==0) ? result.length-1 : start-1;
+            } else {
+                start = (start==result.length-1) ? 0 : start+1;
+            }
+        } while( start != 0 );
+    }
+    return str;
+}
+
+
+function deleteSnapshot( id ) {
+    g_Database.torus
+        .delete( id )
+        .then( () => {
+            $(ID.SNAPSHOT_.tag + id).remove();
+            console.log( "deleteSnapshot: torus definition deleted" );
+        }).catch( e => {
+            console.error( "deleteSnapshot: error: " + e );
+        });
+}
+
+
+function loadSnapshot( id, full ) {
+    let obj = g_SavedSnapshots.find( (a) => a._id == id );
+    if( obj != null ) {
+        initializeElementsFromHash( g_ElementDefaults );
+        initializeElementsFromHash( obj, full );
+        buildCanvas();
+    }
+}
+
+
+function addSnapshotInfo( obj, append=true ) {
+    let container = document.createElement( "div" );
+    container.setAttribute( "id", ID.SNAPSHOT_.tag + obj._id );
+
+    let button = document.createElement( "button" );
+    button.setAttribute( "class", "accordion" );
+    let name = "[<font color='blue'>" + obj._timestamp.toDateString() + ", " + 
+                 obj._timestamp.toLocaleTimeString() + "</font>] "
+             + obj[ID.TITLE_1.tag] || "";
+    if( obj[ID.TITLE_2.tag] && obj[ID.TITLE_2.tag]!=="" ) {
+        name += " / <font color='red'>" + obj[ID.TITLE_2.tag] + "</font>";
+    }
+    if( obj._downloaded ) {
+        name += " <b>(DOWNLOADED</b>)"; 
+    }
+    button.innerHTML = name;
+
+    button.addEventListener("click", function() {
+        this.classList.toggle("active");
+        let panel = this.nextElementSibling;
+        if (panel.style.maxHeight){
+          panel.style.maxHeight = null;
+        } else {
+          panel.style.maxHeight = panel.scrollHeight + "px";
+        } 
+      });
+
+    let div = document.createElement( "div" );
+    div.setAttribute( "class", "panel" );
+
+    let image = "";
+    if( "_image" in obj ) {
+        image = `<img src="${obj._image}" height=200 width=200 />`;
+    }
+
+    let str = "<table border=1>\n" +
+              " <tr><td>Save date:</td><td>" + obj._timestamp.toLocaleString() + "</td></tr>\n" +
+              " <tr><td>Title 1:</td><td>" + obj[ID.TITLE_1.tag] + "</td></tr>\n" +
+              " <tr><td>Title 2:</td><td>" + obj[ID.TITLE_2.tag] + "</td></tr>\n" +
+              " <tr><td>part:</td><td>" + (obj[ID.TITLE_PART.tag] || "") + "</td></tr>\n" +
+              " <tr><td>Description:</td><td>" + getMemberDescription(obj) + "</td></tr>\n" +
+              " <tr><td>Image:</td><td>" + image + "</td></tr>\n" +
+              "</table>\n";
+    str += `<button type=button onclick='deleteSnapshot(${obj._id})'>Delete snapshot</button>\n`;
+    str += `<button type=button onclick='loadSnapshot(${obj._id},true)'>Load snapshot</button>\n`;
+    str += `<button type=button onclick='loadSnapshot(${obj._id},false)'>Load style</button>\n`;
+    div.innerHTML = str;
+
+    container.appendChild( button );
+    container.appendChild( div );
+
+    let parent = $(ID.SNAPSHOTS_LIST);
+    if( append ) {
+        parent.appendChild( container );
+    } else {
+        let first = parent.firstChild;
+        if( first != null ) {
+            parent.insertBefore( container, parent.childNodes[0] );
+        } else {
+            parent.appendChild( container );
+        }
+    }
+}
+
+
+function pageSetup() {
+    $(ID.VERSION).innerHTML = "Version: " + g_Version;
+    console.log( "========================= Starting version: " + g_Version );
+
+    // Determine what fonts are supported.
+    g_DetectedFonts = (new Detector()).identifyCommonFonts();
+
+    // Map page ID tag names to ID key names.
+    g_TagToID = {};
+    g_ElementDefaults = {};
+    for( let k in ID ) {
+        let id = ID[k];
+        if( "save" in id ) {
+            g_TagToID[id.tag] = k;
+            if( !k.endsWith("_") ) {
+                g_ElementDefaults[id.tag] = id.save;
+            }
+        }
+    }
+                        
+    initializeDatabase();
+    getTorusData();
+
+    // Update the canvas to configured dimensions.
+    getCanvas().width = g_Origin.imageWidth;
+    getCanvas().height = g_Origin.imageHeight;
+
+    createFontSelectionElements( "titleProperties", "TITLE" );
+    createFontSelectionElements( "recipientProperties", "RECIPIENT" );
+    createFontSelectionElements( "memberProperties", "MEMBER" );
+    createFontSelectionElements( "masterProperties", "MASTER" );
+
+    // Create the Members/Masters forms.
+    for( let i = 0; i < g_Origin.initialMaxMembers; ++i ) {
+        addMemberMasterRow();
+    }
+    addDragHandlers();
+
+    // Update the "Download image" anchor element to download the canvas as a PNG file.
+    let dl = $(ID.DOWNLOAD_LINK);
+    addEventHandler( dl,
+                     "click", 
+                     function() { 
+                         this.href = getCanvas(false).toDataURL("image/png");
+                         let name = $(ID.IMAGE_FILENAME).value;
+                         if( name === "" ) name = "image.png";
+                         this.download = name;
+                         saveSnapshotInDatabase( true );    // downloaded
+                     } );
+
+    // Set default element values
+    initializeElementsFromHash( g_ElementDefaults );
+
+    // Populate the date in the title.
+    $(ID.TITLE_2).value = getDateString() + "    Duration: 20 min";
+
+    if( window.location.href.indexOf( "?" ) != -1 ) {
+        // Set element values from URL parameters
+        setParametersFromUrl( window.location.href );
+    }
+
     loadMembers();
 
     for( var im in g_Images ) {
@@ -3343,35 +3517,55 @@ function pageSetup() {
             option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
             option.setAttribute( "disabled", "" );
             option.innerHTML = "&nbsp;";
+            $(ID.TORUS_TREATMENT).appendChild( option );
+            continue;
         } else {
             option.setAttribute( "value", im );
             option.innerHTML = "Picture '" + im + "'";
+            $(ID.TORUS_TREATMENT).appendChild( option );
         }
-        $("tort").appendChild( option );
 
         imageDesc.image = new Image;
         imageDesc.image.src = imageDesc.file;
+
+        // If the image is loaded after fetching the database settings then
+        //  redraw the canvas.
+        imageDesc.image.optionName = im;
+        imageDesc.image.onload = function() {
+            if( this.optionName == $(ID.TORUS_TREATMENT).value ) {
+                buildCanvas();
+            }
+        };
     }
 
     for( var bgm in g_Background_images ) {
         var imageDesc = g_Background_images[bgm];
 
         let option = document.createElement( "option" );
-        if( im[0] == "_" ) {        // separator sentinel
+        if( bgm[0] == "_" ) {        // separator sentinel
             option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
             option.setAttribute( "disabled", "" );
             option.innerHTML = "&nbsp;";
+            $(ID.BACKGROUND_TREATMENT).appendChild( option );
+            continue;
         } else {
             option.setAttribute( "value", bgm );
             option.innerHTML = "Picture '" + bgm + "'";
+            $(ID.BACKGROUND_TREATMENT).appendChild( option );
         }
-        $("bgt").appendChild( option );
 
         imageDesc.image = new Image;
         imageDesc.image.src = imageDesc.file;
+    
+        // If the image is loaded after fetching the database settings then
+        //  redraw the canvas.
+        imageDesc.image.optionName = bgm;
+        imageDesc.image.onload = function() {
+            if( this.optionName == $(ID.BACKGROUND_TREATMENT).value ) {
+                buildCanvas();
+            }
+        };
     }
-
-    //$("tort").value = "11";  // XXX REMOVE
 
     buildCanvas();
 }
@@ -3391,11 +3585,11 @@ function pageSetup() {
     <div class="navbar">
       <!-- <a class="active" href="index.html"><i class="fa fa-fw fa-home"></i> Home</a> -->
       <a href="help.html" target="_blank"><i class="fa fa-fw fa-question-circle"></i> Help</a>
-      <a id="downloadLink" href="#image"><i class="fa fa-fw fa-download"></i> Download</a> 
-      <span id=version>Version ?</span>
+      <a id="_downloadLink" href="#image"><i class="fa fa-fw fa-download"></i> Download</a> 
+      <span id=_version>Version ?</span>
     </div>
 
-    <div id="membersDatalist"></div>
+    <div id="_membersDataList"></div>
 
     <div class=main>
       <div id="inputTable">
@@ -3411,10 +3605,10 @@ function pageSetup() {
         <i><b>Members are added to the torus in a <select class=dropDown name=order id=or onchange='buildCanvas()'>
             <option value='counter'>counter-clockwise</option>
             <option value='clockwise'>clockwise</option>
-        </select> order.   Masters are on the<br> right (counter-clockwise) of members.<br></b></i>
-        <div id="addRowButton" onClick="addMemberButton()">Add Row</div>
+        </select> order.   Masters are<br> on the right (counter-clockwise) of members.<br></b></i>
+        <button class='addRowButton' type='button' onClick="addMemberButton()">Add Row</button>
   
-        <div id="members"></div>
+        <div id="_members"></div>
         
         <p id="_error"></p>
   
@@ -3480,9 +3674,9 @@ function pageSetup() {
                         <option value=6>PETALS</option>
                         <option value=10>GOLDEN_SPIRAL</option>
                         <option value=11>METATRON_2</option>
+                        <option value=12>SHADED_SPHERE</option>
                         <option value=7>MESH (per members)</option>
                         <option value=8>GEOMETRIC_1 (per members)</option>
-                        <option value=9>IMAGE</option>
                       </select>
                       <span class=tooltiptext>Pattern to display within torus circle</span>
                     </span>
@@ -3501,6 +3695,8 @@ function pageSetup() {
                       <option value=130>130px</option>
                       <option value=140>140px</option>
                       <option value=150>150px</option>
+                      <option value=160>160px</option>
+                      <option value=170>170px</option>
                     </select>
                   </td>
                 </tr><tr>
@@ -3513,6 +3709,7 @@ function pageSetup() {
                       <option value=3>RAY</option>
                       <option value=4>SPIRAL</option>
                     </select>
+                    Rainbow <input type=checkbox id='torlr' onChange='buildCanvas()'>
                   </td>
                 </tr><tr>
                   <td>circle width:</td>
@@ -3592,9 +3789,6 @@ function pageSetup() {
         Recipient: <span class='tooltip'><input class=textInput type='text' name='rep' id='rep' size='40' value='' onChange='buildCanvas()'/ placeholder="Name for torus center"><span class='tooltiptext'>Optional name for center of torus</span></span><br>
         Font <span id='recipientProperties'></span>
             <span class='tooltip'><input class="jscolor" id='rc' value="000000" size='6' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for<br> '<b>Recipient</b>'</span></span> <br>
-        <span id=_imageInput>
-            Image: <input class=textInput type='text' name='tori' id='tori' size='80' value='' onChange='newImage()'/><br>
-        </span>
       </div>
       
       <div id=image>
@@ -3606,11 +3800,17 @@ function pageSetup() {
 
     <h2>Settings</h2>
     Download filename: <input class=textInput type='text' name="name" id="f" value="download.png" size="50"/><br>
-    Profiles: <span id='profiles'></span> <span class='tooltip'><button type='button' onclick='saveProfile()'>Save profile</button><span class=tooltiptext>Save current settings profile</span></span>
     <div id=debug>
       Debug enabled: <input type=checkbox id='_debug' onChange='buildCanvas()'><br>
       My URL: <span id='_myURL'></span>
       <canvas id=_testCanvas width=5 height=5></canvas>
     </div>
+
+    <h2>Torus Description</h2>
+    <code id=_description></code>
+
+    <h2>Snapshots</h2>
+    <button class='addRowButton' type='button' onclick='saveSnapshot()'>Save snapshot</button>
+    <div id=_snapshots></div>    
   </body>
 </html>

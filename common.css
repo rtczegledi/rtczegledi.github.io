@@ -6,7 +6,8 @@
 
 body {
   margin: 0;
-  background-color: #eeeeee;
+  /*background-color: #eeeeee;*/
+  background-image: url("ig_background.jpg");
 }
 .navbarExample {
   background-color: #555;
@@ -201,7 +202,7 @@ body {
     color: white;
     background-color: blue;
 }
-#addRowButton {
+.addRowButton {
     border: 2px solid blue;
     margin-top: 5px;
     margin-bottom: 10px;
@@ -212,6 +213,16 @@ body {
     cursor: default;
     color: white;
     background-color: blue;
+    box-shadow: 0 6px #999;
+    width: 100%;
+}
+.addRowButton:hover {
+    background-color: #3e8e41
+}
+.addRowButton:active {
+    background-color: #3d8e41;
+    box-shadow: 0 3px #666;
+    transform: translate(4px);
 }
 
 /********************************************************************/
@@ -265,3 +276,40 @@ blockquote.default{
   border-right-color: #434a53;  
 }
 
+/***************************************************************/
+.accordion {
+  background-color: #eee;
+  color: #444;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+  transition: 0.4s;
+}
+
+.active, .accordion:hover {
+  background-color: #ccc;
+}
+
+.panel {
+  padding: 0 18px;
+  background-color: white;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+
+.accordion:after {
+  content: '\02795'; /* Unicode character for "plus" sign (+) */
+  font-size: 13px;
+  color: #777;
+  float: right;
+  margin-left: 5px;
+}
+
+.active:after {
+  content: "\2796"; /* Unicode character for "minus" sign (-) */
+}

@@ -8,7 +8,7 @@
 <title>Help - Image Generator</title>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> January 13, 2019
+<b>Date:</b> March 25, 2019
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -62,6 +62,7 @@ The torus is drawn as a circle with overlayed smaller circles called <i>pegs</i>
   <li>RAY: draw short ray lines from the center of the torus</li>
   <li>SPIRAL: draw a looping spiral</li>
 </ul>
+The "<b>Rainbow</b>" checkbox, when selected, will display the the torus ring with a rainbow hue.<br/>
 The "<b>circle treatment</b>" drop down menu offers a few treatment patterns for rendering images within the torus circle.  A few examples are:
 <ul>
   <li>HEART : draw a heart shape</li>
@@ -72,9 +73,9 @@ The "<b>circle treatment</b>" drop down menu offers a few treatment patterns for
   <li>PETALS : draw flower petals</li>
   <li>GOLDEN_SPIRAL : draw random golden spiral pattern</li>
   <li>METATRON_2 : draw a detailed Metatron's cube</li>
+  <li>SHADED_SPHERE : draws a shaded sphere pattern</li>
   <li>MESH : draw a wire mesh between all member pegs</li>
   <li>GEOMETRIC_1 : draw a wire pattern between all member pegs</li>
-  <li>IMAGE : when supported, drag and drop an image</li>
   <li>Picture '<i>PICTURE-NAME</i>' : display a preloaded image in the torus circle</li>
 </ul>  
 The colour of the torus treatment can be changed with the colour selector immediately following the "<b>circle treatment</b>" drop down menu.   When displaying a <b>Picture</b> in the torus circle, adjusting this colour selector affects the opacity of the image.<div/><br/>
@@ -106,9 +107,89 @@ Multiple configurations are supported via bookmarks.  At the bottom of the web p
 
 Since torus images may be created for different days, layout configurations can be saved as profiles.  For example, assume that an event was repeatedly created on Mondays with a specific set of fonts, colours, etc.  Clicking the "<b>Save profile</b>" button (on Monday) will save the layout configuration with the "<b>Title 1</b>" name which will be automatically loaded the next Monday.  A drop down "<b>Profiles</b>" menu can be selected to reload a previously saved layout. 
 
+<h2>Torus Description</h2>
+Sometimes it may be necessary to have a textual version of the torus seating arrangement.  The text shown in this section is the textual seating arrangement in the form of each member along with their respective masters.  The order of the members is determined by the clockwise versus counter-clockwise drop down menu.
+
+<h2>Snapshots</h2>
+<p>Full torus descriptions can be saved to a database that is local to the current browser (e.g. Chrome/Safari/Firefox/etc).  Saved snapshots are displayed in this section in an accordian format until expanded by clicking on the save description.  The save description lists the date and time that the snapshot was taken along with the title of the torus from the "<b>Title 1</b>" and "<b>Title 2</b>" fields.  A torus description and image for the snapshot are displayed.</p>
+<p>Torus snapshots can be created in two ways.  First, the <span id="addRowButtonExample">Save snapshot</span> button can be clicked to save a snapshot of the current torus state.  Second, downloading the image by pressing the <span class="navbarExample"><i class="fa fa-fw fa-download"></i> <b>Download</b></span> navigation button will also save a snapshot.  The torus description will include "<b>(DOWNLOADED)</b>" if the snapshot was created by downloading the image.</p>
+<p>Clicking the "<b>Delete snapshot</b>" button will delete the snapshot from the database.</p>
+<p>Clicking the "<b>Load snapshot</b>" button will load all information from the snapshot including the member/master list.</p>
+<p>Clicking the "<b>Load style</b>" button is similar to "<b>Load snapshot</b>" except that the member/master list isn't loaded or changed.</p>
+<p>When the page is initially loaded, the style of the most recently saved snapshot that was saved on the same day of the week will be loaded.</p>
+
+<blockquote class="default">
+The database used to save the torus settings is specific to the browser and device displaying the Image Generator page.  Therefore, saved torus definitions may not be available if another browser program or device is used.
+</blockquote>
+
 <hr>
 <h3>Revision History</h3>
 <ul>
+    <li>
+        <b>March 25, 2019</b>
+        <ul>
+            <li>A lot of code clean up.  This included using identifiers to DOM tags, removing Cross-Origin 
+                Resource Sharing (CORS) support, removing cookie support, and removing image drag-and-drop
+                support which required CORS.</li>
+            <li>Added local browser database support to save and restore torus snapshot information along with the list of
+                discovered member names.  Prior to this change, persistent information was stored as cookies.</li> 
+            <li>Added the <B>SHADED_SPHERE</b> torus treatment to display a shaded sphere in the center of the torus.  The
+                colour of the sphere can be changed.</li> 
+            <li>Introduced the background treatment images:
+                <ol>
+                    <li>BGD - Line Art 1</li>
+                    <li>BGD - Line Art 2</li>
+                    <li>BGD - Line Art 3</li>
+                    <li>BGD - Line Art 4</li>
+                    <li>BGD - Line Art 5</li>
+                    <li>BGD - Line Art 6</li>
+                    <li>BGD - Sky 1</li>
+                    <li>BGD - Swirl 1</li>
+                    <li>BGD - Swirl 2</li>
+                    <li>BGD - Leaves 1</li>
+                    <li>BGD - Flowers 1</li>
+                </ol>
+            </li>
+            <li>Removed the background treatment images:
+                <ol>
+                    <li>BGA - Snow 1</li>
+                    <li>BGA - Snow 2</li>
+                    <li>BGA - Snow 3</li>
+                </ol>
+            </li>
+            <li>Added torus images:
+                <ol>
+                    <li>D - Line Art 1</li> 
+                    <li>D - Line Art 2</li> 
+                    <li>D - Flower 1</li> 
+                    <li>D - Flowers 2</li> 
+                    <li>D - Flower 3</li> 
+                </ol>
+            </li>
+            <li>Removed torus images:
+                <ol>
+                    <li>B - Mandala 2</li>
+                    <li>A - Mandala 1</li>
+                    <li>A - Mandala 2</li>
+                    <li>A - Mandala 6</li>
+                    <li>A - Mandala 12</li>
+                    <li>A - Mandala 13</li>
+                    <li>C - Mandala 1</li>
+                    <li>Mandala 4</li>
+                </ol>
+            </li>
+            <li>Corrected the spelling for Master "<i>Quetzalcoatl</i>".</li>
+            <li>Improved the placement algorithm for Master names so that the text would be
+                positioned better between Members around the torus.</li>
+            <li>Added gradient support when rendering the torus circle to give a rainbow effect.</li>
+            <li>Improved the text shadowing effect so that the shadow halo is not as pronounced.</li>
+            <li>A thin white outline is included around all text in the image to prevent text from 
+                being washed out by the background image or colour.</li>
+            <li>Added support to list a textual version of the member/master placement around
+                the torus.</li>
+            <li>Added a simple repeating background image to the page.</li>
+        </ul>
+    </li>
     <li>
         <b>January 13, 2019</b>
         <ul>
