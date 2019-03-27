@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-var g_Version = "March 25, 2019";
+var g_Version = "March 27, 2019";
 
 // NOTE: font description MUST include the font height in 'px'.
 const ID = {
@@ -320,6 +320,9 @@ var g_Members = [];
 var g_ObjectArray = [];
 var g_Database;
 var g_SavedSnapshots = [];
+var g_TempSnapshotTimestamp = new Date( 2999, 0 );
+var g_UnmodifiedValues = {};
+var g_InitialSnapshotLoaded = false;
 
 
 function resetGlobals() {
@@ -375,18 +378,43 @@ async function addTorusDataToDatabase( data ) {
 }
 
 
+async function updateTorusDataToDatabase( data ) {
+    await g_Database.torus.put( data ).then( function() {
+        console.log( `updateTorusDataToDatabase: Put torus data for _id=${data._id} in database` );
+
+        if( g_SavedSnapshots.length==0 || g_SavedSnapshots[0]._timestamp.getTime()!==g_TempSnapshotTimestamp.getTime() ) {
+            g_SavedSnapshots.unshift( data );
+        }
+        addSnapshotInfo( data, false );
+        setTitle();
+    }).catch( e => {
+        console.error( "updateTorusDataToDatabase: couldn't put torus data: " + e.stack );
+    });
+}
+
+
 async function getTorusData() {
     g_SavedSnapshots = [];
     g_Database.torus.orderBy("_timestamp").reverse().each( function(obj) {
         g_SavedSnapshots.push( obj );
         console.log( `getTorusData: added _id:${obj._id}, _timestamp:${obj._timestamp.toLocaleString()}, t1:'${obj.t1}', t2:'${obj.t2}'` );
 
-        let now = new Date();
-        if( now.getDay() == obj._timestamp.getDay() ) {
-            // Found a recent snapshot that was created on the same weekday.  Load
-            //  it's style information.
-            initializeElementsFromHash( obj );
-            buildCanvasLite();      // avoid loadMembers()/saveMembers()
+        if( !g_InitialSnapshotLoaded ) {
+            g_InitialSnapshotLoaded = true;
+            if( obj._timestamp.getTime() === g_TempSnapshotTimestamp.getTime() ) {
+                // Found a temporary snapshot.  Load it.
+                initializeElementsFromHash( obj, true );
+                buildCanvasLite();      // avoid loadMembers()/saveMembers()
+            } else {
+                let now = new Date();
+                if( now.getDay() == obj._timestamp.getDay() ) {
+                    // Found a recent snapshot that was created on the same weekday.  Load
+                    //  it's style information.
+                    initializeElementsFromHash( obj );
+                    buildCanvasLite();      // avoid loadMembers()/saveMembers()
+                }
+            }
+            setTitle();
         }
     
     }).catch( e => {
@@ -2180,14 +2208,49 @@ function lastVisibleMember() {
 function saveSnapshotInDatabase( downloaded ) {
     let snapshot = getPageParameters( true, true );
     snapshot._downloaded = downloaded;
+    snapshot._timestamp = new Date();
         
     g_Database.torus.add( snapshot ).then( function() {
         console.log( `saveSnapshotInDatabase: Added torus data to database; _id=${snapshot._id}, _timestamp=${snapshot._timestamp.toLocaleString()}, t1='${snapshot.t1}', t2='${snapshot.t2}'` );
+
+        // Delete any temporary snapshot
+        if( g_SavedSnapshots.length>0 && g_SavedSnapshots[0]._timestamp.getTime()===g_TempSnapshotTimestamp.getTime() ) {
+            deleteSnapshot( g_SavedSnapshots[0]._id );
+        }
+
         g_SavedSnapshots.unshift( snapshot );
         addSnapshotInfo( snapshot, false );
     }).catch( e => {
         console.log( "saveSnapshotInDatabase: couldn't add to database: " + e.stack );
     });
+}
+
+
+function objectsEqual(a, b) {
+    var aProps = Object.getOwnPropertyNames(a).filter( n => n[0]!='_' );
+    var bProps = Object.getOwnPropertyNames(b).filter( n => n[0]!='_' );
+
+    if (aProps.length != bProps.length) {
+        return false;
+    }
+
+    for( let i = 0; i < aProps.length; i++ ) {
+        let propName = aProps[i];
+        if (a[propName] !== b[propName]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+function setTitle() {
+    if( g_SavedSnapshots.length > 0 && g_SavedSnapshots[0]._timestamp.getTime()===g_TempSnapshotTimestamp.getTime() ) {
+        document.title = "Image Generator +";
+    } else {
+        document.title = "Image Generator";
+    }
 }
 
 
@@ -2256,6 +2319,18 @@ function buildCanvasLite() {
 
     $(ID.DESCRIPTION).innerHTML = getMemberDescription( getPageParameters(true, false) );
     composeMyURL();
+
+    let pageParameters = getPageParameters( true );
+    if( !objectsEqual( pageParameters, g_UnmodifiedValues ) ) {
+        g_UnmodifiedValues = pageParameters;
+        g_UnmodifiedValues._timestamp = g_TempSnapshotTimestamp;
+        g_UnmodifiedValues._modified = new Date();
+        g_UnmodifiedValues._downloaded = false;
+        if( g_SavedSnapshots.length > 0 && g_SavedSnapshots[0]._timestamp.getTime()===g_TempSnapshotTimestamp.getTime() ) {
+            g_UnmodifiedValues._id = g_SavedSnapshots[0]._id;
+        }
+        updateTorusDataToDatabase( g_UnmodifiedValues );
+    }
 }
 
 
@@ -2833,7 +2908,7 @@ function setDefaultFilename() {
 
 
 function saveSnapshot() {
-    saveSnapshotInDatabase( false );
+    saveSnapshotInDatabase( false );        // downloaded
 }
 
 
@@ -2930,6 +3005,7 @@ function initializeElementsFromHash( hash, full = false ) {
             }
         }
     }
+    g_UnmodifiedValues = getPageParameters( true );
 }
 
 
@@ -2939,13 +3015,12 @@ function setParametersFromUrl( url ) {
 }
 
 
-function getPageParameters( full, getImage ) {
+function getPageParameters( full, getImage=false ) {
     let all = document.getElementsByTagName("*");
     let hash = {};
 
     if( full ) {
         hash._version = g_Version;
-        hash._timestamp = new Date();
         hash._rows = g_Origin.maxMembers;
         if( getImage ) {
             try {
@@ -3365,6 +3440,9 @@ function deleteSnapshot( id ) {
         .then( () => {
             $(ID.SNAPSHOT_.tag + id).remove();
             console.log( "deleteSnapshot: torus definition deleted" );
+
+            g_SavedSnapshots = g_SavedSnapshots.filter( e => e._id != id );
+            setTitle();
         }).catch( e => {
             console.error( "deleteSnapshot: error: " + e );
         });
@@ -3377,6 +3455,14 @@ function loadSnapshot( id, full ) {
         initializeElementsFromHash( g_ElementDefaults );
         initializeElementsFromHash( obj, full );
         buildCanvas();
+
+        // Delete any temporary snapshot
+        if( full
+         && g_SavedSnapshots[0]._id != id
+         && g_SavedSnapshots[0]._timestamp.getTime()===g_TempSnapshotTimestamp.getTime() ) {
+            deleteSnapshot( g_SavedSnapshots[0]._id );
+        }
+
     }
 }
 
@@ -3387,14 +3473,24 @@ function addSnapshotInfo( obj, append=true ) {
 
     let button = document.createElement( "button" );
     button.setAttribute( "class", "accordion" );
-    let name = "[<font color='blue'>" + obj._timestamp.toDateString() + ", " + 
-                 obj._timestamp.toLocaleTimeString() + "</font>] "
-             + obj[ID.TITLE_1.tag] || "";
-    if( obj[ID.TITLE_2.tag] && obj[ID.TITLE_2.tag]!=="" ) {
-        name += " / <font color='red'>" + obj[ID.TITLE_2.tag] + "</font>";
-    }
-    if( obj._downloaded ) {
-        name += " <b>(DOWNLOADED</b>)"; 
+    let name;
+    if( obj._timestamp.getTime() == g_TempSnapshotTimestamp.getTime() ) {
+        name = "<font color='green'>[" + obj._modified.toDateString() + ", " +
+               obj._modified.toLocaleTimeString() + "] " + (obj[ID.TITLE_1.tag] || "");
+        if( obj[ID.TITLE_2.tag] && obj[ID.TITLE_2.tag]!=="" ) {
+            name += " / " + obj[ID.TITLE_2.tag];
+        }
+        name += "</font>";
+    } else {
+        name = "[<font color='blue'>" + obj._timestamp.toDateString() + ", " + 
+                     obj._timestamp.toLocaleTimeString() + "</font>]" +
+                "] " + obj[ID.TITLE_1.tag] || "";
+        if( obj[ID.TITLE_2.tag] && obj[ID.TITLE_2.tag]!=="" ) {
+            name += " / <font color='red'>" + obj[ID.TITLE_2.tag] + "</font>";
+        }
+        if( obj._downloaded ) {
+            name += " <b>(DOWNLOADED)</b>"; 
+        }
     }
     button.innerHTML = name;
 
@@ -3416,9 +3512,13 @@ function addSnapshotInfo( obj, append=true ) {
         image = `<img src="${obj._image}" height=200 width=200 />`;
     }
 
-    let str = "<table border=1>\n" +
-              " <tr><td>Save date:</td><td>" + obj._timestamp.toLocaleString() + "</td></tr>\n" +
-              " <tr><td>Title 1:</td><td>" + obj[ID.TITLE_1.tag] + "</td></tr>\n" +
+    let str = "<table border=1>\n";
+    if( obj._modified ) {
+        str += " <tr><td>Modified date:</td><td>" + obj._modified.toLocaleString() + "</td></tr>\n";
+    } else {
+        str += " <tr><td>Save date:</td><td>" + obj._timestamp.toLocaleString() + "</td></tr>\n";
+    }
+    str +=    " <tr><td>Title 1:</td><td>" + obj[ID.TITLE_1.tag] + "</td></tr>\n" +
               " <tr><td>Title 2:</td><td>" + obj[ID.TITLE_2.tag] + "</td></tr>\n" +
               " <tr><td>part:</td><td>" + (obj[ID.TITLE_PART.tag] || "") + "</td></tr>\n" +
               " <tr><td>Description:</td><td>" + getMemberDescription(obj) + "</td></tr>\n" +
@@ -3432,15 +3532,22 @@ function addSnapshotInfo( obj, append=true ) {
     container.appendChild( button );
     container.appendChild( div );
 
-    let parent = $(ID.SNAPSHOTS_LIST);
-    if( append ) {
-        parent.appendChild( container );
+    let el = $(ID.SNAPSHOT_.tag + obj._id);
+    if( el != null ) {
+        // Replace the existing snapshot definition.
+        el.replaceWith( container );
     } else {
-        let first = parent.firstChild;
-        if( first != null ) {
-            parent.insertBefore( container, parent.childNodes[0] );
-        } else {
+        // Add/append a snapshot definition.
+        let parent = $(ID.SNAPSHOTS_LIST);
+        if( append ) {
             parent.appendChild( container );
+        } else {
+            let first = parent.firstChild;
+            if( first != null ) {
+                parent.insertBefore( container, parent.childNodes[0] );
+            } else {
+                parent.appendChild( container );
+            }
         }
     }
 }
@@ -3567,6 +3674,7 @@ function pageSetup() {
         };
     }
 
+    g_UnmodifiedValues = getPageParameters( true );
     buildCanvas();
 }
 
