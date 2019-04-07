@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-var g_Version = "March 27, 2019";
+var g_Version = "April 7, 2019";
 
 // NOTE: font description MUST include the font height in 'px'.
 const ID = {
@@ -30,7 +30,7 @@ const ID = {
     SNAPSHOT_ :                     {tag:"_snapshot_"},
 
     TITLE_1 :                       {tag:"t1",      save:"Group Torus", db:true},
-    TITLE_2 :                       {tag:"t2",      save:"",            db:true},
+    TITLE_2 :                       {tag:"t2",      save:"",            db:true, sensitive:true},
     TITLE_PART :                    {tag:"tp",      save:""},
     TITLE_FONT_FAMILY :             {tag:"tff",     save:"Arial"},
     TITLE_FONT_BOLD :               {tag:"tfb",     save:true},
@@ -2984,6 +2984,14 @@ function initializeElementsFromHash( hash, full = false ) {
                 continue;
             }
  
+            if( !full ) {
+                let id = g_TagToID[el.id];
+                if( id && ID[id].sensitive ) {
+                    // Ignore this element as it is set at page load time.
+                    continue;
+                }
+            }
+
             let defaultValue = hash[el.id];
 
             if( el.nodeName === "SELECT" ) {
@@ -3686,7 +3694,7 @@ function pageSetup() {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="common.css">
 </head>
-  <body onLoad=pageSetup()>
+  <body onload="pageSetup()">
     <script src="jscolor.min.js"></script>
     <script src="jsurl.js"></script>
 
@@ -3694,231 +3702,231 @@ function pageSetup() {
       <!-- <a class="active" href="index.html"><i class="fa fa-fw fa-home"></i> Home</a> -->
       <a href="help.html" target="_blank"><i class="fa fa-fw fa-question-circle"></i> Help</a>
       <a id="_downloadLink" href="#image"><i class="fa fa-fw fa-download"></i> Download</a> 
-      <span id=_version>Version ?</span>
+      <span id="_version">Version ?</span>
     </div>
 
     <div id="_membersDataList"></div>
 
-    <div class=main>
+    <div class="main">
       <div id="inputTable">
         <h2>Group Torus Title</h2>
-        Title 1: <span class='tooltip'><input class=textInput type='text' name='t1' id='t1' size='40' value='' onChange='buildCanvas()'><span class='tooltiptext'>Title used in the image<br> header and download filename</span></input></span><br>
-        Title 2: <input class=textInput type='text' name='t2' id='t2' size='40' value='Duration: 20 min' onChange='buildCanvas()'/><br>
-        part (optional) <input class=textInput type='text' name='tp' id='tp' size='20' value='' onChange='buildCanvas()'/>
-            <span class='tooltip'><input class="jscolor" id='tpc' value="000000" size='4' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for<br> '<b>part (optional)</b>'</span></span> <br>
-        Font <span id='titleProperties'></span>
-            <span class='tooltip'><input class="jscolor" id='tc' value="000000" size='4' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for<br/>'<b>Title 1</b> and <b>Title 2</b>'</span></span><br>
+        Title 1: <span class="tooltip"><input class="textInput" autofocus type="text" name="t1" id="t1" size="40" value='' onchange="buildCanvas()"><span class="tooltiptext">Title used in the image<br> header and download filename</span></input></span><br>
+        Title 2: <input class="textInput" type="text" name="t2" id="t2" size="40" value='Duration: 20 min' onchange="buildCanvas()"/><br>
+        part (optional) <input class="textInput" type="text" name="tp" id="tp" size="20" value='' onchange="buildCanvas()"/>
+            <span class="tooltip"><input class="jscolor" id="tpc" value="000000" size="4" onchange="buildCanvas()"><span class="tooltiptext">Colour selector for<br> '<b>part (optional)</b>'</span></span> <br>
+        Font <span id="titleProperties"></span>
+            <span class="tooltip"><input class="jscolor" id="tc" value="000000" size="4" onchange="buildCanvas()"><span class="tooltiptext">Colour selector for<br/>'<b>Title 1</b> and <b>Title 2</b>'</span></span><br>
   
         <h2>Members / Masters</h2>
-        <i><b>Members are added to the torus in a <select class=dropDown name=order id=or onchange='buildCanvas()'>
-            <option value='counter'>counter-clockwise</option>
-            <option value='clockwise'>clockwise</option>
+        <i><b>Members are added to the torus in a <select class="dropDown" name="order" id="or" onchange="buildCanvas()">
+            <option value="counter">counter-clockwise</option>
+            <option value="clockwise">clockwise</option>
         </select> order.   Masters are<br> on the right (counter-clockwise) of members.<br></b></i>
-        <button class='addRowButton' type='button' onClick="addMemberButton()">Add Row</button>
+        <button class="addRowButton" type="button" onclick="addMemberButton()">Add Row</button>
   
         <div id="_members"></div>
         
         <p id="_error"></p>
   
-        Member font <span id='memberProperties'></span>
-            <span class='tooltip'><input class="jscolor" id='pc' value="000000" size='4' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for <br/>member names</span></span> <br>
-        Master font <span id='masterProperties'></span>
-            <span class='tooltip'><input class="jscolor" id='mc' value="000000" size='4' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for<br/>master names</span></span> <br>
+        Member font <span id="memberProperties"></span>
+            <span class="tooltip"><input class="jscolor" id="pc" value="000000" size="4" onchange="buildCanvas()"><span class="tooltiptext">Colour selector for <br/>member names</span></span> <br>
+        Master font <span id="masterProperties"></span>
+            <span class="tooltip"><input class="jscolor" id="mc" value="000000" size="4" onchange="buildCanvas()"><span class="tooltiptext">Colour selector for<br/>master names</span></span> <br>
         Orientation for first member is
-        <select class=dropDown name=orientation id=o onChange='buildCanvas()'>
-            <option value=270>North (N)</option>
-            <option value=292.5>North-Northeast (NNE)</option>
-            <option value=315>Northeast (NE)</option>
-            <option value=337.5>East-Northeast (ENE)</option>
-            <option value=0>East (E)</option>
-            <option value=22.5>East-Southeast (ESE)</option>
-            <option value=45>Southeast (SE)</option>
-            <option value=67.5>South-Southeast (SSE)</option>
-            <option value=90>South (S)</option>
-            <option value=112.5>South-Southwest (SSW)</option>
-            <option value=135>Southwest (SW)</option>
-            <option value=157.5>West-Southwest (WSW)</option>
-            <option value=180>West (W)</option>
-            <option value=202.5>West-Northwest (WNW)</option>
-            <option value=225>Northwest (NW)</option>
-            <option value=247.5>North-Northwest (NNW)</option>
+        <select class="dropDown" name="orientation" id="o" onchange="buildCanvas()">
+            <option value="270">North (N)</option>
+            <option value="292.5">North-Northeast (NNE)</option>
+            <option value="315">Northeast (NE)</option>
+            <option value="337.5">East-Northeast (ENE)</option>
+            <option value="0">East (E)</option>
+            <option value="22.5">East-Southeast (ESE)</option>
+            <option value="45">Southeast (SE)</option>
+            <option value="67.5">South-Southeast (SSE)</option>
+            <option value="90">South (S)</option>
+            <option value="112.5">South-Southwest (SSW)</option>
+            <option value="135">Southwest (SW)</option>
+            <option value="157.5">West-Southwest (WSW)</option>
+            <option value="180">West (W)</option>
+            <option value="202.5">West-Northwest (WNW)</option>
+            <option value="225">Northwest (NW)</option>
+            <option value="247.5">North-Northwest (NNW)</option>
         </select>
-        <br/>
+        <br>
         <h2>Torus Circle</h2>
-        <table border=0>
-          <tr>
+        <table border="0">
+          <tbody><tr>
             <td>Background:</td>
             <td>
-              <table border=1>
-                <tr>
-                  <td>colour <input class="jscolor" id='bgc' value="FFFFFF" size='6' onchange='buildCanvas()'></td>
+              <table border="1">
+                <tbody><tr>
+                  <td>colour <input class="jscolor" id="bgc" value="FFFFFF" size="6" onchange="buildCanvas()"></td>
                   <td>
                       treatment
-                      <span class=tooltip>
-                        <select class=dropDown name=backgroundTreatment id='bgt' onChange='buildCanvas()'>
-                          <option value=0>None</option>
+                      <span class="tooltip">
+                        <select class="dropDown" name="backgroundTreatment" id="bgt" onchange="buildCanvas()">
+                          <option value="0">None</option>
                         </select>
-                        <span class=tooltiptext>Pattern to display in background</span>
+                        <span class="tooltiptext">Pattern to display in background</span>
                       </span>
                   </td>
                 </tr>
-              </table>
+              </tbody></table>
             </td>
           </tr><tr>
             <td>Torus circle</td>
             <td>
-              <table border=1>
-                <tr>
+              <table border="1">
+                <tbody><tr>
                   <td>circle treatment:</td>
                   <td>
-                    <span class=tooltip>
-                      <select class=dropDown name=torusTreatment id='tort' onChange='buildCanvas()'>
-                        <option value=0>None</option>
-                        <option value=1>HEART</option>
-                        <option value=2>RANDOM</option>
-                        <option value=3>FLOWER_OF_LIFE</option>
-                        <option value=4>METATRONS_CUBE</option>
-                        <option value=5>DAISY</option>
-                        <option value=6>PETALS</option>
-                        <option value=10>GOLDEN_SPIRAL</option>
-                        <option value=11>METATRON_2</option>
-                        <option value=12>SHADED_SPHERE</option>
-                        <option value=7>MESH (per members)</option>
-                        <option value=8>GEOMETRIC_1 (per members)</option>
+                    <span class="tooltip">
+                      <select class="dropDown" name="torusTreatment" id="tort" onchange="buildCanvas()">
+                        <option value="0">None</option>
+                        <option value="1">HEART</option>
+                        <option value="2">RANDOM</option>
+                        <option value="3">FLOWER_OF_LIFE</option>
+                        <option value="4">METATRONS_CUBE</option>
+                        <option value="5">DAISY</option>
+                        <option value="6">PETALS</option>
+                        <option value="10">GOLDEN_SPIRAL</option>
+                        <option value="11">METATRON_2</option>
+                        <option value="12">SHADED_SPHERE</option>
+                        <option value="7">MESH (per members)</option>
+                        <option value="8">GEOMETRIC_1 (per members)</option>
                       </select>
-                      <span class=tooltiptext>Pattern to display within torus circle</span>
+                      <span class="tooltiptext">Pattern to display within torus circle</span>
                     </span>
-                    <span class=tooltip>
-                      <input class="jscolor" id='tortc' value="000000" size='6' onchange='buildCanvas()'> <br>
-                      <span class=tooltiptext>Colour selector for<br> pattern in torus</span>
+                    <span class="tooltip">
+                      <input class="jscolor" id="tortc" value="000000" size="6" onchange="buildCanvas()"> <br>
+                      <span class="tooltiptext">Colour selector for<br> pattern in torus</span>
                     </span>
                    </td>
                 </tr><tr>
                   <td>circle size:</td>
                   <td>
-                    <select class=dropDown name=torusSize id='tors' onChange='buildCanvas()'>
-                      <option value=100>100px</option>
-                      <option value=110>110px</option>
-                      <option value=120>120px</option>
-                      <option value=130>130px</option>
-                      <option value=140>140px</option>
-                      <option value=150>150px</option>
-                      <option value=160>160px</option>
-                      <option value=170>170px</option>
+                    <select class="dropDown" name="torusSize" id="tors" onchange="buildCanvas()">
+                      <option value="100">100px</option>
+                      <option value="110">110px</option>
+                      <option value="120">120px</option>
+                      <option value="130">130px</option>
+                      <option value="140">140px</option>
+                      <option value="150">150px</option>
+                      <option value="160">160px</option>
+                      <option value="170">170px</option>
                     </select>
                   </td>
                 </tr><tr>
                   <td>circle line treatment:</td>
                   <td>
-                    <select class=dropDown name=torusLineTreatment id='torlt' onChange='buildCanvas()'>
-                      <option value=0>SOLID</option>
-                      <option value=1>WAVE</option>
-                      <option value=2>RIPPLE</option>
-                      <option value=3>RAY</option>
-                      <option value=4>SPIRAL</option>
+                    <select class="dropDown" name="torusLineTreatment" id="torlt" onchange="buildCanvas()">
+                      <option value="0">SOLID</option>
+                      <option value="1">WAVE</option>
+                      <option value="2">RIPPLE</option>
+                      <option value="3">RAY</option>
+                      <option value="4">SPIRAL</option>
                     </select>
-                    Rainbow <input type=checkbox id='torlr' onChange='buildCanvas()'>
+                    Rainbow <input type="checkbox" id="torlr" onchange="buildCanvas()">
                   </td>
                 </tr><tr>
                   <td>circle width:</td>
                   <td>
-                    <select class=dropDown name=torusWidth id='torw' onChange='buildCanvas()'>
-                      <option value=2>2px</option>
-                      <option value=3>3px</option>
-                      <option value=4>4px</option>
-                      <option value=5>5px</option>
-                      <option value=6>6px</option>
-                      <option value=7>7px</option>
+                    <select class="dropDown" name="torusWidth" id="torw" onchange="buildCanvas()">
+                      <option value="2">2px</option>
+                      <option value="3">3px</option>
+                      <option value="4">4px</option>
+                      <option value="5">5px</option>
+                      <option value="6">6px</option>
+                      <option value="7">7px</option>
                     </select>
                   </td>
                 </tr><tr>
                   <td>circle colour:</td>
                   <td>
-                    <span class=tooltip>
-                      <input class="jscolor" id='torc' value="000000" size='6' onchange='buildCanvas()'>
-                      <span class=tooltiptext>Colour selector for torus circle</span>
+                    <span class="tooltip">
+                      <input class="jscolor" id="torc" value="000000" size="6" onchange="buildCanvas()">
+                      <span class="tooltiptext">Colour selector for torus circle</span>
                     </span>
-                </tr>
-              </table>
                   </td>
-            </td>
+                </tr>
+              </tbody></table>
+                  </td>
           </tr><tr>
             <td>Torus peg</td>
             <td>
-              <table border=1>
-                <tr>
+              <table border="1">
+                <tbody><tr>
                   <td>peg treatment:</td>
                   <td>
-                    <select class=dropDown name=pegTreatment id='pegt' onChange='buildCanvas()'>
-                      <option value=0>None</option>
-                      <option value=1>Circle</option>
-                      <option value=2>Square</option>
-                      <option value=3>Diamond</option>
-                      <option value=4>Heart</option>
-                      <option value=5>Star</option>
+                    <select class="dropDown" name="pegTreatment" id="pegt" onchange="buildCanvas()">
+                      <option value="0">None</option>
+                      <option value="1">Circle</option>
+                      <option value="2">Square</option>
+                      <option value="3">Diamond</option>
+                      <option value="4">Heart</option>
+                      <option value="5">Star</option>
                     </select>
-                    Rotate <input type=checkbox id='pegr' onChange='buildCanvas()'>
+                    Rotate <input type="checkbox" id="pegr" onchange="buildCanvas()">
                   </td>
                 </tr><tr>
                   <td>peg width:</td>
                   <td>
-                    <select class=dropDown name=pegWidth id='pegw' onChange='buildCanvas()'>
-                      <option value=5>5px</option>
-                      <option value=6>6px</option>
-                      <option value=7>7px</option>
-                      <option value=8>8px</option>
-                      <option value=9>9px</option>
-                      <option value=10>10px</option>
+                    <select class="dropDown" name="pegWidth" id="pegw" onchange="buildCanvas()">
+                      <option value="5">5px</option>
+                      <option value="6">6px</option>
+                      <option value="7">7px</option>
+                      <option value="8">8px</option>
+                      <option value="9">9px</option>
+                      <option value="10">10px</option>
                     </select>
                   </td>
                 </tr><tr>
                   <td>peg colour:</td>
                   <td>
-                    <span class=tooltip>
-                      <input class="jscolor" id='torpc' value="000000" size='6' onchange='buildCanvas()'>
-                      <span class=tooltiptext>Colour selector for pegs</span>
+                    <span class="tooltip">
+                      <input class="jscolor" id="torpc" value="000000" size="6" onchange="buildCanvas()">
+                      <span class="tooltiptext">Colour selector for pegs</span>
                     </span>
                   </td>
                 </tr><tr>
                   <td>peg border colour:</td>
                   <td>
-                    <span class=tooltip>
-                      <input class="jscolor" id='torpbc' value="000000" size='6' onchange='buildCanvas()'>
-                      <span class=tooltiptext>Colour selector for peg borders</span>
+                    <span class="tooltip">
+                      <input class="jscolor" id="torpbc" value="000000" size="6" onchange="buildCanvas()">
+                      <span class="tooltiptext">Colour selector for peg borders</span>
                     </span>
                   </td>
                 </tr>
-              </table>
+              </tbody></table>
             </td>
           </tr>
         </table>
   
         <h2>Recipient (optional)</h2>
-        Recipient: <span class='tooltip'><input class=textInput type='text' name='rep' id='rep' size='40' value='' onChange='buildCanvas()'/ placeholder="Name for torus center"><span class='tooltiptext'>Optional name for center of torus</span></span><br>
-        Font <span id='recipientProperties'></span>
-            <span class='tooltip'><input class="jscolor" id='rc' value="000000" size='6' onchange='buildCanvas()'><span class='tooltiptext'>Colour selector for<br> '<b>Recipient</b>'</span></span> <br>
+        Recipient: <span class="tooltip"><input class="textInput" type="text" name="rep" id="rep" size="40" value='' onchange="buildCanvas()"/ placeholder="Name for torus center"><span class="tooltiptext">Optional name for center of torus</span></span><br>
+        Font <span id="recipientProperties"></span>
+            <span class="tooltip"><input class="jscolor" id="rc" value="000000" size="6" onchange="buildCanvas()"><span class="tooltiptext">Colour selector for<br> '<b>Recipient</b>'</span></span> <br>
       </div>
       
-      <div id=image>
-        <canvas id=_canvas width=100 height=50 crossOrigin="Anonymous"></canvas>
+      <div id="image">
+        <canvas id="_canvas" width="100" height="50" crossOrigin="Anonymous"></canvas>
       </div>
     </div> <!-- end main -->
 
 
 
     <h2>Settings</h2>
-    Download filename: <input class=textInput type='text' name="name" id="f" value="download.png" size="50"/><br>
-    <div id=debug>
-      Debug enabled: <input type=checkbox id='_debug' onChange='buildCanvas()'><br>
-      My URL: <span id='_myURL'></span>
-      <canvas id=_testCanvas width=5 height=5></canvas>
+    Download filename: <input class="textInput" type="text" name="name" id="f" value="download.png" size="50"/><br>
+    <div id="debug">
+      Debug enabled: <input type="checkbox" id="_debug" onchange="buildCanvas()"><br>
+      My URL: <span id="_myURL"></span>
+      <canvas id="_testCanvas" width="5" height="5"></canvas>
     </div>
 
     <h2>Torus Description</h2>
-    <code id=_description></code>
+    <code id="_description"></code>
 
     <h2>Snapshots</h2>
-    <button class='addRowButton' type='button' onclick='saveSnapshot()'>Save snapshot</button>
-    <div id=_snapshots></div>    
+    <button class="addRowButton" type="button" onclick="saveSnapshot()">Save snapshot</button>
+    <div id="_snapshots"></div>    
   </body>
 </html>

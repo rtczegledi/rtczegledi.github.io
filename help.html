@@ -8,7 +8,7 @@
 <title>Help - Image Generator</title>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> March 27, 2019
+<b>Date:</b> April 7, 2019
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -128,12 +128,19 @@ The database used to save the torus settings is specific to the browser and devi
 <h3>Revision History</h3>
 <ul>
     <li>
+        <b>April 7, 2019</b>
+        <ul>
+            <li>Fixed a bug that would overwrite the date-specific "<b>Title 2</b>" field with a previously saved
+                snapshot thus creating an image with an old date.</li>
+        </ul>
+    </li>
+    <li>
         <b>March 27, 2019</b>
         <ul>
             <li>In-progress changes to the torus definition will be automatically saved to the database.  These 
                 changes will be automatically loaded when the page is reloaded.  Saving a new snapshot, downloading
                 the image, or loading a prior snapshot will delete the in-progress changes.  The page title will
-                display "<b>Image Generator +</b>" to indicate that in-progress changes exist.
+                display "<b>Image Generator +</b>" to indicate that in-progress changes exist.</li>
         </ul>
     </li>
     <li>
