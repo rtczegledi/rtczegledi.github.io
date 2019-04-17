@@ -8,7 +8,7 @@
 <title>Help - Image Generator</title>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> April 7, 2019
+<b>Date:</b> April 17, 2019
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -127,6 +127,14 @@ The database used to save the torus settings is specific to the browser and devi
 <hr>
 <h3>Revision History</h3>
 <ul>
+    <li>
+        <b>April 17, 2019</b>
+        <ul>
+            <li>Fixed a bug that would treat adjacent member names with different whitespace patterns to
+                be considered as unique, thus, rendering multiple repeating member names (e.g. "<b>Susan</b>",
+                "<b> Susan</b>", and "<b>Susan </b>").</li>
+        </ul>
+    </li>
     <li>
         <b>April 7, 2019</b>
         <ul>

@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-var g_Version = "April 7, 2019";
+var g_Version = "April 17, 2019";
 
 // NOTE: font description MUST include the font height in 'px'.
 const ID = {
@@ -2264,7 +2264,6 @@ function buildCanvas() {
 function buildCanvasLite() {
     resetGlobals();
     g_Debug = $(ID.DEBUG).checked;
-    assignRowTypes();
 
     g_Image_colour = g_Debug ? "yellow" : colorFromID(ID.BACKGROUND_COLOUR);
 
@@ -2281,7 +2280,8 @@ function buildCanvasLite() {
 
     let lastVisible = lastVisibleMember();
     for( let i = 0; i < g_Origin.maxMembers; ++i ) {
-        let member = memberElement(i).value;
+        let memberEl = memberElement(i);
+        let member = memberEl.value = memberEl.value.trim();
         let master = masterElement(i).value;
 
         if( member !== "" ) {
@@ -2301,6 +2301,7 @@ function buildCanvasLite() {
         }
     }
 
+    assignRowTypes();
     setDefaultFilename();
 
     g_Origin.memberStartAngle = parseInt( $(ID.ORIENTATION).value );
