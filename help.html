@@ -8,7 +8,7 @@
 <title>Help - Image Generator</title>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> April 17, 2019
+<b>Date:</b> April 25, 2019
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -39,9 +39,9 @@ Hints:
 
 Each member row can be moved down the list by pressing the "<b>&#8681;</b>" character at the start of the row.  This can be useful on devices which don't support drag and drop functionality like cell phones and tablets.<div/><br/>
 
-Member rows in the list can be deleted if the member name is non-blank.  In this case, the "<b>Member</b>" row will end with a "<b>&#9949;</b>" character.  Clicking the "<b>&#9949;</b>" character will delete the row and will shift up rows below it.<div/><br/>
+Member rows in the list can be deleted if the member name is non-blank.  In this case, the "<b>Member</b>" row will end with a "<b><font color='red'>&#9949;</font></b>" character.  Clicking the "<b><font color='red'>&#9949;</font></b>" character will delete the row and will shift up rows below it.<div/><br/>
 
-Member rows in the torus group can be rearranged by selecting a row of the form "<b>Member [person] works with [master]</b>" and dragging it to a destination row.  Note that you will need to select the textual components of the row (i.e. the "<b>Member</b>" or "<b>works with</b>") and avoid the "<b>&#8681;</b>" and "<b>&#9949;</b>" in order to select the row.  Intermediate rows will be shifted up or down depending on the direction in which the source row is dragged.  Multiple adjacent rows with the same member name (called a 'block') can be rearranged using the following rules:
+Member rows in the torus group can be rearranged by selecting a row of the form "<b>Member [person] works with [master]</b>" and dragging it to a destination row.  Note that you will need to select the textual components of the row (i.e. the "<b>Member</b>" or "<b>works with</b>") and avoid the "<b>&#8681;</b>" and "<b><font color='red'>&#9949;</font></b>" in order to select the row.  Intermediate rows will be shifted up or down depending on the direction in which the source row is dragged.  Multiple adjacent rows with the same member name (called a 'block') can be rearranged using the following rules:
 <ol>
     <li>If the member name of the source and destination rows are the same then the individual rows with the block will be rearranged.</li>
     <li>If the destination row is the start of a block of rows (i.e. the first row of a block of rows with the same member name) then the source block of rows will be moved BEFORE the destination block.</li>
@@ -124,9 +124,40 @@ The database used to save the torus settings is specific to the browser and devi
 
 <p>In-progress changes made to the torus definition will be automatically saved in the database and will be displayed as the first saved snapshot with a green title and the browser title will display a "<b>+</b>" in the title (i.e. "<b>Image Generator +</b>").  Saving a snapshot, downloading the image, or loading a prior snapshot will remove the in-progress changes.</p>
 
+<h2>Saved Member Names</h2>
+
+<p>When new member names are enterred in the members/masters list, they are automatically saved in a local database for later suggestion processing based on a typed prefix.  However, this means that incorrectly typed member names may also be saved.  The list of saved member names is displayed for possible deletion.  Clicking the "<b><font color='red'>&#9949;</font></b>" character will delete the saved member name from the database.</p>
+
 <hr>
 <h3>Revision History</h3>
 <ul>
+    <li>
+        <b>April 25, 2019</b>
+        <ul>
+            <li>Added feature to delete saved member names from the database.</li>
+            <li>Introduced the background treatment images:
+                <ol>
+                    <li>BGE - Line Art 1</li>
+                    <li>BGE - Line Art 2</li>
+                    <li>BGE - Line Art 3</li>
+                    <li>BGE - Border 1</li>
+                    <li>BGE - Border 2</li>
+                    <li>BGE - Border 3</li>
+                    <li>BGE - Border 4</li>
+                </ol>
+            </li>
+            <li>Added torus images:
+                <ol>
+                    <li>E - Mandala 1</li> 
+                    <li>E - Mandala 2</li> 
+                    <li>E - Mandala 3</li> 
+                    <li>E - Mandala 4</li> 
+                    <li>E - Mandala 5</li> 
+                    <li>E - Flower 1</li> 
+                </ol>
+            </li>
+        </ul>
+    </li>
     <li>
         <b>April 17, 2019</b>
         <ul>

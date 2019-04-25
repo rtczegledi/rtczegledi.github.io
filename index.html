@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-var g_Version = "April 17, 2019";
+var g_Version = "April 25, 2019";
 
 // NOTE: font description MUST include the font height in 'px'.
 const ID = {
@@ -28,6 +28,8 @@ const ID = {
     DESCRIPTION :                   {tag:"_description"},
     SNAPSHOTS_LIST :                {tag:"_snapshots"},
     SNAPSHOT_ :                     {tag:"_snapshot_"},
+    SAVED_MEMBERS_LIST :            {tag:"_saved_members"},
+    SAVED_MEMBER_ :                 {tag:"_saved_member_"},
 
     TITLE_1 :                       {tag:"t1",      save:"Group Torus", db:true},
     TITLE_2 :                       {tag:"t2",      save:"",            db:true, sensitive:true},
@@ -120,6 +122,16 @@ var g_PegTreatment = PEG_TREATMENT.CIRCLE;
 var g_AllMembers = [];
 
 var g_Background_images = {
+                "BGE - Line Art 1":     {file:"bge_lineart1.jpg",   type:"center"},
+                "BGE - Line Art 2":     {file:"bge_lineart2.jpg",   type:"center"},
+                "BGE - Line Art 3":     {file:"bge_lineart3.jpg",   type:"center"},
+                "BGE - Border 1":       {file:"bge_border1.jpg",    type:"stretch"},
+                "BGE - Border 2":       {file:"bge_border2.jpg",    type:"stretch"},
+                "BGE - Border 3":       {file:"bge_border3.png",    type:"stretch"},
+                "BGE - Border 4":       {file:"bge_border4.jpg",    type:"stretch"},
+
+                "_2":{},        // separator
+
                 "BGD - Line Art 1":     {file:"bgd_lineart1.png",   type:"center"},
                 "BGD - Line Art 2":     {file:"bgd_lineart2.png",   type:"center"},
                 "BGD - Line Art 3":     {file:"bgd_lineart3.jpg",   type:"center"},
@@ -150,6 +162,15 @@ var g_Background_images = {
 };
 
 var g_Images = {
+                "_6":{},        // separator
+
+                "E - Mandala 1":        {file:"e_mandala1.png",     type:"clip"},
+                "E - Mandala 2":        {file:"e_mandala2.jpg",     type:"clip"},
+                "E - Mandala 3":        {file:"e_mandala3.jpg",     type:"clip"},
+                "E - Mandala 4":        {file:"e_mandala4.jpg",     type:"clip"},
+                "E - Mandala 5":        {file:"e_mandala5.jpg",     type:"clip"},
+                "E - Flower 1":         {file:"e_flower1.jpg",      type:"clip"},
+
                 "_5":{},        // separator
 
                 "D - Line Art 1":       {file:"d_lineart1.png",     type:"clip"},
@@ -359,7 +380,7 @@ function initializeDatabase() {
         members: '&name',
         masters: '&name',
         torus: '++_id,_timestamp'
-    } );
+    });
 
     g_Database.open().then( function() {
         console.log( "initializeDatabase: opened database" );
@@ -1634,7 +1655,7 @@ function drawSeatingArrangement() {
                 context.fillRect( 0, 0, newWidth, newHeight );
 
                 var imageDesc = g_Background_images[$(ID.BACKGROUND_TREATMENT).value];
-                var image = imageDesc.image;
+                var image = imageDesc ? imageDesc.image : null;
                 if( image != undefined && image.complete ) {
                     let opacity = Math.max( getOpacity( colorFromID(ID.BACKGROUND_COLOUR) ), 5 );
             
@@ -3300,34 +3321,75 @@ function getRowType( row ) {
 }
 
 
+function updateMembersList() {
+    let element = document.createElement( "datalist" );
+    let str = "";
+    element.setAttribute( "id", "membersList" );
+    for( let i = 0; i < g_AllMembers.length; ++i ) {
+        str += "<option value='" + g_AllMembers[i].name + "'>\n";
+        console.log( `updateMembersList:          member ${g_AllMembers[i].name}` );
+    }
+    element.innerHTML = str;
+
+    let last = $(ID.MEMBERS_DATA_LIST).lastChild;
+    if( last != null ) {
+        $(ID.MEMBERS_DATA_LIST).removeChild( last );
+    }
+    $(ID.MEMBERS_DATA_LIST).appendChild( element );
+}
+
+
 function loadMembers() {
     g_Database.members.orderBy('name').keys( names => {
         for( let i in names ) {
             let name = names[i]; 
             if( g_AllMembers.find( x => name===x.name ) == undefined ) {
                 g_AllMembers.push( {name:name} );
-                console.log( `loadMembers: found '${name}` );
+                console.log( `loadMembers: found '${name}'` );
             }
         }
     } ).then( function() {
         console.log( `loadMembers: have ${g_AllMembers.length} members` );
-        let element = document.createElement( "datalist" );
-        let str = "";
-        element.setAttribute( "id", "membersList" );
-        for( let i = 0; i < g_AllMembers.length; ++i ) {
-            str += "<option value='" + g_AllMembers[i].name + "'>\n";
-            console.log( `loadMembers:          member ${g_AllMembers[i].name}` );
-        }
-        element.innerHTML = str;
+        updateMembersList();
 
-        let last = $(ID.MEMBERS_DATA_LIST).lastChild;
-        if( last != null ) {
-            $(ID.MEMBERS_DATA_LIST).removeChild( last );
+        // Updated the saved members list
+        for( let i = 0; i < g_AllMembers.length; ++i ) {
+            let memberID = ID.SAVED_MEMBER_ + g_AllMembers[i].name;
+            if( $(memberID) == null ) {
+                // add the member name
+                let element = document.createElement( "div" );
+                element.setAttribute( "class", "memberRow" );
+                element.setAttribute( "id", memberID );
+
+                let str = `<div class='memberRowDelete' onClick='deleteMemberRow("${g_AllMembers[i].name}")'>` +
+                          "<span class='tooltip'>&#9949; " +
+                            "<span class='tooltiptext'>Delete this saved Member name</span></span>\n" +
+                          "</div>" +
+                          `Saved member "<b>${g_AllMembers[i].name}</b>" `;
+
+                element.innerHTML = str;
+
+                $(ID.SAVED_MEMBERS_LIST).appendChild( element );
+            }
         }
-        $(ID.MEMBERS_DATA_LIST).appendChild( element );
     }).catch( err => {
         console.error( "loadMembers: caught error: " + err.stack );
     });
+}
+
+
+function deleteMemberRow( id ) {
+    g_Database.members
+        .delete( id )
+        .then( () => {
+            $(ID.SAVED_MEMBER_ + id).remove();
+            console.log( "deleteMemberRow: deleted member ID " + id );
+
+            g_AllMembers = g_AllMembers.filter( e => e.name != id );
+            updateMembersList();
+        }).catch( e => {
+            console.error( "deleteMemberRow: error: " + e );
+        });
 }
 
 
@@ -3929,5 +3991,8 @@ function pageSetup() {
     <h2>Snapshots</h2>
     <button class="addRowButton" type="button" onclick="saveSnapshot()">Save snapshot</button>
     <div id="_snapshots"></div>    
+
+    <h2>Saved Member Names</h2>
+    <div id="_saved_members"></div>
   </body>
 </html>
