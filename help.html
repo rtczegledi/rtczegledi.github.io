@@ -8,7 +8,9 @@
 <title>Help - Image Generator</title>
 <body>
 <b>Author:</b> Richard Czegledi<br>
-<b>Date:</b> April 25, 2019
+<b>Date:</b> May 28, 2019<br>
+
+<a href="#history">Review change history.</a>
 
 <h1>Help for the Group Torus Image Generator</h1>
 
@@ -48,6 +50,24 @@ Member rows in the torus group can be rearranged by selecting a row of the form 
     <li>Otherwise, if the destination row is the repeating member name (i.e. beyond the first row of the block) then source block of rows will be moved AFTER the destination block.</li>
 </ol><div/><br/>
 
+The following keyboard shortcuts can be used to reorder and manipulate the set of Member / Master rows. 
+<ol>
+    <li><b>ALT+ARROW_UP</b> or <b>&#8984;+ARROW_UP</b> : Move the current row up one position.  The input focus will move up one row.</li>
+    <li><b>ALT+ARROW_DOWN</b> or <b>&#8984;+ARROW_DOWN</b> : Move the current row down one position.  The input focus will move down one row.</li>
+    <li><b>ALT+ARROW_LEFT</b> or <b>&#8984;+ARROW_LEFT</b> : Move the current block of member/masters with the same member name up above the 
+        previous block.  The input focus will follow the current row.</li>
+    <li><b>ALT+ARROW_RIGHT</b> + <b>&#8984;+ARROW_RIGHT</b> : Move the current block of member/masters with the same member name down below the 
+        next block.  The input focus will follow the current row.</li>
+    <li><b>ALT+\</b> or <b>&#8984;+\</b>- Copy the member name from the row immediately above the current row 
+        and clear the master name.  This can be useful when defining multiple masters for the same
+        member.  After the first member/master row is created, set the input focus to the member name
+        of the next row and press the <b>ALT</b> key (or <b>&#8984;</b> for macOS) along with the <b>\</b> key.</li>
+    <li><b>ALT+/</b> or <b>&#8984;+/</b> - Insert a cloned member row based on current row.  The input focus will move to the Master
+        drop down menu of the newly cloned row.</li>
+    <li><b>ALT+ENTER</b> or <b>&8984;+ENTER</b> - Insert a blank Member/Master row below the current row.  The input forus will move to
+        to the new row.</li>
+</ol><br/>
+
 It is possible to assign multiple masters to a member by creating adjacent rows with the same member name.  The set of masters are rendered with a "<b>/</b>" character between the master names. 
 
 <h2>Torus Circle</h2>
@@ -61,6 +81,7 @@ The torus is drawn as a circle with overlayed smaller circles called <i>pegs</i>
   <li>RIPPLE : draw the circle as two wavy lines superimposed</li>
   <li>RAY: draw short ray lines from the center of the torus</li>
   <li>SPIRAL: draw a looping spiral</li>
+  <li>BOX: draw the circle as a series of adjacent boxes</li>
 </ul>
 The "<b>Rainbow</b>" checkbox, when selected, will display the the torus ring with a rainbow hue.<br/>
 The "<b>circle treatment</b>" drop down menu offers a few treatment patterns for rendering images within the torus circle.  A few examples are:
@@ -74,6 +95,8 @@ The "<b>circle treatment</b>" drop down menu offers a few treatment patterns for
   <li>GOLDEN_SPIRAL : draw random golden spiral pattern</li>
   <li>METATRON_2 : draw a detailed Metatron's cube</li>
   <li>SHADED_SPHERE : draws a shaded sphere pattern</li>
+  <li>HONEYCOMB_1 : draws a honeycomb pattern</li>
+  <li>HONEYCOMB_2 : draws a honeycomb pattern with rings around each cell</li>
   <li>MESH : draw a wire mesh between all member pegs</li>
   <li>GEOMETRIC_1 : draw a wire pattern between all member pegs</li>
   <li>Picture '<i>PICTURE-NAME</i>' : display a preloaded image in the torus circle</li>
@@ -91,6 +114,8 @@ The size of torus pegs can be changed with the "<b>peg width</b>" drop down menu
   <li>Diamond</li>
   <li>Heart</li>
   <li>Star</li>
+  <li>Chevron</li>
+  <li>Triangle</li>
 </ul>
 A "<b>Rotate</b>" checkbox beside the "<b>peg treatment</b>", when checked, will cause the drawn peg to be oriented so that the bottom of the checkbox image faces the centre of the torus. 
 
@@ -103,7 +128,7 @@ The optional "<b>Recipient</b>" field is used to draw text in the center of the 
 <div/><br/>
 
 <h2>Customization</h2>
-Multiple configurations are supported via bookmarks.  At the bottom of the web page is a "<b>My URL</b>" field that, when requested, will update various selections.  Copy and paste this URL into your bookmark manager for quick reference.<div/><br/>
+Multiple configurations are supported via bookmarks.  First, click the "<b>Debug enabled</b>" checkbox.  Immediately below this checkbox is a "<b>My URL</b>" field that, when requested, will update various selections.  Copy and paste this URL into your bookmark manager for quick reference.<div/><br/>
 
 Since torus images may be created for different days, layout configurations can be saved as profiles.  For example, assume that an event was repeatedly created on Mondays with a specific set of fonts, colours, etc.  Clicking the "<b>Save profile</b>" button (on Monday) will save the layout configuration with the "<b>Title 1</b>" name which will be automatically loaded the next Monday.  A drop down "<b>Profiles</b>" menu can be selected to reload a previously saved layout. 
 
@@ -129,8 +154,66 @@ The database used to save the torus settings is specific to the browser and devi
 <p>When new member names are enterred in the members/masters list, they are automatically saved in a local database for later suggestion processing based on a typed prefix.  However, this means that incorrectly typed member names may also be saved.  The list of saved member names is displayed for possible deletion.  Clicking the "<b><font color='red'>&#9949;</font></b>" character will delete the saved member name from the database.</p>
 
 <hr>
+<a name="history"></a>
 <h3>Revision History</h3>
 <ul>
+    <li>
+        <b>May 28, 2019</b>
+        <ul>
+            <li>A dialog message will alert the user when this program has been upgraded to check this Help page.</li>
+            <li>Added <b>HONEYCOMB_1</b> and <b>HONEYCOMB_2</b> torus image treatments.</li>
+            <li>Added <b>BOX</b> torus line treatment.</li>
+            <li>Added <b>CHEVRON</b> and <b>TRIANGLE</b> peg treatments.</li>
+            <li>Source clean up to allow viewports and borders of background images to be defined.  This
+                allows arbitrary overlay areas for background images to be created.</li>
+            <li>Introduced the background treatment images:
+                <ol>
+                   <li>BGF - Border 1</li>
+                   <li>BGF - Border 2</li>
+                   <li>BGF - Border 3</li>
+                   <li>BGF - Border 4</li>
+                   <li>BGF - Border 5</li>
+                   <li>BGF - Border 6</li>
+                   <li>BGF - Border 7</li>
+                   <li>BGF - Border 8</li>
+                </ol>
+            </li>
+            <li>Revised viewport image definitions for the background treatment images:
+                <ol>
+                    <li>BGE - Border 1</li>
+                    <li>BGE - Border 2</li>
+                    <li>BGE - Border 3</li>
+                    <li>BGE - Border 4</li>
+                </ol>
+            </li>
+            <li>Reduced the file sizes for some images.  This reduces the image load times during a page reload.</li>
+            <li>Added torus treatment images:
+                <ol>
+                    <li>F - Mandala 1</li>
+                    <li>F - Mandala 2</li>
+                    <li>F - Mandala 3</li>
+                    <li>F - Mandala 4</li>
+                    <li>F - Mandala 5</li>
+                    <li>F - Mandala 6</li>
+                    <li>F - Mandala 7</li>
+                </ol>
+            </li>
+            <li>The positioning of member names around the torus now considers the size of the pegs.</li>
+            <li>Background image fetching can be prioritized to load elements of the last saved torus faster.</li>
+            <li>Added keyboard handlers for manipulating Member/Master rows:
+                <ol>
+                    <li><b>ALT+ARROW_UP</b> or <b>&#8984;+ARROW_UP</b> - move the current row up</li>
+                    <li><b>ALT+ARROW_DOWN</b> or <b>&#8984;+ARROW_DOWN</b> - move the current row down</li>
+                    <li><b>ALT+ARROW_LEFT</b> or <b>&#8984;+ARROW_LEFT</b> - move the current block of rows up</li>
+                    <li><b>ALT+ARROW_RIGHT</b> or <b>&#8984;+ARROW_RIGHT</b> - move the current block of rows down</li>
+                    <li><b>ALT+\</b> or <b>&#8984;+\</b> - copy the member name from the row immediately above the current row 
+                        and clear the master name</li>
+                    <li><b>ALT+/</b> or <b>&#8984;+/</b> - insert a cloned member name based on the current row</li>
+                    <li><b>ALT+ENTER</b> or <b>&#8984;+ENTER</b> - insert a blank row below the current row</li>
+                </ol>
+            </li>
+        </ul>
+    </li>
     <li>
         <b>April 25, 2019</b>
         <ul>

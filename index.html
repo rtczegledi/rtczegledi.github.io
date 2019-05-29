@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-var g_Version = "April 25, 2019";
+var g_Version = "May 28, 2019";
 
 // NOTE: font description MUST include the font height in 'px'.
 const ID = {
@@ -103,17 +103,17 @@ var OBJECT_TYPE = { TITLE:0, MEMBER:1, MASTER:2, RECIPIENT:3};
 var TORUS_TREATMENT = { NONE:0, HEART:1, RANDOM:2, FLOWER_OF_LIFE:3, METATRONS_CUBE:4,
                         DAISY:5, PETALS:6,
                         MESH:7, GEOMETRIC_1:8, GOLDEN_SPIRAL:10,
-                        METATRON_2:11, SHADED_SPHERE:12};
+                        METATRON_2:11, SHADED_SPHERE:12, HONEYCOMB_1:13,
+                        HONEYCOMB_2:14 };
 
-var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4, STAR:5 };
+var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4, STAR:5,
+                      CHEVRON:6, TRIANGLE:7 };
 
-var CIRCLE_TREATMENT = { SOLID:0, WAVE:1, RIPPLE:2, RAY:3, SPIRAL:4 };
+var CIRCLE_TREATMENT = { SOLID:0, WAVE:1, RIPPLE:2, RAY:3, SPIRAL:4, BOX:5 };
 
 var ROW_TYPE = { EMPTY:0, HEADING:1, REPEAT:2 };
 
 var g_DragSrcEl = null;
-
-var g_TorusImage = null;
 
 var g_TorusTreament = TORUS_TREATMENT.NONE;
 
@@ -121,19 +121,63 @@ var g_PegTreatment = PEG_TREATMENT.CIRCLE;
 
 var g_AllMembers = [];
 
+var g_QueuedImages = [];
+
+// border:{top:#, left:#, right:#, bottom:#}        - all fields optional
+// viewport:{top:#, left:#, right:#, bottom:#}      - all fields optional
+// center:{x:#, y:#}                                - all fields optional
+//      defaults:
+//          border.top = viewport.top = 0
+//          border.left = viewport.left = 0
+//          border.bottom = viewport.bottom = IMAGE.height-1
+//          border.right = viewport.right = IMAGE.width-1
+//      contraints:
+//          0 <= border.top <= viewport.top  <=  viewport.bottom <= border.bottom   < IMAGE.height
+//          0 <= border.left <= viewport.left <=  viewport.right <= border.right    < IMAGE.width
+//      relation:
+//          center.x = (viewport.left + viewport.right) / 2
+//          center.y = (viewport.top + viewport.bottom) / 2
 var g_Background_images = {
+                //"BG Test 1":            {file:"bg_test_850x650.png", type:"stretch",
+                //                         border:    {left:3,  top:3,     right:803, bottom:603},
+                //                         viewport:  {left:33, top:33,    right:773, bottom:573}},
+                
+                "BGF - Border 1":       {file:"bgf_border1.png",    type:"stretch",
+                                         viewport:  {left:282, bottom:1608}},
+                "BGF - Border 2":       {file:"bgf_border2.jpg",    type:"stretch",
+                                         viewport:  {left:113, top:116,  right:1668, bottom:2265}},
+                "BGF - Border 3":       {file:"bgf_border3.jpg",    type:"stretch",
+                                         border:    {left:16, top:17,   right:458, bottom:596},
+                                         viewport:  {left:24, top:25,   right:452, bottom:590}},
+                "BGF - Border 4":       {file:"bgf_border4.jpg",    type:"stretch",
+                                         viewport:  {left:71, top:172,  right:1109, bottom:769}},
+                "BGF - Border 5":       {file:"bgf_border5.jpg",    type:"stretch",
+                                         viewport:  {left:91, top:78,  right:471, bottom:625}},
+                "BGF - Border 6":       {file:"bgf_border6.png",    type:"stretch",
+                                         viewport:  {left:78, top:93,  right:1015, bottom:749}},
+                "BGF - Border 7":       {file:"bgf_border7.jpg",    type:"stretch",
+                                         viewport:  {left:115, top:37,  right:876, bottom:721}},
+                "BGF - Border 8":       {file:"bgf_border8.jpg",    type:"stretch",
+                                         viewport:  {left:58, top:64,  right:771, bottom:578}},
+
+                "_3":{},        // separator
+
                 "BGE - Line Art 1":     {file:"bge_lineart1.jpg",   type:"center"},
                 "BGE - Line Art 2":     {file:"bge_lineart2.jpg",   type:"center"},
                 "BGE - Line Art 3":     {file:"bge_lineart3.jpg",   type:"center"},
-                "BGE - Border 1":       {file:"bge_border1.jpg",    type:"stretch"},
-                "BGE - Border 2":       {file:"bge_border2.jpg",    type:"stretch"},
-                "BGE - Border 3":       {file:"bge_border3.png",    type:"stretch"},
-                "BGE - Border 4":       {file:"bge_border4.jpg",    type:"stretch"},
+                "BGE - Border 1":       {file:"bge_border1.jpg",    type:"stretch",
+                                         viewport:  {left: 30, top:27,  right:703, bottom:935}},
+                "BGE - Border 2":       {file:"bge_border2.jpg",    type:"stretch",
+                                         viewport:  {left: 11, top:11,  right:640, bottom:600}},
+                "BGE - Border 3":       {file:"bge_border3.png",    type:"stretch",
+                                         viewport:  {left: 19, top:20,  right:622, bottom:466}},
+                "BGE - Border 4":       {file:"bge_border4.jpg",    type:"stretch",
+                                         viewport:  {left: 14, top:13,  right:287, bottom:384}},
 
                 "_2":{},        // separator
 
-                "BGD - Line Art 1":     {file:"bgd_lineart1.png",   type:"center"},
-                "BGD - Line Art 2":     {file:"bgd_lineart2.png",   type:"center"},
+                "BGD - Line Art 1":     {file:"bgd_lineart1.jpg",   type:"center"},
+                "BGD - Line Art 2":     {file:"bgd_lineart2.jpg",   type:"center"},
                 "BGD - Line Art 3":     {file:"bgd_lineart3.jpg",   type:"center"},
                 "BGD - Line Art 4":     {file:"bgd_lineart4.jpg",   type:"center"},
                 "BGD - Line Art 5":     {file:"bgd_lineart5.jpg",   type:"center"},
@@ -142,7 +186,6 @@ var g_Background_images = {
                 "BGD - Swirl 1":        {file:"bgd_swirl1.jpg",     type:"center"},
                 "BGD - Swirl 2":        {file:"bgd_swirl2.gif",     type:"center"},
                 "BGD - Leaves 1":       {file:"bgd_leaves1.jpg",    type:"center"},
-                "BGD - Flowers 1":      {file:"bgd_flowers1.jpg",   type:"center"},
 
                 "_1":{},        // separator
 
@@ -155,16 +198,26 @@ var g_Background_images = {
                 "BGA - Ripple 3":       {file:"bga_ripple3.jpg",    type:"center"},
 
                 "BGA - Line Art 1":     {file:"bga_lineart1.jpg",   type:"center"},
-                "BGA - Line Art 2":     {file:"bga_lineart2.jpg",   type:"center", clipHeight:234},
+                "BGA - Line Art 2":     {file:"bga_lineart2.jpg",   type:"center", border:{bottom:234}},
                 "BGA - Line Art 3":     {file:"bga_lineart3.jpg",   type:"center"},
                 "BGA - Line Art 4":     {file:"bga_lineart4.jpg",   type:"center"},
                 "BGA - Line Art 5":     {file:"bga_lineart5.png",   type:"tile"}
 };
 
 var g_Images = {
+                "_7":{},        // separator
+
+                "F - Mandala 1":        {file:"f_mandala1.jpg",     type:"clip"},
+                "F - Mandala 2":        {file:"f_mandala2.jpg",     type:"clip"},
+                "F - Mandala 3":        {file:"f_mandala3.png",     type:"clip"},
+                "F - Mandala 4":        {file:"f_mandala4.jpg",     type:"clip"},
+                "F - Mandala 5":        {file:"f_mandala5.jpg",     type:"clip"},
+                "F - Mandala 6":        {file:"f_mandala6.jpg",     type:"clip"},
+                "F - Mandala 7":        {file:"f_mandala7.jpg",     type:"clip"},
+
                 "_6":{},        // separator
 
-                "E - Mandala 1":        {file:"e_mandala1.png",     type:"clip"},
+                "E - Mandala 1":        {file:"e_mandala1.jpg",     type:"clip"},
                 "E - Mandala 2":        {file:"e_mandala2.jpg",     type:"clip"},
                 "E - Mandala 3":        {file:"e_mandala3.jpg",     type:"clip"},
                 "E - Mandala 4":        {file:"e_mandala4.jpg",     type:"clip"},
@@ -173,7 +226,7 @@ var g_Images = {
 
                 "_5":{},        // separator
 
-                "D - Line Art 1":       {file:"d_lineart1.png",     type:"clip"},
+                "D - Line Art 1":       {file:"d_lineart1.jpg",     type:"clip"},
                 "D - Line Art 2":       {file:"d_lineart2.png",     type:"clip"},
                 "D - Flower 1":         {file:"d_flower1.jpg",      type:"clip"},
                 "D - Flowers 2":        {file:"d_flowers2.jpg",     type:"clip"},
@@ -346,6 +399,19 @@ var g_UnmodifiedValues = {};
 var g_InitialSnapshotLoaded = false;
 
 
+var g_startTimestamp, g_lastTimestamp;
+function profile( msg ) {
+    let now = new Date();
+    if( g_startTimestamp == undefined ) {
+        console.log( `## [0;0] ${msg}` );
+        g_startTimestamp = now;
+    } else {
+        console.log( `## [${((now - g_startTimestamp)/1000).toFixed(3)};+${((now-g_lastTimestamp)/1000).toFixed(3)}] ${msg}` );
+    }
+    g_lastTimestamp = now;
+}
+
+
 function resetGlobals() {
     g_Title = [];
     g_Members = [];
@@ -370,7 +436,7 @@ function initializeDatabase() {
 
     if( false ) {
         g_Database.delete().then( () => {
-            console.log( "initializeDatabase: database successfully deleted" );
+            profile( "initializeDatabase: database successfully deleted" );
         }).catch( err => {
             console.error( "initializeDatabase: could not delete database" );
         });
@@ -383,7 +449,7 @@ function initializeDatabase() {
     });
 
     g_Database.open().then( function() {
-        console.log( "initializeDatabase: opened database" );
+        profile( "initializeDatabase: opened database" );
     }).catch( function(e) {
         console.error( "initializeDatabase: Database open failed: " + e.stack );
     });
@@ -392,7 +458,7 @@ function initializeDatabase() {
 
 async function addTorusDataToDatabase( data ) {
     await g_Database.torus.add( data ).then( function() {
-        console.log( "addTorusDataToDatabase: Added torus data to database" );
+        profile( "addTorusDataToDatabase: Added torus data to database" );
     }).catch( e => {
         console.error( "addTorusDataToDatabase: couldn't add to database: " + e.stack );
     });
@@ -401,7 +467,7 @@ async function addTorusDataToDatabase( data ) {
 
 async function updateTorusDataToDatabase( data ) {
     await g_Database.torus.put( data ).then( function() {
-        console.log( `updateTorusDataToDatabase: Put torus data for _id=${data._id} in database` );
+        profile( `updateTorusDataToDatabase: Put torus data for _id=${data._id} in database` );
 
         if( g_SavedSnapshots.length==0 || g_SavedSnapshots[0]._timestamp.getTime()!==g_TempSnapshotTimestamp.getTime() ) {
             g_SavedSnapshots.unshift( data );
@@ -418,7 +484,7 @@ async function getTorusData() {
     g_SavedSnapshots = [];
     g_Database.torus.orderBy("_timestamp").reverse().each( function(obj) {
         g_SavedSnapshots.push( obj );
-        console.log( `getTorusData: added _id:${obj._id}, _timestamp:${obj._timestamp.toLocaleString()}, t1:'${obj.t1}', t2:'${obj.t2}'` );
+        profile( `getTorusData: added _id:${obj._id}, _timestamp:${obj._timestamp.toLocaleString()}, t1:'${obj.t1}', t2:'${obj.t2}'` );
 
         if( !g_InitialSnapshotLoaded ) {
             g_InitialSnapshotLoaded = true;
@@ -450,7 +516,7 @@ async function getTorusData() {
 
 async function addMembersToDatabase( members ) {
     await g_Database.members.bulkAdd( members ).then( function(lastKey) {
-        console.log( "addMembersToDatabase: last id was: " + lastKey );
+        profile( "addMembersToDatabase: last id was: " + lastKey );
     }).catch( Dexie.BulkError, function(e) {
         for( let i=0; i < e.failures.length; ++i ) {
             let err = e.failures[i];
@@ -705,7 +771,8 @@ function createSeatingArrangement() {
     let radiusStep = 1;
     let memberRadius = g_Origin.torusRingSize 
                      + g_Origin.torusRingSpacing
-                     + g_Origin.memberSpacing + 1;
+                     + g_Origin.memberSpacing 
+                     + g_Origin.torusRingPegSize + 1;
     let masterRadius = g_Origin.torusRingSize + g_Origin.torusRingMasterSpacing;
     let titleRadius = masterRadius + g_Origin.titleSpacing;
     let maxRadius = g_Origin.imageCenterY;
@@ -726,7 +793,7 @@ function createSeatingArrangement() {
                             g_Origin, 
                             0,      // radius
                             0,      // angle
-                            g_Origin.torusRingSpacing );
+                            g_Origin.torusRingPegSize );
     obj.setBoundingRadius( g_Origin.torusRingSize );
     g_ObjectArray.push( obj );
 
@@ -972,6 +1039,29 @@ function drawPeg( context, x, y, angle ) {
         drawHeart( context, 0, 0, pegSize*2, borderColour, colour );
     } else if( g_PegTreatment == PEG_TREATMENT.STAR ) {
         drawStar( context, 0, 0, 5, pegSize, pegSize/2, borderColour, colour );
+    } else if( g_PegTreatment == PEG_TREATMENT.CHEVRON ) {
+        context.strokeStyle = borderColour;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo( -pegSize, -pegSize );
+        context.lineTo( 0, -pegSize/2 );
+        context.lineTo( pegSize, -pegSize );
+        context.lineTo( 0, pegSize );
+        context.fillStyle = colour;
+        context.fill();
+        context.closePath();
+        context.stroke();
+    } else if( g_PegTreatment == PEG_TREATMENT.TRIANGLE ) {
+        context.strokeStyle = borderColour;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo( -pegSize, -pegSize );
+        context.lineTo( pegSize, -pegSize );
+        context.lineTo( 0, pegSize );
+        context.fillStyle = colour;
+        context.fill();
+        context.closePath();
+        context.stroke();
     }
 
     context.restore();
@@ -1593,8 +1683,9 @@ function metatron2( context, obj, startColour ) {
 
 
 function drawSeatingArrangement() {
-    let     maxX, minX = maxX = g_Origin.imageCenterX;
-    let     maxY, minY = maxY = g_Origin.imageCenterY;
+    let maxX, minX = maxX = g_Origin.imageCenterX;
+    let maxY, minY = maxY = g_Origin.imageCenterY;
+    let min = Math.min, max = Math.max;
 
     // Restore the canvas to configured dimensions.
     getCanvas().width = g_Origin.imageWidth;
@@ -1605,29 +1696,30 @@ function drawSeatingArrangement() {
         let obj = g_ObjectArray[0];
         let maxRadius = obj.origin.torusRingSize + obj.spacing;
 
-        minX = Math.min( minX, obj.centerX() - maxRadius );
-        maxX = Math.max( maxX, obj.centerX() + maxRadius );
+        minX = min( minX, obj.centerX() - maxRadius );
+        maxX = max( maxX, obj.centerX() + maxRadius );
 
-        minY = Math.min( minY, obj.centerY() - maxRadius );
-        maxY = Math.max( maxY, obj.centerY() + maxRadius );
+        minY = min( minY, obj.centerY() - maxRadius );
+        maxY = max( maxY, obj.centerY() + maxRadius );
 
         for( let i = 0; i < g_ObjectArray.length; ++i ) {
             let obj = g_ObjectArray[i];
 
-            minX = Math.min( minX, obj.left() );
-            maxX = Math.max( maxX, obj.right() );
+            minX = min( minX, obj.left() );
+            maxX = max( maxX, obj.right() );
 
-            minY = Math.min( minY, obj.top() );
-            maxY = Math.max( maxY, obj.bottom() );
+            minY = min( minY, obj.top() );
+            maxY = max( maxY, obj.bottom() );
         }
     }
 
-    minX = Math.max( minX - g_Origin.cropSpacing, 0 );
-    minY = Math.max( minY - g_Origin.cropSpacing, 0 );
+    minX = max( minX - g_Origin.cropSpacing, 0 );
+    minY = max( minY - g_Origin.cropSpacing, 0 );
 
-    maxX = Math.min( maxX + g_Origin.cropSpacing, g_Origin.imageWidth );
-    maxY = Math.min( maxY + g_Origin.cropSpacing, g_Origin.imageHeight );
+    maxX = min( maxX + g_Origin.cropSpacing, g_Origin.imageWidth );
+    maxY = min( maxY + g_Origin.cropSpacing, g_Origin.imageHeight );
 
+/*
     // Resize and fill the canvas
     let newWidth = maxX-minX;
     let newHeight = maxY-minY;
@@ -1638,6 +1730,7 @@ function drawSeatingArrangement() {
     // Alter the image 'center' before the redraw.
     g_Origin.setImageCenter( g_ObjectArray[0].centerX() - minX,
                              g_ObjectArray[0].centerY() - minY );
+*/
 
     // Draw all the objects.
     for( let i = 0; i < g_ObjectArray.length; ++i ) {
@@ -1646,93 +1739,180 @@ function drawSeatingArrangement() {
         let context = obj.context;
         if( i == 0 ) {
             let pegs = [];
+            let canvasDimension = {top:     0, 
+                                   left:    0, 
+                                   bottom:  maxY - minY,
+                                   right:   maxX - minX,
 
-            if( $(ID.BACKGROUND_TREATMENT).value === "0" ) {
-                context.fillStyle = g_Image_colour;
-                context.fillRect( 0, 0, newWidth, newHeight );
-            } else {
-                context.fillStyle = 'white';
-                context.fillRect( 0, 0, newWidth, newHeight );
+                                   growthX: function() { 
+                                        return this.imageBorder ? this.width() / this.imageBorder.width() : 1.0;
+                                   },
+                                   growthY: function() {
+                                        return this.imageBorder ? this.height() / this.imageBorder.height() : 1.0;
+                                   },
+                                   imageScaleX: function( x ) {
+                                        return x * (this.imageBorder && this.imageView
+                                                    ? this.imageBorder.width() / this.imageView.width()
+                                                    : 1.0);
+                                   },
+                                   imageScaleY: function( y ) {
+                                        return y * (this.imageBorder && this.imageView
+                                                    ? this.imageBorder.height() / this.imageView.height()
+                                                    : 1.0);
+                                   },
+                        
+                                   width: function() { return this.imageScaleX(this.right - this.left)+1; },
+                                   height: function() { return this.imageScaleY(this.bottom - this.top)+1; } 
+                                  };
+            let imageDesc, image, imageCenter;
+            let imageBorder, imageView, imageType;
 
-                var imageDesc = g_Background_images[$(ID.BACKGROUND_TREATMENT).value];
-                var image = imageDesc ? imageDesc.image : null;
-                if( image != undefined && image.complete ) {
-                    let opacity = Math.max( getOpacity( colorFromID(ID.BACKGROUND_COLOUR) ), 5 );
-            
-                    context.save();
-                        context.globalAlpha = opacity/100;
 
-                        let width = image.width;
-                        let height = image.height;
+            if( $(ID.BACKGROUND_TREATMENT).value !== "0" ) {
+                imageDesc = g_Background_images[$(ID.BACKGROUND_TREATMENT).value];
+                image = imageDesc ? imageDesc.image : null;
+            }
 
-                        let clipX = imageDesc.clipX || 0;
-                        let clipY = imageDesc.clipY || 0;
-                        let clipWidth = imageDesc.clipWidth || (width-clipX);
-                        let clipHeight = imageDesc.clipHeight || (height-clipY);
-                        let startX = 0;
-                        let startY = 0;
+            if( image != undefined && image.complete ) {
+                imageBorder  = {top:    0, 
+                                left:   0, 
+                                bottom: image.height-1, 
+                                right:  image.width-1,
+                                
+                                width: function() { return this.right - this.left+1 },
+                                height: function() { return this.bottom - this.top+1; }
+                               };
+                imageView    = Object.assign( {}, imageBorder );
 
-                        switch( imageDesc.type ) {
-                            case "tile":
-                                // tile the clipped image in the background
-                                for( let y=startY; y < newHeight; y += clipHeight ) {
-                                    for( let x=startX; x < newWidth; x += clipWidth ) {
-                                        context.drawImage( image,
-                                                           clipX,
-                                                           clipY,
-                                                           clipWidth,
-                                                           clipHeight,
-                                                           x,
-                                                           y,
-                                                           clipWidth,
-                                                           clipHeight );    
-                                    }
-                                }
-                                break;
+                if( "border" in imageDesc ) {
+                    imageBorder.top     = max( imageBorder.top, imageDesc.border.top || imageBorder.top );
+                    imageBorder.left    = max( imageBorder.left, imageDesc.border.left || imageBorder.left );
+                    imageBorder.bottom  = min( imageBorder.bottom, imageDesc.border.bottom || imageBorder.bottom );
+                    imageBorder.right   = min( imageBorder.right, imageDesc.border.right || imageBorder.right );
+                }
 
-                            case "center":
-                                {
-                                    let centerX = imageDesc.centerX || (clipWidth / 2 + clipX);
-                                    let centerY = imageDesc.centerY || (clipHeight / 2 + clipY);
-                                    let maxX = Math.min( centerX - clipX, clipWidth - (centerX - clipX) );
-                                    let maxY = Math.min( centerY - clipY, clipHeight - (centerY - clipY) );
-                                    maxX = Math.min( maxX, newHeight*maxX / newWidth );
-                                    maxY = Math.min( maxY, newWidth*maxY / newHeight );
+                if( "viewport" in imageDesc ) {
+                    imageView.top       = max( imageBorder.top, 
+                                                max( imageView.top, imageDesc.viewport.top || imageView.top ) );
+                    imageView.left      = max( imageBorder.left,
+                                                max( imageView.left, imageDesc.viewport.left || imageView.left ) ); 
+                    imageView.bottom    = min( imageBorder.bottom,
+                                                min( imageView.bottom, imageDesc.viewport.bottom || imageView.bottom ) );
+                    imageView.right     = min( imageBorder.right,
+                                                min( imageView.right, imageDesc.viewport.right || imageView.right ) );
+                }
 
-                                    context.drawImage( image,
-                                                       centerX - maxX,
-                                                       centerY - maxY,
-                                                       2 * maxX,
-                                                       2 * maxY,
-                                                       startX,
-                                                       startY,
-                                                       newWidth,
-                                                       newHeight );
-                                }
-                                break;
+                imageCenter = {x:(imageView.left + imageView.right)/2,
+                               y:(imageView.top + imageView.bottom)/2};
+                if( "center" in imageDesc ) {
+                    imageCenter.x = imageDesc.center.x || imageCenter.x;
+                    imageCenter.y = imageDesc.center.y || imageCenter.y;
+                }
 
-                            case "stretch":
-                                {
-                                    let stretchX = newWidth - startX;
-                                    let stretchY = newHeight - startY;
+                if( imageBorder.top < imageBorder.bottom 
+                 && imageBorder.left < imageBorder.right
+                 && imageView.top < imageView.bottom
+                 && imageView.left < imageView.right
+                 && imageCenter.x >= imageView.left
+                 && imageCenter.x <= imageView.right
+                 && imageCenter.y >= imageView.top
+                 && imageCenter.y <= imageView.bottom ) {
+                    // The boundary conditions are valid.  Accept the imageType.
+                    imageType = imageDesc.type;
 
-                                    // stretch background image
-                                    context.drawImage( image,
-                                                       clipX,
-                                                       clipY,
-                                                       clipWidth,
-                                                       clipHeight,
-                                                       startX,
-                                                       startY,
-                                                       stretchX,
-                                                       stretchY );    
-                                }
-                                break;
-                        }
-                    context.restore();
+                    if( imageType === "stretch" ) {
+                        // Set border and viewport information for the canvas for
+                        //  computing the region within the background image to render.
+                        canvasDimension.imageBorder = imageBorder;
+                        canvasDimension.imageView = imageView;
+                    }
                 }
             }
 
+            if( imageBorder == undefined ) {
+                imageBorder = Object.assign( {}, canvasDimension );
+            }
+            if( imageView == undefined ) {
+                imageView = Object.assign( {}, imageBorder );
+            }
+
+            // Configure the canvas dimensions and fill in the background colour.
+            getCanvas().width = canvasDimension.width();
+            getCanvas().height = canvasDimension.height();
+            context.fillStyle = imageType==undefined ? g_Image_colour : "white";
+            context.fillRect( 0, 0, canvasDimension.width(), canvasDimension.height() );
+
+            // Adjust the drawing image center to account for the clipped imageBorder.
+            g_Origin.setImageCenter( g_ObjectArray[0].centerX() - minX
+                                        + canvasDimension.growthX() * (imageView.left - imageBorder.left),
+                                     g_ObjectArray[0].centerY() - minY
+                                        + canvasDimension.growthY() * (imageView.top - imageBorder.top) );
+
+            if( imageType != undefined ) {
+                context.save();
+                    // Set the opacity.
+                    context.globalAlpha = Math.max( getOpacity( colorFromID(ID.BACKGROUND_COLOUR) ), 5 ) / 100;
+
+                    switch( imageType ) {
+                        case "tile":
+                            // tile the clipped image in the background
+                            for( let y=canvasDimension.top; y <= canvasDimension.bottom; y += imageBorder.height() ) {
+                                for( let x=canvasDimension.left; x <= canvasDimension.right; x += imageBorder.width() ) {
+                                    context.drawImage( image,
+                                                       imageBorder.left,
+                                                       imageBorder.top,
+                                                       imageBorder.width(),
+                                                       imageBorder.height(),
+                                                       x,
+                                                       y,
+                                                       imageBorder.width(),
+                                                       imageBorder.height() );    
+                                }
+                            }
+                            break;
+
+                        case "center":
+                            {
+                                let centerMaxX = min( imageCenter.x - imageBorder.left,
+                                                      imageBorder.right - imageCenter.x );
+                                centerMaxX     = min( centerMaxX, 
+                                                      canvasDimension.height()*centerMaxX / canvasDimension.width() );
+
+                                let centerMaxY = min( imageCenter.y - imageBorder.top,
+                                                      imageBorder.bottom - imageCenter.y );
+                                centerMaxY     = min( centerMaxY, 
+                                                      canvasDimension.width()*centerMaxY / canvasDimension.height() );
+
+                                context.drawImage( image,
+                                                   imageCenter.x - centerMaxX,
+                                                   imageCenter.y - centerMaxY,
+                                                   2 * centerMaxX,
+                                                   2 * centerMaxY,
+                                                   canvasDimension.left,
+                                                   canvasDimension.top,
+                                                   canvasDimension.width(),
+                                                   canvasDimension.height() );
+                            }
+                            break;
+
+                        case "stretch":
+                            {
+                                // stretch background image
+                                context.drawImage( image,
+                                                   imageBorder.left,
+                                                   imageBorder.top,
+                                                   imageBorder.width(),
+                                                   imageBorder.height(),
+                                                   canvasDimension.left,
+                                                   canvasDimension.top,
+                                                   canvasDimension.width(),
+                                                   canvasDimension.height() );    
+                            }
+                            break;
+                    }
+                context.restore();
+            }
+            
             // Compute all the peg locations
             for( let j = 0; j < g_ObjectArray.length; ++j ) {
                 let pegObj = g_ObjectArray[j];
@@ -1758,22 +1938,6 @@ function drawSeatingArrangement() {
                     }
                     break;
 	
-                case TORUS_TREATMENT.IMAGE:
-                    if( g_TorusImage != undefined && g_TorusImage.complete ) {
-                        let width = g_TorusImage.width;
-                        let height = g_TorusImage.height;
-                        let scale = 2 * obj.boundingRadius / Math.sqrt( width*width + height*height );
-                        let newWidth = Math.floor( scale * width );
-                        let newHeight = Math.floor( scale * height );
-                        
-                        context.drawImage( g_TorusImage,
-                                           obj.centerX() - newWidth/2,
-                                           obj.centerY() - newHeight/2,
-                                           newWidth,
-                                           newHeight );
-                    }
-                    break;
-
                 case TORUS_TREATMENT.HEART:
                     drawHeart( context, obj.centerX(), obj.centerY(), obj.boundingRadius, 
                                 colorFromID(ID.TORUS_TREATMENT_COLOUR) );
@@ -2020,10 +2184,77 @@ function drawSeatingArrangement() {
                     }
                     break;
 
+                case TORUS_TREATMENT.HONEYCOMB_1:
+                case TORUS_TREATMENT.HONEYCOMB_2:
+                    {
+                        let radius = obj.boundingRadius;
+                        let startRadius = radius * (1/8);
+                        let endRadius = radius;
+                        let gradient = context.createRadialGradient( obj.centerX()-15,
+                                                                     obj.centerY()-15,
+                                                                     startRadius,
+                                                                     obj.centerX()+5,
+                                                                     obj.centerY()+5,
+                                                                     endRadius );
+                        let colors = ['white', colorFromID(ID.TORUS_TREATMENT_COLOUR)];
+                        for( let i = 0; i < colors.length; ++i ) {
+                            gradient.addColorStop( i / (colors.length-1), colors[i] );
+                        }
+                        context.fillStyle = gradient;
+
+
+                        let r = obj.boundingRadius*2 / 16;
+                        let grid = obj.boundingRadius / r;
+
+                        function drawHexagon( x, y ) {
+                            context.beginPath();
+                            for( let a=30; a<360; a+=60 ) {
+                                let x1 = x + r * Math.cos( a * Math.PI/180 );
+                                let y1 = y + r * Math.sin( a * Math.PI/180 );
+                    
+                                if( a==30 ) {
+                                    context.moveTo( x1, y1 );
+                                } else {
+                                    context.lineTo( x1, y1 );
+                                }
+                            }
+                            context.closePath();
+                            context.stroke();
+
+                            if( g_TorusTreament == TORUS_TREATMENT.HONEYCOMB_2 ) {
+                                context.arc( x, y, r, 0, 2*Math.PI );
+                                context.stroke();
+                            }
+                        }
+
+                        context.save();
+                        context.beginPath();
+                        context.arc( obj.centerX(), obj.centerY(), 
+                                     obj.boundingRadius + 1, 0, 2*Math.PI );
+                        context.clip();
+                        context.stroke();
+
+                        let offset = 0;
+                        let y_scale = 2*r * Math.cos( 30 * Math.PI/180 );
+                        let y_count = 1.1*Math.ceil(obj.boundingRadius/y_scale)*y_scale;
+                        for( let y=obj.centerY()-y_count; y<=obj.centerY() + y_count; y+=y_scale ) {
+                            for( let x=obj.centerX() - r*grid + offset; x<obj.centerX() + y_count; x+=2*r ) {
+                                drawHexagon( x, y );
+                            }
+                            if( offset == 0 ) {
+                                offset = r;
+                            } else {
+                                offset = 0;
+                            }
+                        }
+                        context.restore();
+                    }
+                    break;
+
                 case -1:
                     {
-                        var imageDesc = g_Images[$(ID.TORUS_TREATMENT).value];
-                        var image = imageDesc.image;
+                        let imageDesc = g_Images[$(ID.TORUS_TREATMENT).value];
+                        let image = imageDesc.image;
                         if( image != undefined && image.complete ) {
                             let opacity = Math.max( getOpacity( colorFromID(ID.TORUS_TREATMENT_COLOUR) ),
                                                     5 );
@@ -2232,7 +2463,7 @@ function saveSnapshotInDatabase( downloaded ) {
     snapshot._timestamp = new Date();
         
     g_Database.torus.add( snapshot ).then( function() {
-        console.log( `saveSnapshotInDatabase: Added torus data to database; _id=${snapshot._id}, _timestamp=${snapshot._timestamp.toLocaleString()}, t1='${snapshot.t1}', t2='${snapshot.t2}'` );
+        profile( `saveSnapshotInDatabase: Added torus data to database; _id=${snapshot._id}, _timestamp=${snapshot._timestamp.toLocaleString()}, t1='${snapshot.t1}', t2='${snapshot.t2}'` );
 
         // Delete any temporary snapshot
         if( g_SavedSnapshots.length>0 && g_SavedSnapshots[0]._timestamp.getTime()===g_TempSnapshotTimestamp.getTime() ) {
@@ -2242,7 +2473,7 @@ function saveSnapshotInDatabase( downloaded ) {
         g_SavedSnapshots.unshift( snapshot );
         addSnapshotInfo( snapshot, false );
     }).catch( e => {
-        console.log( "saveSnapshotInDatabase: couldn't add to database: " + e.stack );
+        profile( "saveSnapshotInDatabase: couldn't add to database: " + e.stack );
     });
 }
 
@@ -2748,7 +2979,34 @@ function createTextObject( objectType,
                 smallAngle += smallStep;
             }
             context.stroke();
+        } else if( args.treatment == CIRCLE_TREATMENT.BOX ) {
+            step = 5;
+            let radius2 = radius - 3*parseInt( $(ID.TORUS_WIDTH).value );
 
+            for( var angle=0; angle <= 360; angle += step ) {
+                context.beginPath();
+                context.strokeStyle = getColour();
+
+                let x1 = this.centerX() + radius * Math.cos( angle * Math.PI/180 );
+                let y1 = this.centerY() + radius * Math.sin( angle * Math.PI/180 );
+                
+                let x2 = this.centerX() + radius * Math.cos( (angle+step) * Math.PI/180 );
+                let y2 = this.centerY() + radius * Math.sin( (angle+step) * Math.PI/180 );
+
+                let x3 = this.centerX() + radius2 * Math.cos( (angle+step) * Math.PI/180 );
+                let y3 = this.centerY() + radius2 * Math.sin( (angle+step) * Math.PI/180 );
+
+                let x4 = this.centerX() + radius2 * Math.cos( angle * Math.PI/180 );
+                let y4 = this.centerY() + radius2 * Math.sin( angle * Math.PI/180 );
+
+                context.moveTo( x1, y1 );
+                context.lineTo( x2, y2 );
+                context.lineTo( x3, y3 );
+                context.lineTo( x4, y4 );
+
+                context.stroke();
+            }
+            
         } else {
             context.beginPath();
             context.strokeStyle = getColour();
@@ -2837,7 +3095,7 @@ function createTextObject( objectType,
         let top = this.top()-this.spacing;
         let right = this.right()+this.spacing;
         let bottom = this.bottom()+this.spacing;
-        let minRadius = obj.boundingRadius + this.spacing;
+        let minRadius = obj.boundingRadius + obj.spacing + this.spacing;
         let objCenterX = obj.centerX();
         let objCenterY = obj.centerY();
 
@@ -3036,6 +3294,9 @@ function initializeElementsFromHash( hash, full = false ) {
         }
     }
     g_UnmodifiedValues = getPageParameters( true );
+
+    prioritizeImageFetch( ID.BACKGROUND_TREATMENT );
+    prioritizeImageFetch( ID.TORUS_TREATMENT );
 }
 
 
@@ -3059,7 +3320,7 @@ function getPageParameters( full, getImage=false ) {
                 // Sometimes Chrome messes up with a 'tainted canvas' exception.  This
                 //  appears to be unpredictable.  We shouldn't be prevented from saving
                 //  the torus settings.
-                console.log( "getPageParameters: unable to get snapshot image: " + e );
+                profile( "getPageParameters: unable to get snapshot image: " + e );
             }
         }
     }
@@ -3140,6 +3401,7 @@ function deleteRows( start, num ) {
         masterElement(start).value = "";
         ++start;
     }
+    assignRowTypes();
     return rows;
 }
 
@@ -3156,6 +3418,7 @@ function insertRows( start, rows ) {
         memberElement(start+i).value = rows[i][0];
         masterElement(start+i).value = rows[i][1];
     }
+    assignRowTypes();
 }
 
 
@@ -3238,6 +3501,7 @@ function memberHandleDrop(e) {
             if( srcRow < destRow || destType == ROW_TYPE.REPEAT ) {
                 // Move the source rows after the block of destination Member rows.
                 while( ++destRow <= g_Origin.maxMembers-1 
+                    && memberElement(destRow).value !== ""
                     && memberElement(destRow).value === memberElement(destRow-1).value ) {
                 }
             }
@@ -3263,6 +3527,132 @@ function memberHandleDrop(e) {
 
     return false;
 }
+
+
+function memberHandleKeyDown(event) {
+    // this/e.target is the source node.
+
+    let e = event || window.event;
+    let id = Number( e.target.parentElement.getAttribute( 'id' ) );
+    let handled = false;
+    if( (e.altKey && e.key!=='Alt') || (e.metaKey && e.key!='Meta') ) {
+        switch( e.key ) {
+            case 'ArrowDown':
+                if( id < g_Origin.maxMembers-1 ) {
+                    swapAdjacentRows( id );
+                    memberElement( id+1 ).focus();
+                    handled = true; 
+                }
+                break;
+            case 'ArrowUp':
+                if( id > 0 ) {
+                    swapAdjacentRows( id-1 );
+                    memberElement( id-1 ).focus();
+                    handled = true; 
+                }
+                break;
+            case 'ArrowLeft': {
+                    let srcRow = id;
+                    let srcRowCount = 1;
+                    
+                    // Identify the heading for (i.e. first row with the Member name).
+                    while( srcRow > 0 && memberElement(srcRow).value === memberElement(srcRow-1).value ) {
+                        --srcRow;
+                    }
+
+                    // Identify the number of consecutive rows with the same Member name.
+                    while( srcRow+srcRowCount < g_Origin.maxMembers 
+                        && memberElement(srcRow).value===memberElement(srcRow+srcRowCount).value ) {
+                        ++srcRowCount;
+                    }
+
+                    if( srcRow > 0 ) {
+                        let destRow = srcRow;
+                        while( --destRow > 0
+                            && memberElement(destRow).value === memberElement(destRow-1).value ) {
+                        }
+
+                        let rows = deleteRows( srcRow, srcRowCount );
+                        insertRows( destRow, rows );
+
+                        memberElement( destRow + id-srcRow ).focus();
+                        buildCanvas();
+                        handled = true;
+                    }
+                }
+                break;
+            case 'ArrowRight': {
+                    let srcRow = id;
+                    let srcRowCount = 1;
+                    
+                    // Identify the heading for (i.e. first row with the Member name).
+                    while( srcRow > 0 && memberElement(srcRow).value === memberElement(srcRow-1).value ) {
+                        --srcRow;
+                    }
+
+                    // Identify the number of consecutive rows with the same Member name.
+                    while( srcRow+srcRowCount < g_Origin.maxMembers 
+                        && memberElement(srcRow).value===memberElement(srcRow+srcRowCount).value ) {
+                        ++srcRowCount;
+                    }
+
+                    if( srcRow + srcRowCount < g_Origin.maxMembers ) {
+                        let destRow = srcRow + srcRowCount;
+                        let destRowCount = 1;
+                        while( destRow+destRowCount < g_Origin.maxMembers-1
+                            && memberElement(destRow+destRowCount-1).value === memberElement(destRow+destRowCount).value ) {
+                            ++destRowCount;
+                        }
+
+                        let rows = deleteRows( srcRow, srcRowCount );
+                        destRow = destRow + destRowCount - srcRowCount;
+                        insertRows( destRow, rows );
+
+                        memberElement( destRow + id-srcRow ).focus();
+                        buildCanvas();
+                        handled = true;
+                    }
+                }
+                break;
+            case '\\':
+                // Clone previous row member name into current row.
+                if( id > 0 ) {
+                    memberElement( id ).value = memberElement( id-1 ).value;
+                    masterElement( id ).value = '';
+                    handled = true;
+                }
+                break;
+            case '/':
+                // Create a new member row element below the current row.
+                if( memberElement( g_Origin.maxMembers-1 ).value !== '' ) {
+                    addMemberButton();
+                }
+                insertRows( id+1, [[memberElement( id ).value, '']] );
+                masterElement( id+1 ).focus();
+                break; 
+            case 'Enter':
+                // Possibly row member list and add a blank row.
+                if( memberElement( g_Origin.maxMembers-1 ).value !== '' ) {
+                    addMemberButton();
+                }
+                insertRows( id+1, [['', '']] );
+                memberElement( id+1 ).focus();
+                break; 
+        }
+        if( handled ) {
+            assignRowTypes();
+            if( e.stopPropagation ) {
+                // IE9 & other browsers
+                e.stopPropagation();
+            } else {
+                // IE8 and lower
+                e.cancelBubble = true;
+            }
+        }
+    }
+    return false;
+}
+
 
 
 function memberHandleDragEnd(e) {
@@ -3327,7 +3717,7 @@ function updateMembersList() {
     element.setAttribute( "id", "membersList" );
     for( let i = 0; i < g_AllMembers.length; ++i ) {
         str += "<option value='" + g_AllMembers[i].name + "'>\n";
-        console.log( `updateMembersList:          member ${g_AllMembers[i].name}` );
+        profile( `updateMembersList:          member ${g_AllMembers[i].name}` );
     }
     element.innerHTML = str;
 
@@ -3345,11 +3735,11 @@ function loadMembers() {
             let name = names[i]; 
             if( g_AllMembers.find( x => name===x.name ) == undefined ) {
                 g_AllMembers.push( {name:name} );
-                console.log( `loadMembers: found '${name}'` );
+                profile( `loadMembers: found '${name}'` );
             }
         }
     } ).then( function() {
-        console.log( `loadMembers: have ${g_AllMembers.length} members` );
+        profile( `loadMembers: have ${g_AllMembers.length} members` );
         updateMembersList();
 
         // Updated the saved members list
@@ -3383,7 +3773,7 @@ function deleteMemberRow( id ) {
         .delete( id )
         .then( () => {
             $(ID.SAVED_MEMBER_ + id).remove();
-            console.log( "deleteMemberRow: deleted member ID " + id );
+            profile( "deleteMemberRow: deleted member ID " + id );
 
             g_AllMembers = g_AllMembers.filter( e => e.name != id );
             updateMembersList();
@@ -3460,6 +3850,8 @@ function addDragHandlers() {
       addEventHandler( row, 'dragleave', memberHandleDragLeave );
       addEventHandler( row, 'drop', memberHandleDrop );
       addEventHandler( row, 'dragend', memberHandleDragEnd );
+
+      addEventHandler( row, 'keydown', memberHandleKeyDown );
     });
 }
 
@@ -3510,7 +3902,7 @@ function deleteSnapshot( id ) {
         .delete( id )
         .then( () => {
             $(ID.SNAPSHOT_.tag + id).remove();
-            console.log( "deleteSnapshot: torus definition deleted" );
+            profile( "deleteSnapshot: torus definition deleted" );
 
             g_SavedSnapshots = g_SavedSnapshots.filter( e => e._id != id );
             setTitle();
@@ -3624,9 +4016,70 @@ function addSnapshotInfo( obj, append=true ) {
 }
 
 
+function dispatchImageFetch( count=6 ) {
+    let fetching=[], pending=[], completed=[];
+
+    for( let i=0; i<g_QueuedImages.length; ++i ) {
+        let desc = g_QueuedImages[i];
+        if( desc.image.src !== "" ) {
+            if( desc.image.complete ) {
+                completed.push( desc );
+            } else {
+                fetching.push( desc );
+            }
+        } else {
+            pending.push( desc );
+        }
+    }
+
+    while( fetching.length<count && pending.length>0 ) {
+        let desc = pending.shift();
+        desc.image.src = desc.file;
+        profile( `dispatching '${desc.file}'` );
+        fetching.push( desc );
+    }
+}
+
+function prioritizeImageFetch( treatmentID ) {
+    let value = $(treatmentID).value;
+    let index = g_QueuedImages.findIndex( 
+        // find the imageDesc that is pending download
+        d => { 
+            return d.image.optionName===value && d.image.src===""; 
+        } );
+
+    if( index>=0 ) {
+        profile( `prioritizeImageFetch for '${value}' rescheduling` );
+        let desc = g_QueuedImages.splice( index, 1 );
+        g_QueuedImages.unshift( desc[0] );
+        dispatchImageFetch();
+    } else {
+        profile( `prioritizeImageFetch for '${value}' NOOP` );
+    }
+
+}
+
+function prefetchImage( imageDesc, optionName, treatmentID ) {
+    imageDesc.image = new Image;
+
+    // If the image is loaded after fetching the database settings then
+    //  redraw the canvas.
+    imageDesc.image.optionName = optionName;
+    imageDesc.image.onload = function() {
+        profile( `Loaded "${this.optionName}"` );
+        dispatchImageFetch();
+        if( this.optionName == $(treatmentID).value ) {
+            buildCanvas();
+        }
+    };
+
+    g_QueuedImages.push( imageDesc );
+}
+
+
 function pageSetup() {
     $(ID.VERSION).innerHTML = "Version: " + g_Version;
-    console.log( "========================= Starting version: " + g_Version );
+    profile( "========================= Starting version: " + g_Version );
 
     // Determine what fonts are supported.
     g_DetectedFonts = (new Detector()).identifyCommonFonts();
@@ -3645,7 +4098,60 @@ function pageSetup() {
     }
                         
     initializeDatabase();
+    profile( "Get torus data" );
     getTorusData();
+    profile( "Load members start" );
+    loadMembers();
+    profile( "Load members end" );
+
+    profile( "Get images start" );
+    let startTimestamp = (new Date())/1000;
+    let container = document.createDocumentFragment();
+    for( var im in g_Images ) {
+        var imageDesc = g_Images[im];
+
+        let option = document.createElement( "option" );
+        if( im[0] == "_" ) {        // separator sentinel
+            option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
+            option.setAttribute( "disabled", "" );
+            option.innerHTML = "&nbsp;";
+            container.appendChild( option );
+            continue;
+        } else {
+            option.setAttribute( "value", im );
+            option.innerHTML = "Picture '" + im + "'";
+            container.appendChild( option );
+        }
+
+        prefetchImage( imageDesc, im, ID.TORUS_TREATMENT );
+    }
+    $(ID.TORUS_TREATMENT).appendChild( container );
+    profile( "Get images complete" );
+
+    profile( "Get background images start" );
+    container = document.createDocumentFragment();
+    for( var bgm in g_Background_images ) {
+        var imageDesc = g_Background_images[bgm];
+
+        let option = document.createElement( "option" );
+        if( bgm[0] == "_" ) {        // separator sentinel
+            option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
+            option.setAttribute( "disabled", "" );
+            option.innerHTML = "&nbsp;";
+            container.appendChild( option ); 
+            continue;
+        } else {
+            option.setAttribute( "value", bgm );
+            option.innerHTML = "Picture '" + bgm + "'";
+            container.appendChild( option ); 
+        }
+
+        prefetchImage( imageDesc, bgm, ID.BACKGROUND_TREATMENT );
+    }
+    $(ID.BACKGROUND_TREATMENT).appendChild( container );
+    profile( "Get background images complete" );
+
+    dispatchImageFetch();
 
     // Update the canvas to configured dimensions.
     getCanvas().width = g_Origin.imageWidth;
@@ -3685,68 +4191,22 @@ function pageSetup() {
         setParametersFromUrl( window.location.href );
     }
 
-    loadMembers();
-
-    for( var im in g_Images ) {
-        var imageDesc = g_Images[im];
-
-        let option = document.createElement( "option" );
-        if( im[0] == "_" ) {        // separator sentinel
-            option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
-            option.setAttribute( "disabled", "" );
-            option.innerHTML = "&nbsp;";
-            $(ID.TORUS_TREATMENT).appendChild( option );
-            continue;
-        } else {
-            option.setAttribute( "value", im );
-            option.innerHTML = "Picture '" + im + "'";
-            $(ID.TORUS_TREATMENT).appendChild( option );
-        }
-
-        imageDesc.image = new Image;
-        imageDesc.image.src = imageDesc.file;
-
-        // If the image is loaded after fetching the database settings then
-        //  redraw the canvas.
-        imageDesc.image.optionName = im;
-        imageDesc.image.onload = function() {
-            if( this.optionName == $(ID.TORUS_TREATMENT).value ) {
-                buildCanvas();
-            }
-        };
-    }
-
-    for( var bgm in g_Background_images ) {
-        var imageDesc = g_Background_images[bgm];
-
-        let option = document.createElement( "option" );
-        if( bgm[0] == "_" ) {        // separator sentinel
-            option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
-            option.setAttribute( "disabled", "" );
-            option.innerHTML = "&nbsp;";
-            $(ID.BACKGROUND_TREATMENT).appendChild( option );
-            continue;
-        } else {
-            option.setAttribute( "value", bgm );
-            option.innerHTML = "Picture '" + bgm + "'";
-            $(ID.BACKGROUND_TREATMENT).appendChild( option );
-        }
-
-        imageDesc.image = new Image;
-        imageDesc.image.src = imageDesc.file;
-    
-        // If the image is loaded after fetching the database settings then
-        //  redraw the canvas.
-        imageDesc.image.optionName = bgm;
-        imageDesc.image.onload = function() {
-            if( this.optionName == $(ID.BACKGROUND_TREATMENT).value ) {
-                buildCanvas();
-            }
-        };
-    }
 
     g_UnmodifiedValues = getPageParameters( true );
     buildCanvas();
+
+    // Possibly notify the user to a version change.
+    let lastVersion = localStorage.getItem('version');
+    if( lastVersion !== g_Version ) {
+        let msg = "The 'Image Generator' has been upgraded.  Please refer to the Help page for " +
+                  "the list of changes";
+        if( lastVersion && lastVersion !== '' ) {
+            msg += " since version '" + lastVersion + "'";
+        }
+        msg += ".";
+        alert( msg );
+        localStorage.setItem( 'version', g_Version );
+    }
 }
 
 //
@@ -3854,6 +4314,8 @@ function pageSetup() {
                         <option value="10">GOLDEN_SPIRAL</option>
                         <option value="11">METATRON_2</option>
                         <option value="12">SHADED_SPHERE</option>
+                        <option value="13">HONEYCOMB_1</option>
+                        <option value="14">HONEYCOMB_2</option>
                         <option value="7">MESH (per members)</option>
                         <option value="8">GEOMETRIC_1 (per members)</option>
                       </select>
@@ -3887,6 +4349,7 @@ function pageSetup() {
                       <option value="2">RIPPLE</option>
                       <option value="3">RAY</option>
                       <option value="4">SPIRAL</option>
+                      <option value="5">BOX</option>
                     </select>
                     Rainbow <input type="checkbox" id="torlr" onchange="buildCanvas()">
                   </td>
@@ -3927,6 +4390,8 @@ function pageSetup() {
                       <option value="3">Diamond</option>
                       <option value="4">Heart</option>
                       <option value="5">Star</option>
+                      <option value="6">Chevron</option>
+                      <option value="7">Triangle</option>
                     </select>
                     Rotate <input type="checkbox" id="pegr" onchange="buildCanvas()">
                   </td>
