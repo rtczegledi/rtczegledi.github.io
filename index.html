@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-153616201-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-153616201-1');
+</script>
+
   <title>Image Generator</title>
   <link rel="icon" href="favicon2.ico">
   <meta charset="utf-8"/>
@@ -12,7 +22,7 @@
 //////////////////////////////////////////////////////
 //
 // Author:      Richard Czegledi
-var g_Version = "May 28, 2019";
+var g_Version = "December 1, 2019";
 
 // NOTE: font description MUST include the font height in 'px'.
 const ID = {
@@ -3535,7 +3545,7 @@ function memberHandleKeyDown(event) {
     let e = event || window.event;
     let id = Number( e.target.parentElement.getAttribute( 'id' ) );
     let handled = false;
-    if( (e.altKey && e.key!=='Alt') || (e.metaKey && e.key!='Meta') ) {
+    if( (e.ctrlKey && e.key!=='Control') || (e.metaKey && e.key!='Meta') ) {
         switch( e.key ) {
             case 'ArrowDown':
                 if( id < g_Origin.maxMembers-1 ) {
