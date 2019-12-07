@@ -1,0 +1,4473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-153616201-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-153616201-1');
+</script>
+
+  <title>Image Generator</title>
+  <link rel="icon" href="favicon2.ico">
+  <meta charset="utf-8"/>
+  <script src="dexie.js"></script>
+  <script type="text/javascript">
+
+  "use strict"
+
+//////////////////////////////////////////////////////
+//
+// Author:      Richard Czegledi
+var g_Version = "May 28, 2019";
+
+// NOTE: font description MUST include the font height in 'px'.
+const ID = {
+    CANVAS :                        {tag:"_canvas"},      // canvas element for drawing image
+    DEBUG :                         {tag:"_debug"},       // checkbox for enabling debug mode
+    MY_URL :                        {tag:"_myURL"},       // URL name with parameters
+    PROFILE :                       {tag:"_profile"},     // profile name
+    ERROR_STRING :                  {tag:"_error"},
+    MEMBER_ROWS :                   {tag:"_members"},
+    MEMBERS_DATA_LIST :             {tag:"_membersDataList"},
+    VERSION :                       {tag:"_version"},
+    DOWNLOAD_LINK :                 {tag:"_downloadLink"},
+    DESCRIPTION :                   {tag:"_description"},
+    SNAPSHOTS_LIST :                {tag:"_snapshots"},
+    SNAPSHOT_ :                     {tag:"_snapshot_"},
+    SAVED_MEMBERS_LIST :            {tag:"_saved_members"},
+    SAVED_MEMBER_ :                 {tag:"_saved_member_"},
+
+    TITLE_1 :                       {tag:"t1",      save:"Group Torus", db:true},
+    TITLE_2 :                       {tag:"t2",      save:"",            db:true, sensitive:true},
+    TITLE_PART :                    {tag:"tp",      save:""},
+    TITLE_FONT_FAMILY :             {tag:"tff",     save:"Arial"},
+    TITLE_FONT_BOLD :               {tag:"tfb",     save:true},
+    TITLE_FONT_ITALIC :             {tag:"tfi",     save:false},
+    TITLE_FONT_SHADOW :             {tag:"tfs",     save:false},
+    TITLE_FONT_SIZE :               {tag:"tfp",     save:"16px"},
+    TITLE_COLOUR :                  {tag:"tc",      save:"3605FF"},
+    TITLE_PART_COLOUR :             {tag:"tpc",     save:"FF15C8"},
+
+    RECIPIENT_NAME :                {tag:"rep",     save:""},
+    RECIPIENT_FONT_FAMILY :         {tag:"rff",     save:"Arial"},
+    RECIPIENT_FONT_BOLD :           {tag:"rfb",     save:true},
+    RECIPIENT_FONT_ITALIC :         {tag:"rfi",     save:false},
+    RECIPIENT_FONT_SHADOW :         {tag:"rfs",     save:false},
+    RECIPIENT_FONT_SIZE :           {tag:"rfp",     save:"14px"},
+    RECIPIENT_COLOUR :              {tag:"rc",      save:"14811E"},
+
+    TRASH_ROW_ :                    {tag:"tr_"},                        // trash member/master # (from 0)
+    MOVE_ROW_UP_ :                  {tag:"mu_"},                        // move member/master # up (from 0)
+    MOVE_ROW_DOWN_ :                {tag:"md_"},                        // move member/master # down (from 0)
+
+    MEMBER_ :                       {tag:"p_",      save:""},           // member # (from 0)
+    MEMBER_FONT_FAMILY :            {tag:"pff",     save:"Arial"},
+    MEMBER_FONT_BOLD :              {tag:"pfb",     save:true},
+    MEMBER_FONT_ITALIC :            {tag:"pfi",     save:false},
+    MEMBER_FONT_SHADOW :            {tag:"pfs",     save:false},
+    MEMBER_FONT_SIZE :              {tag:"pfp",     save:"14px"},
+    MEMBER_COLOUR :                 {tag:"pc",      save:"000000"},
+
+    MASTER_ :                       {tag:"m_",      save:""},           // master # (from 0)
+    MASTER_FONT_FAMILY :            {tag:"mff",     save:"Arial"},
+    MASTER_FONT_BOLD :              {tag:"mfb",     save:true},
+    MASTER_FONT_ITALIC :            {tag:"mfi",     save:false},
+    MASTER_FONT_SHADOW :            {tag:"mfs",     save:false},
+    MASTER_FONT_SIZE :              {tag:"mfp",     save:"14px"},
+    MASTER_COLOUR :                 {tag:"mc",      save:"FF0000"},
+
+    BACKGROUND_COLOUR :             {tag:"bgc",     save:"FFFFFF"},
+    BACKGROUND_TREATMENT :          {tag:"bgt",     save:"0"},
+    ORIENTATION :                   {tag:"o",       save:"270"},
+    TORUS_ADDITION_ORDER :          {tag:"or",      save:"counter"},
+    TORUS_SIZE :                    {tag:"tors",    save:"100"},
+    TORUS_WIDTH :                   {tag:"torw",    save:"3"},
+    TORUS_COLOUR :                  {tag:"torc",    save:"000000"},
+    TORUS_TREATMENT :               {tag:"tort",    save:"0"},
+    TORUS_LINE_TREATMENT :          {tag:"torlt",   save:"0"},
+    TORUS_LINE_RAINBOW :            {tag:"torlr",   save:false},
+    TORUS_TREATMENT_COLOUR :        {tag:"tortc",   save:"000000"},
+    TORUS_PEG_COLOUR :              {tag:"torpc",   save:"FF0000"},
+    TORUS_PEG_BORDER_COLOUR :       {tag:"torpbc",  save:"000000"},
+    TORUS_IMAGE :                   {tag:"tori"},
+    PEG_TREATMENT :                 {tag:"pegt",    save:"1"},
+    PEG_ROTATE :                    {tag:"pegr",    save:"0"},
+    PEG_WIDTH :                     {tag:"pegw",    save:"6"},
+
+    IMAGE_FILENAME :                {tag:"f"}
+};
+
+var g_TagToID = {};             // e.g.     g_TagToID["pegw"] = "PEG_WIDTH"
+var g_ElementDefaults = {};     // e.g.     g_ElementDefaults["pegw"] = "6"
+
+var g_Debug = false;
+
+var ALIGNMENT = { LEFT:0, CENTER:1, RIGHT:2, AUTO:3 };
+
+var OBJECT_TYPE = { TITLE:0, MEMBER:1, MASTER:2, RECIPIENT:3};
+
+var TORUS_TREATMENT = { NONE:0, HEART:1, RANDOM:2, FLOWER_OF_LIFE:3, METATRONS_CUBE:4,
+                        DAISY:5, PETALS:6,
+                        MESH:7, GEOMETRIC_1:8, GOLDEN_SPIRAL:10,
+                        METATRON_2:11, SHADED_SPHERE:12, HONEYCOMB_1:13,
+                        HONEYCOMB_2:14 };
+
+var PEG_TREATMENT = { NONE:0, CIRCLE:1, SQUARE:2, DIAMOND:3, HEART:4, STAR:5,
+                      CHEVRON:6, TRIANGLE:7 };
+
+var CIRCLE_TREATMENT = { SOLID:0, WAVE:1, RIPPLE:2, RAY:3, SPIRAL:4, BOX:5 };
+
+var ROW_TYPE = { EMPTY:0, HEADING:1, REPEAT:2 };
+
+var g_DragSrcEl = null;
+
+var g_TorusTreament = TORUS_TREATMENT.NONE;
+
+var g_PegTreatment = PEG_TREATMENT.CIRCLE;
+
+var g_AllMembers = [];
+
+var g_QueuedImages = [];
+
+// border:{top:#, left:#, right:#, bottom:#}        - all fields optional
+// viewport:{top:#, left:#, right:#, bottom:#}      - all fields optional
+// center:{x:#, y:#}                                - all fields optional
+//      defaults:
+//          border.top = viewport.top = 0
+//          border.left = viewport.left = 0
+//          border.bottom = viewport.bottom = IMAGE.height-1
+//          border.right = viewport.right = IMAGE.width-1
+//      contraints:
+//          0 <= border.top <= viewport.top  <=  viewport.bottom <= border.bottom   < IMAGE.height
+//          0 <= border.left <= viewport.left <=  viewport.right <= border.right    < IMAGE.width
+//      relation:
+//          center.x = (viewport.left + viewport.right) / 2
+//          center.y = (viewport.top + viewport.bottom) / 2
+var g_Background_images = {
+                //"BG Test 1":            {file:"bg_test_850x650.png", type:"stretch",
+                //                         border:    {left:3,  top:3,     right:803, bottom:603},
+                //                         viewport:  {left:33, top:33,    right:773, bottom:573}},
+                
+                "BGF - Border 1":       {file:"bgf_border1.png",    type:"stretch",
+                                         viewport:  {left:282, bottom:1608}},
+                "BGF - Border 2":       {file:"bgf_border2.jpg",    type:"stretch",
+                                         viewport:  {left:113, top:116,  right:1668, bottom:2265}},
+                "BGF - Border 3":       {file:"bgf_border3.jpg",    type:"stretch",
+                                         border:    {left:16, top:17,   right:458, bottom:596},
+                                         viewport:  {left:24, top:25,   right:452, bottom:590}},
+                "BGF - Border 4":       {file:"bgf_border4.jpg",    type:"stretch",
+                                         viewport:  {left:71, top:172,  right:1109, bottom:769}},
+                "BGF - Border 5":       {file:"bgf_border5.jpg",    type:"stretch",
+                                         viewport:  {left:91, top:78,  right:471, bottom:625}},
+                "BGF - Border 6":       {file:"bgf_border6.png",    type:"stretch",
+                                         viewport:  {left:78, top:93,  right:1015, bottom:749}},
+                "BGF - Border 7":       {file:"bgf_border7.jpg",    type:"stretch",
+                                         viewport:  {left:115, top:37,  right:876, bottom:721}},
+                "BGF - Border 8":       {file:"bgf_border8.jpg",    type:"stretch",
+                                         viewport:  {left:58, top:64,  right:771, bottom:578}},
+
+                "_3":{},        // separator
+
+                "BGE - Line Art 1":     {file:"bge_lineart1.jpg",   type:"center"},
+                "BGE - Line Art 2":     {file:"bge_lineart2.jpg",   type:"center"},
+                "BGE - Line Art 3":     {file:"bge_lineart3.jpg",   type:"center"},
+                "BGE - Border 1":       {file:"bge_border1.jpg",    type:"stretch",
+                                         viewport:  {left: 30, top:27,  right:703, bottom:935}},
+                "BGE - Border 2":       {file:"bge_border2.jpg",    type:"stretch",
+                                         viewport:  {left: 11, top:11,  right:640, bottom:600}},
+                "BGE - Border 3":       {file:"bge_border3.png",    type:"stretch",
+                                         viewport:  {left: 19, top:20,  right:622, bottom:466}},
+                "BGE - Border 4":       {file:"bge_border4.jpg",    type:"stretch",
+                                         viewport:  {left: 14, top:13,  right:287, bottom:384}},
+
+                "_2":{},        // separator
+
+                "BGD - Line Art 1":     {file:"bgd_lineart1.jpg",   type:"center"},
+                "BGD - Line Art 2":     {file:"bgd_lineart2.jpg",   type:"center"},
+                "BGD - Line Art 3":     {file:"bgd_lineart3.jpg",   type:"center"},
+                "BGD - Line Art 4":     {file:"bgd_lineart4.jpg",   type:"center"},
+                "BGD - Line Art 5":     {file:"bgd_lineart5.jpg",   type:"center"},
+                "BGD - Line Art 6":     {file:"bgd_lineart6.png",   type:"center"},
+                "BGD - Sky 1":          {file:"bgd_sky1.jpg",       type:"center"},
+                "BGD - Swirl 1":        {file:"bgd_swirl1.jpg",     type:"center"},
+                "BGD - Swirl 2":        {file:"bgd_swirl2.gif",     type:"center"},
+                "BGD - Leaves 1":       {file:"bgd_leaves1.jpg",    type:"center"},
+
+                "_1":{},        // separator
+
+                "BGA - Ocean 1":        {file:"bga_ocean1.jpg",     type:"center"},
+                "BGA - Ocean 2":        {file:"bga_ocean2.jpg",     type:"center"},
+                "BGA - Ocean 3":        {file:"bga_ocean3.jpg",     type:"center"},
+
+                "BGA - Ripple 1":       {file:"bga_ripple1.jpg",    type:"center"},
+                "BGA - Ripple 2":       {file:"bga_ripple2.jpg",    type:"center"},
+                "BGA - Ripple 3":       {file:"bga_ripple3.jpg",    type:"center"},
+
+                "BGA - Line Art 1":     {file:"bga_lineart1.jpg",   type:"center"},
+                "BGA - Line Art 2":     {file:"bga_lineart2.jpg",   type:"center", border:{bottom:234}},
+                "BGA - Line Art 3":     {file:"bga_lineart3.jpg",   type:"center"},
+                "BGA - Line Art 4":     {file:"bga_lineart4.jpg",   type:"center"},
+                "BGA - Line Art 5":     {file:"bga_lineart5.png",   type:"tile"}
+};
+
+var g_Images = {
+                "_7":{},        // separator
+
+                "F - Mandala 1":        {file:"f_mandala1.jpg",     type:"clip"},
+                "F - Mandala 2":        {file:"f_mandala2.jpg",     type:"clip"},
+                "F - Mandala 3":        {file:"f_mandala3.png",     type:"clip"},
+                "F - Mandala 4":        {file:"f_mandala4.jpg",     type:"clip"},
+                "F - Mandala 5":        {file:"f_mandala5.jpg",     type:"clip"},
+                "F - Mandala 6":        {file:"f_mandala6.jpg",     type:"clip"},
+                "F - Mandala 7":        {file:"f_mandala7.jpg",     type:"clip"},
+
+                "_6":{},        // separator
+
+                "E - Mandala 1":        {file:"e_mandala1.jpg",     type:"clip"},
+                "E - Mandala 2":        {file:"e_mandala2.jpg",     type:"clip"},
+                "E - Mandala 3":        {file:"e_mandala3.jpg",     type:"clip"},
+                "E - Mandala 4":        {file:"e_mandala4.jpg",     type:"clip"},
+                "E - Mandala 5":        {file:"e_mandala5.jpg",     type:"clip"},
+                "E - Flower 1":         {file:"e_flower1.jpg",      type:"clip"},
+
+                "_5":{},        // separator
+
+                "D - Line Art 1":       {file:"d_lineart1.jpg",     type:"clip"},
+                "D - Line Art 2":       {file:"d_lineart2.png",     type:"clip"},
+                "D - Flower 1":         {file:"d_flower1.jpg",      type:"clip"},
+                "D - Flowers 2":        {file:"d_flowers2.jpg",     type:"clip"},
+                "D - Flower 3":         {file:"d_flower3.jpg",      type:"clip"},
+
+                "_4":{},        // separator
+
+                "B - Mandala 1":        {file:"b_mandala1.jpg",     type:"clip"},
+                "B - Mandala 3":        {file:"b_mandala3.jpg",     type:"clip", centerX:243, centerY:197, scale:0.8},
+                "B - Mandala 4":        {file:"b_mandala4.jpg",     type:"clip"},
+                "B - Mandala 5":        {file:"b_mandala5.jpg",     type:"clip"},
+                "B - Mandala 6":        {file:"b_mandala6.jpg",     type:"clip", centerX:232, centerY:226},
+                "B - Mandala 7":        {file:"b_mandala7.jpg",     type:"clip"},
+                "B - Mandala 8":        {file:"b_mandala8.jpg",     type:"clip"},
+                "B - Mandala 9":        {file:"b_mandala9.jpg",     type:"clip", centerX:199, centerY:199},
+                "B - Mandala 10":       {file:"b_mandala10.jpg",    type:"clip", scale:0.8},
+                "B - Mandala 11":       {file:"b_mandala11.jpg",    type:"clip"},
+                "B - Mandala 12":       {file:"b_mandala12.jpg",    type:"clip"},
+                "B - Mandala 13":       {file:"b_mandala13.jpg",    type:"clip"},
+                "B - Mandala 14":       {file:"b_mandala14.jpg",    type:"clip", scale:0.8},
+                "B - Mandala 15":       {file:"b_mandala15.jpg",    type:"clip"},
+                "B - Mandala 16":       {file:"b_mandala16.jpg",    type:"clip"},
+                "B - Mandala 17":       {file:"b_mandala17.jpg",    type:"clip"},
+                "B - Mandala 18":       {file:"b_mandala18.jpg",    type:"clip"},
+
+                "_3":{},        // separator
+
+                "A - Mandala 3":        {file:"a_mandala3.jpg",     type:"clip"},
+                "A - Mandala 4":        {file:"a_mandala4.jpg",     type:"clip"},
+                "A - Mandala 5":        {file:"a_mandala5.jpg",     type:"clip"},
+                "A - Mandala 7":        {file:"a_mandala7.jpg",     type:"clip"},
+                "A - Mandala 8":        {file:"a_mandala8.jpg",     type:"clip"},
+                "A - Mandala 9":        {file:"a_mandala9.jpg",     type:"clip", scale:0.75},
+                "A - Mandala 10":       {file:"a_mandala10.jpg",    type:"clip"},
+                "A - Mandala 11":       {file:"a_mandala11.jpg",    type:"clip"},
+                "A - Mandala 14":       {file:"a_mandala14.jpg",    type:"clip", scale:0.9},
+
+                "_2":{},        // separator
+
+                "C - Angel":            {file:"angel.jpg",          type:"clip"},
+                "C - Crystal":          {file:"crystal.jpg",        type:"clip"},
+
+                "_1":{},        // separator
+
+                "Sacred Geometry 3":    {file:"sacred3.jpg",        type:"clip"},
+                "Sacred Geometry 5":    {file:"sacred5.jpg",        type:"clip", scale:0.8},
+                "Sacred Geometry 6":    {file:"sacred6.jpg",        type:"clip"},
+                "Sacred Geometry 7":    {file:"sacred7.jpg",        type:"clip"},
+                "Sacred Geometry 8":    {file:"sacred8.jpg",        type:"clip"},
+                "Sacred Geometry 9":    {file:"sacred9.jpg",        type:"clip"},
+                "Sacred Geometry 10":   {file:"sacred10.jpg",       type:"clip"},
+                "Mandala 5":            {file:"mandala5.jpg",       type:"clip"},
+                "Mandala 9":            {file:"mandala9.jpg",       type:"clip"},
+               };
+
+const   DEBUG_COLOUR    = "green";
+var     g_Image_colour  = "white";
+
+
+var g_MastersList = [
+    "",
+
+    // Ascended Masters
+    "Mary Magdalene",               "Jesus",                "St Germain",
+    "El Morya",                     "Dom Ignacio",          "Lady Nada",
+    "Lao Tze",                      "Paul The Venetian",    "Melchizedek",
+    "Maha Chohan",                  "Kuan Yin",             "Hilarion",
+    "Kuthumi",                      "Lord Lanto",           "Pallas Athena",
+    "Mother Mary",                  "Isis",                 "Serapis Bey",
+    "St John, the Baptist",         "Eros",                 "Ma'at",
+    "Amen Bey",                     "Ptah",                 "Thomas Merton",
+    "Portia",                       "Anubis",               "Quetzalcoatl",
+    "Freya",                        "Moses",                "Vesta",
+    "Chananda",                     "Yogananda",            "Gautama Buddha",
+    "Maitreya",                     "Cha Ara",              "Hinenuitepo",
+    "St Anthony of Padua",          "Pele",
+
+    // Archangels
+    "AA Michael",                   "AA Charity",           "AA Uzziel",
+    "AA Christine",                 "AA Jophiel",           "AA Hope",
+    "AA Chamuel",                   "AA Faith",             "AA Gabriel",
+    "AA Raphael",                   "AA Ariel",             "AA Aurora",
+    "AA Uriel",                     "AA Amethyst",          "AA Zadkiel",
+    "AA Metatron",
+
+    // Cosmic Masters
+    "White Tara",                   "Ganesh",               "Sanat Kumara",
+    "Susan'oo",                     "Ra-mun",               "Vishnu",
+    "Helios",                       "Shiva",                "Osiris",
+    "Ares",                         "Metatron",             "Sitatapatra",
+    "Krishna",                      "Amaryllis",            "Hathor",
+    "Inanna",                       "Amaterasu",            "Omri Tas",
+    "Lakshmi",
+
+    // Elohim
+    "Amazonia",                     "Hercules",             "Apollo",
+    "Lumina",                       "Heros",                "Amora",
+    "Purity",                       "Cyclopea",             "Virginia",
+    "Astrea",                       "Cassiopea",            "Peace",
+    "Aloha",                        "Arcturus",             "Victoria",
+    "Elohim of the 8th ray" ];
+
+
+// Object to define origin within canvas.
+var g_Origin = {
+    // Center X,Y coordinates of center circle.
+    imageWidth:                 800,
+    imageHeight:                800,
+
+    imageCenterX:               400,            // imageWidth/2
+    imageCenterY:               400,            // imageHeight/2
+
+    torusRingSize:              100,            // initial size of torus circle 
+    torusRingWidth:             3,              // px for the torus circle
+    torusRingSpacing:           6,              // px spacing abound torus circle
+    torusRingMasterSpacing:     75,             // px spacing from torus circle to master names
+
+    torusRingPegSize:           6,              // px size of pegs on torus circle
+
+    memberSpacing:              5,              // px spacing around member names
+    masterSpacing:              15,             // px spacing around master names
+
+    memberStartAngle:           90,             // initial angle for member name
+
+    cropSpacing:                20,             // px spacing from entire image to border
+
+    titleSpacing:               20,             // px spacing from title to any member/master name
+
+    initialMaxMembers:          8,              // initial number of members
+    maxMembers:                 0,              // maximum number of members
+    maxDropDownMembers:         15,             // maximum number of members in drop down list
+
+    absXY : function( relX, relY ) {
+        return { x: Math.round( this.imageCenterX + relX ),
+                 y: Math.round( this.imageCenterY + relY ) };
+    },
+
+    polarToAbsXYWithOffset : function( radius, angle, offsetX, offsetY ) {
+        let result = this.absXY( offsetX + radius * Math.cos( angle * Math.PI / 180 ),
+                                 offsetY + radius * Math.sin( angle * Math.PI / 180 ) );
+        result.radius = radius;
+        result.angle = angle;
+        return result;
+    },
+
+    polarToAbsXY : function( radius, angle ) {
+        return this.polarToAbsXYWithOffset( radius, angle, 0, 0 );
+    },
+
+    resetImageCenter : function() {
+        this.imageCenterX = this.imageWidth / 2;
+        this.imageCenterY = this.imageHeight / 2;
+    },
+
+    setImageCenter : function( x, y ) {
+        this.imageCenterX = x;
+        this.imageCenterY = y;
+    } 
+};
+
+
+var g_DetectedFonts = {};
+var g_Title = [];
+var g_Members = [];
+var g_ObjectArray = [];
+var g_Database;
+var g_SavedSnapshots = [];
+var g_TempSnapshotTimestamp = new Date( 2999, 0 );
+var g_UnmodifiedValues = {};
+var g_InitialSnapshotLoaded = false;
+
+
+var g_startTimestamp, g_lastTimestamp;
+function profile( msg ) {
+    let now = new Date();
+    if( g_startTimestamp == undefined ) {
+        console.log( `## [0;0] ${msg}` );
+        g_startTimestamp = now;
+    } else {
+        console.log( `## [${((now - g_startTimestamp)/1000).toFixed(3)};+${((now-g_lastTimestamp)/1000).toFixed(3)}] ${msg}` );
+    }
+    g_lastTimestamp = now;
+}
+
+
+function resetGlobals() {
+    g_Title = [];
+    g_Members = [];
+    g_ObjectArray = [];
+    g_Origin.resetImageCenter();
+}
+
+
+var g_Canvas = null;
+function getCanvas( verify = true ) {
+    if( g_Canvas == null ) {
+        g_Canvas = $(ID.CANVAS);
+    }
+    return g_Canvas;
+}
+
+
+// Define the database.
+function initializeDatabase() {
+    let databaseName = "image_gen_database";
+    g_Database = new Dexie( databaseName );
+
+    if( false ) {
+        g_Database.delete().then( () => {
+            profile( "initializeDatabase: database successfully deleted" );
+        }).catch( err => {
+            console.error( "initializeDatabase: could not delete database" );
+        });
+    }
+
+    g_Database.version(1).stores( {
+        members: '&name',
+        masters: '&name',
+        torus: '++_id,_timestamp'
+    });
+
+    g_Database.open().then( function() {
+        profile( "initializeDatabase: opened database" );
+    }).catch( function(e) {
+        console.error( "initializeDatabase: Database open failed: " + e.stack );
+    });
+}
+
+
+async function addTorusDataToDatabase( data ) {
+    await g_Database.torus.add( data ).then( function() {
+        profile( "addTorusDataToDatabase: Added torus data to database" );
+    }).catch( e => {
+        console.error( "addTorusDataToDatabase: couldn't add to database: " + e.stack );
+    });
+}
+
+
+async function updateTorusDataToDatabase( data ) {
+    await g_Database.torus.put( data ).then( function() {
+        profile( `updateTorusDataToDatabase: Put torus data for _id=${data._id} in database` );
+
+        if( g_SavedSnapshots.length==0 || g_SavedSnapshots[0]._timestamp.getTime()!==g_TempSnapshotTimestamp.getTime() ) {
+            g_SavedSnapshots.unshift( data );
+        }
+        addSnapshotInfo( data, false );
+        setTitle();
+    }).catch( e => {
+        console.error( "updateTorusDataToDatabase: couldn't put torus data: " + e.stack );
+    });
+}
+
+
+async function getTorusData() {
+    g_SavedSnapshots = [];
+    g_Database.torus.orderBy("_timestamp").reverse().each( function(obj) {
+        g_SavedSnapshots.push( obj );
+        profile( `getTorusData: added _id:${obj._id}, _timestamp:${obj._timestamp.toLocaleString()}, t1:'${obj.t1}', t2:'${obj.t2}'` );
+
+        if( !g_InitialSnapshotLoaded ) {
+            g_InitialSnapshotLoaded = true;
+            if( obj._timestamp.getTime() === g_TempSnapshotTimestamp.getTime() ) {
+                // Found a temporary snapshot.  Load it.
+                initializeElementsFromHash( obj, true );
+                buildCanvasLite();      // avoid loadMembers()/saveMembers()
+            } else {
+                let now = new Date();
+                if( now.getDay() == obj._timestamp.getDay() ) {
+                    // Found a recent snapshot that was created on the same weekday.  Load
+                    //  it's style information.
+                    initializeElementsFromHash( obj );
+                    buildCanvasLite();      // avoid loadMembers()/saveMembers()
+                }
+            }
+            setTitle();
+        }
+    
+    }).catch( e => {
+        console.error( "getTorusData: couldn't read torus definitions: " + e.stack );
+    }).then( () => {
+        for( let i=0; i < g_SavedSnapshots.length; ++i ) {
+            addSnapshotInfo( g_SavedSnapshots[i] );
+        }
+    });
+}
+
+
+async function addMembersToDatabase( members ) {
+    await g_Database.members.bulkAdd( members ).then( function(lastKey) {
+        profile( "addMembersToDatabase: last id was: " + lastKey );
+    }).catch( Dexie.BulkError, function(e) {
+        for( let i=0; i < e.failures.length; ++i ) {
+            let err = e.failures[i];
+            if( err.name !== "ConstraintError" ) {
+                console.error( "addMembersToDatabase: error: " + err );
+            }
+        }
+    });
+}
+
+
+/**
+ * JavaScript code to detect available availability of a
+ * particular font in a browser using JavaScript and CSS.
+ *
+ * Author : Lalit Patel
+ * Website: http://www.lalit.org/lab/javascript-css-font-detect/
+ * License: Apache Software License 2.0
+ *          http://www.apache.org/licenses/LICENSE-2.0
+ * Version: 0.15 (21 Sep 2009)
+ *          Changed comparision font to default from sans-default-default,
+ *          as in FF3.0 font of child element didn't fallback
+ *          to parent element if the font is missing.
+ * Version: 0.2 (04 Mar 2012)
+ *          Comparing font against all the 3 generic font families ie,
+ *          'monospace', 'sans-serif' and 'sans'. If it doesn't match all 3
+ *          then that font is 100% not available in the system
+ * Version: 0.3 (24 Mar 2012)
+ *          Replaced sans with serif in the list of baseFonts
+ */
+/**
+ * Usage: d = new Detector();
+ *        d.detect('font name');
+ */
+var Detector = function() {
+    // a font will be compared against all the three default fonts.
+    // and if it doesn't match all 3 then that font is not available.
+    let baseFonts = ['monospace', 'sans-serif', 'serif'];
+
+    //we use m or w because these two characters take up the maximum width.
+    // And we use a LLi so that the same matching fonts can get separated
+    let testString = "mmmmmmmmmmlli";
+
+    //we test using 72px font size, we may use any size. I guess larger the better.
+    let testSize = '72px';
+
+    let h = document.getElementsByTagName("body")[0];
+
+    // create a SPAN in the document to get the width of the text we use to test
+    let s = document.createElement("span");
+    s.style.fontSize = testSize;
+    s.innerHTML = testString;
+    let defaultWidth = {};
+    let defaultHeight = {};
+    for (let index in baseFonts) {
+        //get the default width for the three base fonts
+        s.style.fontFamily = baseFonts[index];
+        h.appendChild(s);
+        defaultWidth[baseFonts[index]] = s.offsetWidth; //width for the default font
+        defaultHeight[baseFonts[index]] = s.offsetHeight; //height for the defualt font
+        h.removeChild(s);
+    }
+
+    function detect(font) {
+        let detected = false;
+        for (let index in baseFonts) {
+            s.style.fontFamily = font + ',' + baseFonts[index]; // name of the font along with the base font for fallback.
+            h.appendChild(s);
+            let matched = (s.offsetWidth != defaultWidth[baseFonts[index]] || s.offsetHeight != defaultHeight[baseFonts[index]]);
+            h.removeChild(s);
+            detected = detected || matched;
+        }
+        return detected;
+    }
+
+    function identifyCommonFonts() {
+        // list of 'common' fonts to search
+        let commonFonts = ["cursive", "monospace", "serif", "sans-serif", "fantasy", "default", "Arial",
+                           "Arial Black", "Arial Narrow", "Bookman Old Style", "Century",
+                           "Century Gothic", "Comic Sans MS", "Courier", "Courier New", "Georgia", "Gentium",
+                           "Impact", "King", "Lucida Console", "Lalit", "Modena", "Monotype Corsiva", "Papyrus",
+                           "Tahoma", "TeX", "Times", "Times New Roman", "Trebuchet MS", "Verdana", "Verona",
+
+                            // Windows 10 fonts
+                            "Bradley Hund ITC", "Buxton Sketch", "Cooper Black", "Elephant",
+                            "Gabriola", "Kristen ITC", "Lucida Calligraphy", "Lucida Handwriting",
+                            "Monotype Corsiva",
+
+                            // MacOS fonts
+                            "Arial Rounded MT Bold", "Avenir Next", "Baskerville", "Brush Script MT Italic",
+                            "Chalkboard", "DIN Alternate Bold", "Herculanum", "Luminari", "Phosphate",
+                            "Sovoye LET", "SignPainter", "Snell Roundhand", "Zapfino" ];
+
+        let detectedFonts = [];
+
+        commonFonts.sort();
+
+        for( let i=0; i < commonFonts.length; ++i ) {
+            if( detect(commonFonts[i]) ) {
+                detectedFonts.push( commonFonts[i] );
+            }
+        }
+        return detectedFonts;
+    }
+
+    this.detect = detect;
+    this.identifyCommonFonts = identifyCommonFonts;
+};
+
+
+function masterElement( n ) {
+    return $(ID.MASTER_.tag + n);
+}
+
+
+function memberElement( n ) {
+    return $(ID.MEMBER_.tag + n);
+}
+
+
+function computeSeed() {
+    let seed = 12345;
+    for( let i = 0; i < g_Origin.maxMembers; ++i ) {
+        let member = memberElement(i).value;
+        let master = masterElement(i).value;
+        
+        if( member !== "" ) {
+            for( let j = 0; j < member.length; ++j ) {
+                seed = ((seed + member.charCodeAt(j)) * 53) % 0x80000000;
+            }
+        }
+        if( master !== "" ) {
+            for( let j = 0; j < master.length; ++j ) {
+                seed = ((seed + master.charCodeAt(j)) * 53) % 0x80000000;
+            }
+        }
+    }
+    return seed;
+}
+
+
+function myRand(seed) {
+    this.m = 0x80000000;    // 2**31
+    this.a = 1103515245;
+    this.c = 12345;
+    this.state = seed ? seed : Math.floor(Math.random() * (this.m-1));
+}
+myRand.prototype.nextInt = function() {
+    this.state = (this.a * this.state + this.c) % this.m;
+    return this.state;
+}
+myRand.prototype.nextRange = function(start, end) {
+    this.state = (this.a * this.state + this.c) % this.m;
+    return start + Math.floor( this.state / this.m * (end-start) );
+}
+myRand.prototype.randColour = function(hex, opacity) {
+	// validate hex string
+	hex = String(hex).replace(/[^0-9a-f]/gi, '');
+	if (hex.length < 6) {
+		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+	}
+    let bgHex = colorFromID(ID.BACKGROUND_COLOUR);
+	bgHex = String(bgHex).replace(/[^0-9a-f]/gi, '');
+	if (bgHex.length < 6) {
+		bgHex = bgHex[0]+bgHex[0]+bgHex[1]+bgHex[1]+bgHex[2]+bgHex[2];
+	}
+
+	let rgba = "rgba(", c, i;
+	for (i = 0; i < 3; i++) {
+		let hexVal = parseInt(hex.substr(i*2,2), 16);
+		let bgHexVal = parseInt(bgHex.substr(i*2,2), 16);
+
+        if( hexVal < bgHexVal ) {
+            c = this.nextRange( hexVal, bgHexVal );
+        } else {
+            c = this.nextRange( bgHexVal, hexVal );
+        }
+
+		c = Math.round(Math.min(Math.max(0, c), 255)).toString();
+        if( i > 0 ) rgba += ",";
+		rgba += c;
+	}
+
+    rgba += opacity.toString() + ")";
+	return rgba;
+}
+
+
+
+function $(id) {
+    if( typeof id == "object" && "tag" in id ) {     // assume element from ID
+        return document.getElementById(id.tag);
+    } else {
+        return document.getElementById(id);
+    }
+}
+
+
+function massageName( name ) {
+    let arr = [];
+
+    // Determine if the name needs to be split.
+    if( name.length >= 10 ) {
+        let slash = name.indexOf( " / " );
+        if( slash > 0 ) {
+            let start = 0;
+            while( slash > 0 ) {
+                slash += 3;
+                arr.push( {text:myTrim( name.slice( start, slash ))} );
+                start = slash;
+                slash = name.indexOf( " / ", slash );
+            }
+            arr.push( {text:myTrim( name.slice( start, name.length ))} );
+            return arr; 
+        }
+
+        let mid = Math.floor( name.length / 2 );
+        let bestDistance = name.length;
+        let bestIndex = -1;
+
+        for( let i = 0; i < name.length; ++i ) {
+            let distance = Math.abs(mid-i);
+            if( name[i] == ' ' && distance < bestDistance ) {
+                bestIndex = i;
+                bestDistance = distance;
+            }
+        }
+
+        if( bestIndex >= 0 ) {
+            // Split the name into two.
+            arr.push( {text:myTrim( name.substring( 0, bestIndex ) )} );
+            arr.push( {text:myTrim( name.substring( bestIndex, name.length ) )} );
+            return arr;
+        }
+
+    }
+
+    arr.push( {text:myTrim(name)} );
+    return arr;
+}
+
+
+function colorFromID( id ) {
+    return "#" + $(id).value;
+}
+
+
+function createSeatingArrangement() {
+    let memberAngle = g_Origin.memberStartAngle;
+    let step = 360 / g_Members.length;
+    let masterAngle = memberAngle - step/2;
+    let radiusStep = 1;
+    let memberRadius = g_Origin.torusRingSize 
+                     + g_Origin.torusRingSpacing
+                     + g_Origin.memberSpacing 
+                     + g_Origin.torusRingPegSize + 1;
+    let masterRadius = g_Origin.torusRingSize + g_Origin.torusRingMasterSpacing;
+    let titleRadius = masterRadius + g_Origin.titleSpacing;
+    let maxRadius = g_Origin.imageCenterY;
+    let obj;
+    let result = "";
+    let context = getCanvas().getContext("2d");
+
+    if( $(ID.TORUS_ADDITION_ORDER).value === "counter" ) {
+        step = -step;
+    }
+
+    // Create the center object.
+    obj = createTextObject( OBJECT_TYPE.RECIPIENT,
+                            massageName( $(ID.RECIPIENT_NAME).value ),
+                            context,
+                            "RECIPIENT",
+                            ALIGNMENT.CENTER, 
+                            g_Origin, 
+                            0,      // radius
+                            0,      // angle
+                            g_Origin.torusRingPegSize );
+    obj.setBoundingRadius( g_Origin.torusRingSize );
+    g_ObjectArray.push( obj );
+
+    let memberStartIndex = g_ObjectArray.length;
+
+    // Create the member objects
+    for( let i = 0; i < g_Members.length; ++i ) {
+        obj = createTextObject( OBJECT_TYPE.MEMBER,
+                                massageName( g_Members[i].member ),
+                                context,
+                                "MEMBER",
+                                ALIGNMENT.AUTO, 
+                                g_Origin, 
+                                memberRadius,
+                                memberAngle,
+                                g_Origin.memberSpacing );
+        g_ObjectArray.push( obj );
+        memberAngle += step;
+
+        // Attempt to place the member.
+        for( let r = memberRadius; r < maxRadius; r += radiusStep ) {
+            obj.setRadius( r );
+            result = testOverlap();
+            if( result == null ) {
+                break;
+            }
+        }
+
+        if( result != null ) {
+            // Return the member placement error.
+            return result.msg;
+        }
+    }
+
+    // Create the master objects
+    for( let i = 0; i < g_Members.length; ++i ) {
+        if( g_Members[i].master !== "" ) {
+            obj = createTextObject( OBJECT_TYPE.MASTER,
+                                    massageName( g_Members[i].master ),
+                                    context,
+                                    "MASTER",
+                                    ALIGNMENT.AUTO, 
+                                    g_Origin, 
+                                    masterRadius,
+                                    masterAngle,
+                                    g_Origin.masterSpacing );
+            g_ObjectArray.push( obj );
+
+            let memberMin, memberMax;
+            if( $(ID.TORUS_ADDITION_ORDER).value === "counter" ) {
+                memberMax = g_ObjectArray[ memberStartIndex + i ];
+                memberMin = g_ObjectArray[ memberStartIndex + ((i+1) % g_Members.length) ];
+            } else {
+                memberMax = g_ObjectArray[ memberStartIndex + i ];
+                memberMin = g_ObjectArray[ memberStartIndex + ((i+g_Members.length-1) % g_Members.length) ];
+            }
+
+            let boundingAngle, centerAngle, angleA, angleB;
+
+            // Compute the angle between the bounding boxes of Members
+            angleA = memberMin.computeMaxAngle();
+            angleB = memberMax.computeMinAngle();
+            if( angleA < angleB ) {
+                boundingAngle = (angleA + angleB) / 2;
+            } else {
+                boundingAngle = (angleA + angleB + 360) / 2;
+            }
+
+            // Compute the angle between the center of Member names.
+            angleA = memberMin.computeCenterAngle();
+            angleB = memberMax.computeCenterAngle();
+            if( angleA < angleB ) {
+                centerAngle = (angleA + angleB) / 2;
+            } else {
+                centerAngle = (angleA + angleB + 360) / 2;
+            }
+
+            // Attempt to place the master.
+            for( let r = masterRadius; r < maxRadius; r += radiusStep ) {
+                obj.setRadius( r );
+
+                // Test if this Master text can fit withing the bounding boxes
+                //  of Members.
+                obj.setAngle( boundingAngle );
+                result = testOverlap();
+                if( result == null ) {
+                    break;
+                }
+
+                // Test if this Master text can fit within the text centers of
+                //  Members.
+                obj.setAngle( centerAngle );
+                result = testOverlap();
+                if( result == null ) {
+                    break;
+                }
+            }
+
+            if( result != null ) {
+                // Return the master placement error.
+                return result.msg;
+            }
+        }
+        masterAngle += step;
+    }
+
+    // Create the title object.
+    let title = [];
+    for( let i = 0; i < g_Title.length; ++i ) {
+        title.push( {text:myTrim(g_Title[i]),
+                     color:colorFromID(ID.TITLE_COLOUR)} );
+    }
+    if( $(ID.TITLE_PART).value !== "" ) {
+        title.push( {text:myTrim($(ID.TITLE_PART).value), 
+                     color:colorFromID(ID.TITLE_PART_COLOUR)} );
+    }
+
+    obj = createTextObject( OBJECT_TYPE.TITLE,
+                            title,
+                            context,
+                            "TITLE",
+                            ALIGNMENT.CENTER, 
+                            g_Origin, 
+                            titleRadius,
+                            270,                    // angle
+                            g_Origin.titleSpacing  );
+    g_ObjectArray.push( obj );
+
+    // Attempt to place the title.
+    for( let r = titleRadius; r < maxRadius; r += radiusStep ) {
+        obj.setRadius( r );
+        result = testOverlap();
+        if( result == null ) {
+            break;
+        } 
+    }
+
+    return result ? result.msg : null;
+}
+
+
+function drawHeart( context, xCenter, yCenter, size, borderColour, innerColour ) {
+    let x = xCenter-(size/2);
+    let y = yCenter-(size/2);
+    let w = size, h = size;
+    let d = Math.min(w,h);
+    context.strokeStyle = borderColour;
+    context.strokeWeight = 3;
+    context.shadowOffsetX = 4.0;
+    context.shadowOffsetY = 4.0;
+    context.lineWidth = size <= 20 ? 1 : 5;
+    context.beginPath();
+    context.moveTo( x, y+d/4 );
+    context.quadraticCurveTo( x,y, x+d/4, y);
+    context.quadraticCurveTo( x+d/2, y, x+d/2, y+d/4 );
+    context.quadraticCurveTo( x+d/2, y, x+d*3/4, y );
+    context.quadraticCurveTo( x+d, y, x+d, y+d/4 );
+    context.quadraticCurveTo( x+d, y+d/2, x+d*3/4, y+d*3/4 );
+    context.lineTo( x+d/2, y+d );
+    context.lineTo( x+d/4, y+d*3/4 );
+    context.quadraticCurveTo( x, y+d/2, x, y+d/4 );
+    if( innerColour != undefined ) {
+        context.fillStyle = innerColour;
+        context.fill();
+    }
+    context.closePath();
+    context.stroke();
+}
+
+
+function drawStar( context, xCenter, yCenter, spikes, outerRadius, innerRadius, borderColour, innerColour ) {
+    let rot = Math.PI/2*3;
+    let step = Math.PI / spikes;
+
+    context.strokeStyle = borderColour;
+    context.lineWidth = outerRadius <= 10 ? 1 : 5;
+    context.beginPath();
+    context.moveTo( xCenter, yCenter-outerRadius );
+    for( let i=0; i < spikes; ++i ) {
+        context.lineTo( xCenter + Math.cos( rot ) * outerRadius,
+                        yCenter + Math.sin( rot ) * outerRadius );
+        rot += step;
+
+        context.lineTo( xCenter + Math.cos( rot ) * innerRadius,
+                        yCenter + Math.sin( rot ) * innerRadius );
+        rot += step;
+    }
+    context.lineTo( xCenter, yCenter-outerRadius );
+    if( innerColour != undefined ) {
+        context.fillStyle = innerColour;
+        context.fill();
+    }
+    context.closePath();
+    context.stroke();
+}
+
+
+function drawPeg( context, x, y, angle ) {
+    let colour = colorFromID(ID.TORUS_PEG_COLOUR);
+    let borderColour = colorFromID(ID.TORUS_PEG_BORDER_COLOUR);
+    let pegSize = g_Origin.torusRingPegSize;
+
+    context.save();
+    context.translate( x, y );
+    if( $(ID.PEG_ROTATE).checked ) {
+        context.rotate( normalizeAngle(angle-270) * Math.PI/180 );
+    }
+
+    if( g_PegTreatment == PEG_TREATMENT.CIRCLE ) {
+        context.strokeStyle = borderColour;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.arc( 0, 0, pegSize, 0, 2*Math.PI );
+        context.fillStyle = colour;
+        context.fill();
+        context.closePath();
+        context.stroke();
+    } else if( g_PegTreatment == PEG_TREATMENT.SQUARE ) {
+        context.strokeStyle = borderColour;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo( -pegSize, -pegSize );
+        context.lineTo( +pegSize, -pegSize );
+        context.lineTo( +pegSize, pegSize );
+        context.lineTo( -pegSize, pegSize );
+        context.fillStyle = colour;
+        context.fill();
+        context.closePath();
+        context.stroke();
+    } else if( g_PegTreatment == PEG_TREATMENT.DIAMOND ) {
+        context.strokeStyle = borderColour;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo( 0, -pegSize );
+        context.lineTo( pegSize, 0 );
+        context.lineTo( 0, +pegSize );
+        context.lineTo( -pegSize, 0 );
+        context.fillStyle = colour;
+        context.fill();
+        context.closePath();
+        context.stroke();
+    } else if( g_PegTreatment == PEG_TREATMENT.HEART ) {
+        drawHeart( context, 0, 0, pegSize*2, borderColour, colour );
+    } else if( g_PegTreatment == PEG_TREATMENT.STAR ) {
+        drawStar( context, 0, 0, 5, pegSize, pegSize/2, borderColour, colour );
+    } else if( g_PegTreatment == PEG_TREATMENT.CHEVRON ) {
+        context.strokeStyle = borderColour;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo( -pegSize, -pegSize );
+        context.lineTo( 0, -pegSize/2 );
+        context.lineTo( pegSize, -pegSize );
+        context.lineTo( 0, pegSize );
+        context.fillStyle = colour;
+        context.fill();
+        context.closePath();
+        context.stroke();
+    } else if( g_PegTreatment == PEG_TREATMENT.TRIANGLE ) {
+        context.strokeStyle = borderColour;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo( -pegSize, -pegSize );
+        context.lineTo( pegSize, -pegSize );
+        context.lineTo( 0, pegSize );
+        context.fillStyle = colour;
+        context.fill();
+        context.closePath();
+        context.stroke();
+    }
+
+    context.restore();
+}
+
+
+function iterateSacred( obj, radius, x, y, centerArray ) {
+    let d = distance( x, y, 0, 0 );
+    let visible = d <= obj.boundingRadius;
+    if( d <= obj.boundingRadius + radius ) {
+        for( let i = 0; i < centerArray.length; ++i ) {
+            if( Math.abs( centerArray[i].centerX - x ) < 2
+             && Math.abs( centerArray[i].centerY - y ) < 2 ) {
+                // The point is already added
+                return visible;
+            }
+        }
+
+        let myIndex = centerArray.length;
+        centerArray.push( {centerX:x, centerY:y} );
+
+        let points = [];
+        for( let angle = 0; angle < 360; angle+=60 ) {
+            let newX = x + radius * Math.cos( angle * Math.PI / 180 );
+            let newY = y + radius * Math.sin( angle * Math.PI / 180 );
+            points[angle/60] = iterateSacred( obj, radius, newX, newY, centerArray );
+        }
+
+        centerArray[myIndex].visiblePoints = points;
+        return visible;
+    }
+    return false;
+}
+
+
+function plotRuleStep( context, script ) {
+    let rule = script.rule;
+    context.beginPath();
+
+    switch( rule.style ) {
+        case "bezier":
+            var control1 = ('control1' in rule) ? rule.control1
+                                                : {x:5*(rule.start.x + rule.end.x)/8, y:rule.start.y};
+            var control2 = ('control2' in rule) ? rule.control2
+                                                : {x:4*(rule.start.x + rule.end.x)/8, y:rule.end.y};
+            context.moveTo( rule.start.x, rule.start.y );
+            context.bezierCurveTo( control1.x,       control1.y,
+                                   control2.x,       control2.y,
+                                   rule.end.x,       rule.end.y );
+            context.bezierCurveTo( control2.x,       -control2.y,
+                                   control1.x,       -control1.y, 
+                                   rule.start.x,     -rule.start.y );
+            break;
+
+        case "arc":
+            context.arc( rule.center.x,  rule.center.y, 
+                         rule.radius,
+                         rule.startAngle * Math.PI / 180,
+                         rule.endAngle * Math.PI / 180,
+                         ('counterclockwise' in rule) ? rule.counterclockwise : false );
+            break;
+           
+        case "ellipse":
+            context.ellipse( rule.center.x, rule.center.y,
+                             rule.radiusX,  rule.radiusY,
+                             rule.rotation,
+                             rule.startAngle * Math.PI / 180,
+                             rule.endAngle * Math.PI / 180,
+                             ('counterclockwise' in rule) ? rule.counterclockwise : false ); 
+            break;
+
+        case "lines":
+            context.moveTo( rule.start.x,   rule.start.y );
+            for( let p in rule.points ) {
+                context.lineTo( rule.points[p].x, rule.points[p].y );
+            }
+            break;
+
+        case "spiral":
+            {
+                // rule.start           - starting point of spiral
+                // rule.startAngle      - angle from starting point
+                // rule.direction       - 'true' if backwards (optional)
+                // rule.gap             - gap between spirals
+                // rule.turns           - number of circle turns
+                let center, eAngle, increment, newX, newY, progress, sAngle, tempTheta, theta;
+                let angle = rule.startAngle * Math.PI/180;
+                let direction = ('direction' in rule) ? rule.direction : false;
+                sAngle = Math.PI + angle * Math.PI/18;
+                eAngle = sAngle + Math.PI * 2 * rule.turns;
+                center = {
+                    x: rule.start.x + Math.cos(angle) * rule.gap,
+                    y: rule.start.y + Math.sin(angle) * rule.gap
+                };
+                increment = 2 * Math.PI / 60;  //steps per rotation
+                theta = sAngle;
+
+                context.moveTo(center.x, center.y);
+                while (theta <= eAngle + increment) {
+                    progress = (theta - sAngle) / (eAngle - sAngle);
+                    tempTheta = direction ? theta : -1 * (theta - 2 * angle);
+                    newX = rule.gap * Math.cos(tempTheta) * progress;
+                    newY = rule.gap * Math.sin(tempTheta) * progress;
+                    theta += increment;
+                    context.lineTo(center.x + newX, center.y + newY);
+                }
+            }
+            break;
+    } 
+
+    if( 'strokeStyle' in script || 'lineWidth' in script ) {
+        context.stroke();
+    }
+
+    if( 'fillStyle' in script ) {
+        if( 'fillToCenter' in script ) {
+            context.lineTo( 0, 0 );
+        }
+
+        context.fillStyle = script.fillStyle;
+        context.fill();
+    }
+}
+
+
+function iterateRandom( context, arcAngle, script ) {
+    if( script.constructor === Array ) {
+        for( let i in script ) {
+            context.save();
+                iterateRandom( context, arcAngle, script[i] );
+            context.restore();
+        }
+    } else if( script.constructor === Object ) {
+        let angleDiff = 0;
+
+        if( 'strokeStyle' in script )   context.strokeStyle = script.strokeStyle;
+        if( 'lineWidth' in script )     context.lineWidth = script.lineWidth;
+        if( 'arcAngle' in script )      arcAngle = script.arcAngle;
+
+        if( 'pre' in script ) {
+            iterateRandom( context, arcAngle, script.pre );
+        }
+
+        if( 'angleDiff' in script )     angleDiff = script.angleDiff;
+
+        if( 'rule' in script ) {
+            for( let angle = 0; angle < 360; angle += arcAngle ) {
+                context.save();
+                    context.rotate( (angle + angleDiff) * Math.PI / 180 );
+
+                    plotRuleStep( context, script );
+
+                    if( 'contains' in script.rule ) {
+                        context.clip();
+                        iterateRandom( context, 360, script.rule.contains );
+                    }
+                context.restore();
+            }
+        }
+
+        if( 'post' in script ) {
+            iterateRandom( context, arcAngle, script.post );
+        }
+    }
+}
+
+
+function goldenSpiral( obj, p, array, rnd, branch ) {
+    var ctx = p.context;
+    var startX = 0;
+    var startY = 0;
+    var length = p.length;
+    var flip = p.flip;
+    var angle = p.angle;
+    var lineWidth = p.lineWidth;
+    var side = length;
+    var startColour = p.startColour;
+    var fai = ((1 + Math.sqrt(5)) / 2);
+    var x1 = 0;
+    var y1 = 0;
+    var x2 = 0;
+    var y2 = 0;
+    var rotateAngle = angle * Math.PI/180;
+    var MIN_LENGTH = 5;
+    var DEGREE_FACTOR = Math.PI / 180;
+ 
+    ctx.translate( p.startX, p.startY );
+    ctx.rotate( rotateAngle );
+    for (var i = 0; i < 8 ; i++) {       
+        if( !flip ) {
+            setGoldenDraw( [0, -90, -180, 90][i & 3], i==0, i);
+        } else {
+            setGoldenDraw( [0, 90, -180, -90][i & 3], i==0, i);
+        }
+    }
+ 
+    function setGoldenDraw(deg,flag,i) {
+        if (flag) {
+            setXY();
+        } else {
+            startX = startX + x1 + x2;
+            startY = startY + y1 + y2;
+            side = Math.sqrt(x1 * x1 + y1 * y1);
+            setXY();
+        }
+ 
+        function setXY() {
+            x1 = Math.cos(deg * DEGREE_FACTOR) * side / fai;
+            y1 = Math.sin(deg * DEGREE_FACTOR) * side / fai;
+            x2 = Math.cos(deg * DEGREE_FACTOR) * side / (fai*fai);
+            y2 = Math.sin(deg * DEGREE_FACTOR) * side / (fai*fai);
+        }
+ 
+        var dx = x1 + x2;
+        var dy = y1 + y2;
+
+        if( i == 1 ) {
+            startY -= dy;
+        } else if (i > 1) {
+            var dis = fai * Math.sqrt(dx * dx + dy * dy);
+            ctx.lineWidth=lineWidth;
+            ctx.strokeStyle="#000000";
+            ctx.beginPath();
+            var x = startX + dx + Math.cos(deg * DEGREE_FACTOR)*dis;
+            var y = startY + dy + Math.sin(deg * DEGREE_FACTOR)*dis;
+            ctx.moveTo(x, y);
+            var step = 90 / (2*Math.PI*dis / 4);
+            var adjust = flip ? step : -step;
+            for( var k = 0; k < 90; k+=step ) {
+                deg += adjust;
+                var x = startX + dx + Math.cos(deg * DEGREE_FACTOR)*dis;
+                var y = startY + dy + Math.sin(deg * DEGREE_FACTOR)*dis;
+
+                if( (k % 30) < step ) {
+                    var absX = p.startX + x*Math.cos(-rotateAngle) + y*Math.sin(-rotateAngle);
+                    var absY = p.startY - x*Math.sin(-rotateAngle) + y*Math.cos(-rotateAngle);
+                    ctx.strokeStyle = pointColour( obj, {x:absX, y:absY}, startColour );
+                }
+                ctx.lineTo( x, y );
+
+                if( array && lineWidth > 1 ) {
+                    if( branch.outerCondition(k,step,i) ) {
+                        let len = branch.outerLength(rnd, length);
+                        if( len >= MIN_LENGTH ) {
+                            array.push( {context:     ctx,
+                                         startX:      p.startX + x*Math.cos(-rotateAngle) + y*Math.sin(-rotateAngle),
+                                         startY:      p.startY - x*Math.sin(-rotateAngle) + y*Math.cos(-rotateAngle),
+                                         length:      len,
+                                         flip:        !flip,
+                                         angle:       p.angle + deg,
+                                         lineWidth:   lineWidth-1,
+                                         startColour: startColour,
+                                         id:          "outer-k:"+k.toString()+"-i:"+i.toString()} );
+                        }
+                    }
+
+                    if( branch.innerCondition(k,step,i) ) {
+                        let len = branch.innerLength(rnd, length);
+                        if( len >=MIN_LENGTH ) {
+                            array.push( {context:     ctx,
+                                         startX:      p.startX + x*Math.cos(-rotateAngle) + y*Math.sin(-rotateAngle),
+                                         startY:      p.startY - x*Math.sin(-rotateAngle) + y*Math.cos(-rotateAngle),
+                                         length:      len,
+                                         flip:        flip,
+                                         angle:       (p.angle + deg + 180) % 360,
+                                         lineWidth:   lineWidth-1,
+                                         startColour: startColour,
+                                         id:          "inner-k:"+k.toString()+"-i:"+i.toString()} );
+                        }
+                    }
+                }
+            }
+            ctx.stroke();
+        }
+    }
+}
+
+
+function iterateSpiralRotate( context, obj, startColour ) {
+    var branchParms = [ 
+                            {
+                                outerCondition:     function(k,step,i)      { return i<4 && (k%30) < step; },
+                                outerLength:        function(rnd, length)   { return rnd.nextRange(length/4, length/2); },
+                                innerCondition:     function(k,step,i)      { return i<4 && (k%45) < step; },
+                                innerLength:        function(rnd,length)    { return rnd.nextRange(length/4, length/3); }
+                            },
+                            {
+                                outerCondition:     function(k,step,i)      { return i<4 && (k%60) < step; },
+                                outerLength:        function(rnd, length)   { return rnd.nextRange(length/4, length/2); },
+                                innerCondition:     function(k,step,i)      { return i<4 && (k%30) < step; },
+                                innerLength:        function(rnd,length)    { return rnd.nextRange(length/4, length/3); }
+                            }
+                      ];
+    let rnd = new myRand( computeSeed() );
+    let skipAngle = [60, 45, 90][rnd.nextRange(0, 3)];
+    var seedParms = {context:     context,
+                     startX:      obj.centerX(), 
+                     startY:      obj.centerY(),
+                     length:      rnd.nextRange( obj.boundingRadius/2, obj.boundingRadius ) ,
+                     flip:        rnd.nextRange( 0, 2 ) == 0,
+                     angle:       angle,
+                     lineWidth:   rnd.nextRange( 0, 6 )==0 ? 3 : 2,  
+                     startColour: startColour};
+    var branchSelect = rnd.nextRange( 0, branchParms.length );
+
+    for( var angle = 0; angle < 360; angle += skipAngle ) {
+        seedParms.angle = angle;
+        var array = [ seedParms ];
+
+        for( var i = 0; i < array.length; ++i ) {
+            context.save();
+                goldenSpiral( obj, array[i], array, rnd, branchParms[branchSelect] );
+            context.restore();
+        }
+    }
+}
+
+
+function polarToXY( radius, angle, offset ) {
+    return { x:radius * Math.cos( angle * Math.PI / 180 ) + (offset == null ? 0 : offset.x),
+             y:radius * Math.sin( angle * Math.PI / 180 ) + (offset == null ? 0 : offset.y),
+             radius:radius,
+             angle:angle };
+}
+
+
+// Shallow object clone function.
+function cloneAndReflect( obj ) {
+    let newObj = (obj instanceof Array) ? [] : {};
+    for (let i in obj) {
+        if (obj[i] && typeof obj[i] == "object") {
+            newObj[i] = cloneAndReflect( obj[i] );
+        }
+        else
+        {
+            newObj[i] = obj[i];
+        }
+    }
+    if( typeof newObj == "object" && "angle" in newObj ) {
+        newObj.angle = -newObj.angle;
+        newObj.y = -newObj.y;
+    }
+    return newObj;
+}; 
+
+
+function createScript( obj, arcAngle ) {
+    let script = [];
+    let seed = computeSeed();
+    let rnd = new myRand( seed );
+    let radius = obj.boundingRadius;
+    let angle = 0;
+    let last;
+    let thisRadius;
+
+    function randColour( opacity ) {
+        if( opacity == null ) {
+            opacity = rnd.nextRange( 1, 4 ) / 10;
+        }
+        return rnd.randColour( colorFromID(ID.TORUS_TREATMENT_COLOUR), opacity );
+    }
+
+    var iter = 0;
+    while( radius > 0 ) {
+        let next = [];
+        switch( rnd.nextRange(0, 3) ) {
+            case 0: 
+                // circle with possible reflection
+                angle = rnd.nextRange( 0, 8 ) * 5;
+                thisRadius = rnd.nextRange( 1, 5 ) * 5;
+                next.push( {    strokeStyle:  randColour(),
+                                lineWidth:    rnd.nextRange(1,3),
+                                rule: {
+                                    style:      "arc",
+                                    center:     polarToXY( radius-thisRadius, angle ),
+                                    radius:     thisRadius,
+                                    startAngle: 0,
+                                    endAngle:   360
+                                } } );
+                last = next[next.length-1];
+                if( rnd.nextRange( 0, 5 ) == 0 ) {
+                    last.fillStyle = randColour();
+                }
+                radius -= 2*last.rule.radius;
+                let count = rnd.nextRange( 0, 8 );
+                if( count > 0 ) {
+                    last.rule.contains = [];
+                    switch( rnd.nextRange( 0, 2 ) ) {
+                        case 0:
+                            // Radial lines from center of circle
+                            for( let i = 0; i < count; ++i ) {
+                                last.rule.contains.push( {  strokeStyle:    randColour(),
+                                                            lineWidth:      rnd.nextRange(1,3),
+                                                            rule: {
+                                                                style:      "lines",
+                                                                start:      last.rule.center,
+                                                                points:     [ polarToXY( last.rule.radius, i*360/count, last.rule.center ) ]
+                                                            } } );
+                            }
+                            break;
+
+                        case 1:
+                            let angle = 0;
+                            last.rule.contains.push( {  strokeStyle:    randColour(),
+                                                        lineWidth:      rnd.nextRange(1,2),
+                                                        rule: {
+                                                            style:      "bezier",
+                                                            start:      polarToXY( last.rule.radius, angle+180+45, last.rule.center ),
+                                                            end:        polarToXY( last.rule.radius, angle, last.rule.center )
+                                                        } } );
+                            if( rnd.nextRange( 0, 2 ) == 0 ) {
+                                last.rule.contains.push( {  strokeStyle:    randColour(),
+                                                            lineWidth:      rnd.nextRange(1,2),
+                                                            rule: {
+                                                                style:      "bezier",
+                                                                start:      polarToXY( last.rule.radius, angle+180+45, last.rule.center ),
+                                                                end:        last.rule.center
+                                                            } } );
+                            }
+                            break;
+                    }
+                }
+                if( angle > 0 ) {
+                    next.push( cloneAndReflect( next ) );
+                }
+                break;
+
+            case 1:
+                angle = 0;
+                let startRadius = radius - rnd.nextRange(2,5)*10;
+                if( startRadius > 0 ) {
+                    let aa = arcAngle / (2^rnd.nextRange(0,2));
+                    let ad = 0;
+                    while( radius > startRadius ) {
+                        next.push( {  strokeStyle:  randColour(),
+                                      lineWidth:    rnd.nextRange(1,2),
+                                      arcAngle:     aa,
+                                      rule: {
+                                          style:    "bezier",
+                                          start:    polarToXY( startRadius, aa ),
+                                          end:      polarToXY( radius, angle )
+                                      } } );
+                        if( rnd.nextRange(0,2) == 0 ) {
+                            next[next.length-1].fillStyle = randColour();
+                        }
+                        radius -= rnd.nextRange( 2, 4 ) * 10;
+                    }
+                }
+                radius = startRadius;
+                break;
+
+            case 2:
+                angle = rnd.nextRange( 1, 5 ) * 5;
+                next.push( {  strokeStyle:    randColour(),
+                              lineWidth:      rnd.nextRange(1,3),
+                              arcAngle:       arcAngle / (2^rnd.nextRange(0,2)),
+                              rule: {
+                                style:      "lines",
+                                start:      polarToXY( radius - rnd.nextRange( 0, 4 ) * 10, -arcAngle ),
+                                points:     [ polarToXY( radius - rnd.nextRange( 0, 3 ) * 10, 0 ) ]
+                             } } );
+                last = next[next.length - 1];
+                if( rnd.nextRange(0,3) == 0 ) {
+                    last.fillStyle = last.strokeStyle;
+                    if( rnd.nextRange( 0, 2 ) == 0 ) {
+                        last.fillToCenter = true;
+                    }
+                }
+                radius = Math.min( last.rule.start.radius, last.rule.points[0].radius );
+                next.push( cloneAndReflect( next ) );
+                break;
+        }
+        script.push( next );
+        //if( ++iter > 2 ) break;
+    }
+    return script;
+}
+
+
+function metatron2( context, obj, startColour ) {
+    var smallRadius = obj.boundingRadius / 9;
+    var largeRadius = 4*smallRadius;
+    var arr = [];
+    var MAX_OFFSET = 1; // 3 pixels
+    var CENTER = {x:0, y:0};
+
+    function computeAngle( p1, p2 ) {
+        var theta = Math.atan2( p1.y - p2.y, p1.x - p2.x );
+        return (theta >= 0) ? theta / Math.PI * 180
+                            : (theta + 2*Math.PI) / Math.PI * 180;
+    }
+
+    function addPoint( p ) {
+        var distanceFromCenter = distancePoints( p, CENTER );
+
+        if( distanceFromCenter > obj.boundingRadius-smallRadius+0.10 ) {
+            return false;
+        }
+
+        var angleFromCenter = computeAngle( p, CENTER );
+
+        if( distanceFromCenter > 7*smallRadius && ((angleFromCenter+0.05)%30) > 1 ) {
+            return false;
+        }
+
+        for( var i in arr ) {
+            if( distancePoints( arr[i], p ) < MAX_OFFSET ) {
+                return true;
+            }
+        }
+        p.id = arr.length;
+        p.lines = [];
+        arr.push( p );
+        p.distanceFromCenter = distanceFromCenter;
+        p.angleFromCenter = angleFromCenter;
+
+        context.strokeStyle = pointColour( obj, {x:obj.centerX()+p.x, y:obj.centerY()+p.y}, startColour );
+        context.lineWidth = 1;
+        context.beginPath();
+        context.arc( p.x, p.y, smallRadius, 0, 2*Math.PI );
+        context.stroke();
+
+        if( p == CENTER || Math.abs(distanceFromCenter - largeRadius) < MAX_OFFSET ) {
+            p.largeCircle = true;
+            context.strokeStyle = pointColour( obj, {x:obj.centerX()+p.x, y:obj.centerY()+p.y}, startColour );
+            context.lineWidth = 2;
+            context.beginPath();
+            context.arc( p.x, p.y, largeRadius, 0, 2*Math.PI );
+            context.stroke();
+        } else {
+            p.largeCircle = false;
+        }
+
+        var startAngle = 90;
+        for( let angle = startAngle; angle < 360+startAngle; angle+=60 ) {
+            let newX = p.x + 2*smallRadius * Math.cos( angle * Math.PI / 180 );
+            let newY = p.y + 2*smallRadius * Math.sin( angle * Math.PI / 180 );
+            addPoint( {x:newX, y:newY} );
+        }
+        return true;
+    }
+
+    addPoint( CENTER );
+
+    arr.sort( function(a,b){ 
+                return Math.abs(b.distanceFromCenter-a.distanceFromCenter) < 0.5
+                         ? b.angleFromCenter-a.angleFromCenter 
+                         : b.distanceFromCenter-a.distanceFromCenter; } );
+
+    for( var i in arr ) {
+        var p1 = arr[i];
+
+/*
+        context.strokeStyle = "blue";
+        context.beginPath();
+        context.arc( p1.x, p1.y, smallRadius/2, 0, 2*Math.PI );
+        context.fill();
+        context.stroke();
+*/
+
+        var targets = [];
+        for( var t in arr ) {
+            var p2 = arr[t]; 
+            if( p1 != p2 ) {
+                var angle = normalizeAngle( computeAngle( p2, p1 ) - p1.angleFromCenter );
+                if( Math.abs( angle ) < 1 ) {
+                    continue;
+                }
+
+                var node = {angle:      angle,
+                            distance:   distancePoints( p1, p2 ),
+                            center:     arr[t]};
+                var found = false;
+
+                for( var j in targets ) {
+                    var tj = targets[j];
+                    if( Math.abs(tj.angle - node.angle) < 1 ) {
+                        found = true;
+                        if( node.distance > tj.distance ) {
+                            targets[j] = node;
+                            break;
+                        }
+                    }
+                }
+                if( !found ) {
+                    targets.push( node );
+                }
+            }
+        }
+
+        targets.sort( function(a,b) { return b.angle - a.angle; } );
+
+        var rays = [0, 
+               //     Math.floor( targets.length * 4/27 ),
+               //     Math.floor( targets.length * 7/27 ),
+                    Math.floor( targets.length * 13/27 ),
+               //     Math.floor( targets.length * 19/27 ),
+               //     Math.floor( targets.length * 22/27 ),
+                    targets.length-1];
+    
+        context.strokeStyle = pointColour( obj, {x:obj.centerX()+p1.x, y:obj.centerY()+p1.y}, startColour );
+        for( var r=0; r < rays.length; ++r ) {
+            var t = targets[rays[r]];
+
+            if( p1.lines[t.center.id] ) {
+                continue;
+            }
+
+            context.beginPath();
+            context.moveTo( p1.x, p1.y );
+            context.strokeStyle = pointColour( obj, {x:obj.centerX()+t.center.x, y:obj.centerY()+t.center.y}, startColour );
+            context.lineTo( t.center.x, t.center.y );
+            context.stroke();
+
+            t.center.lines[p1.id] = true;
+        }
+    }
+}
+
+
+function drawSeatingArrangement() {
+    let maxX, minX = maxX = g_Origin.imageCenterX;
+    let maxY, minY = maxY = g_Origin.imageCenterY;
+    let min = Math.min, max = Math.max;
+
+    // Restore the canvas to configured dimensions.
+    getCanvas().width = g_Origin.imageWidth;
+    getCanvas().height = g_Origin.imageHeight;
+    
+    // Compute the image dimensions for cropping.
+    if( g_ObjectArray.length > 0 ) {
+        let obj = g_ObjectArray[0];
+        let maxRadius = obj.origin.torusRingSize + obj.spacing;
+
+        minX = min( minX, obj.centerX() - maxRadius );
+        maxX = max( maxX, obj.centerX() + maxRadius );
+
+        minY = min( minY, obj.centerY() - maxRadius );
+        maxY = max( maxY, obj.centerY() + maxRadius );
+
+        for( let i = 0; i < g_ObjectArray.length; ++i ) {
+            let obj = g_ObjectArray[i];
+
+            minX = min( minX, obj.left() );
+            maxX = max( maxX, obj.right() );
+
+            minY = min( minY, obj.top() );
+            maxY = max( maxY, obj.bottom() );
+        }
+    }
+
+    minX = max( minX - g_Origin.cropSpacing, 0 );
+    minY = max( minY - g_Origin.cropSpacing, 0 );
+
+    maxX = min( maxX + g_Origin.cropSpacing, g_Origin.imageWidth );
+    maxY = min( maxY + g_Origin.cropSpacing, g_Origin.imageHeight );
+
+/*
+    // Resize and fill the canvas
+    let newWidth = maxX-minX;
+    let newHeight = maxY-minY;
+    getCanvas().width = newWidth;
+    getCanvas().height = newHeight;
+
+    
+    // Alter the image 'center' before the redraw.
+    g_Origin.setImageCenter( g_ObjectArray[0].centerX() - minX,
+                             g_ObjectArray[0].centerY() - minY );
+*/
+
+    // Draw all the objects.
+    for( let i = 0; i < g_ObjectArray.length; ++i ) {
+        let obj     = g_ObjectArray[i];
+
+        let context = obj.context;
+        if( i == 0 ) {
+            let pegs = [];
+            let canvasDimension = {top:     0, 
+                                   left:    0, 
+                                   bottom:  maxY - minY,
+                                   right:   maxX - minX,
+
+                                   growthX: function() { 
+                                        return this.imageBorder ? this.width() / this.imageBorder.width() : 1.0;
+                                   },
+                                   growthY: function() {
+                                        return this.imageBorder ? this.height() / this.imageBorder.height() : 1.0;
+                                   },
+                                   imageScaleX: function( x ) {
+                                        return x * (this.imageBorder && this.imageView
+                                                    ? this.imageBorder.width() / this.imageView.width()
+                                                    : 1.0);
+                                   },
+                                   imageScaleY: function( y ) {
+                                        return y * (this.imageBorder && this.imageView
+                                                    ? this.imageBorder.height() / this.imageView.height()
+                                                    : 1.0);
+                                   },
+                        
+                                   width: function() { return this.imageScaleX(this.right - this.left)+1; },
+                                   height: function() { return this.imageScaleY(this.bottom - this.top)+1; } 
+                                  };
+            let imageDesc, image, imageCenter;
+            let imageBorder, imageView, imageType;
+
+
+            if( $(ID.BACKGROUND_TREATMENT).value !== "0" ) {
+                imageDesc = g_Background_images[$(ID.BACKGROUND_TREATMENT).value];
+                image = imageDesc ? imageDesc.image : null;
+            }
+
+            if( image != undefined && image.complete ) {
+                imageBorder  = {top:    0, 
+                                left:   0, 
+                                bottom: image.height-1, 
+                                right:  image.width-1,
+                                
+                                width: function() { return this.right - this.left+1 },
+                                height: function() { return this.bottom - this.top+1; }
+                               };
+                imageView    = Object.assign( {}, imageBorder );
+
+                if( "border" in imageDesc ) {
+                    imageBorder.top     = max( imageBorder.top, imageDesc.border.top || imageBorder.top );
+                    imageBorder.left    = max( imageBorder.left, imageDesc.border.left || imageBorder.left );
+                    imageBorder.bottom  = min( imageBorder.bottom, imageDesc.border.bottom || imageBorder.bottom );
+                    imageBorder.right   = min( imageBorder.right, imageDesc.border.right || imageBorder.right );
+                }
+
+                if( "viewport" in imageDesc ) {
+                    imageView.top       = max( imageBorder.top, 
+                                                max( imageView.top, imageDesc.viewport.top || imageView.top ) );
+                    imageView.left      = max( imageBorder.left,
+                                                max( imageView.left, imageDesc.viewport.left || imageView.left ) ); 
+                    imageView.bottom    = min( imageBorder.bottom,
+                                                min( imageView.bottom, imageDesc.viewport.bottom || imageView.bottom ) );
+                    imageView.right     = min( imageBorder.right,
+                                                min( imageView.right, imageDesc.viewport.right || imageView.right ) );
+                }
+
+                imageCenter = {x:(imageView.left + imageView.right)/2,
+                               y:(imageView.top + imageView.bottom)/2};
+                if( "center" in imageDesc ) {
+                    imageCenter.x = imageDesc.center.x || imageCenter.x;
+                    imageCenter.y = imageDesc.center.y || imageCenter.y;
+                }
+
+                if( imageBorder.top < imageBorder.bottom 
+                 && imageBorder.left < imageBorder.right
+                 && imageView.top < imageView.bottom
+                 && imageView.left < imageView.right
+                 && imageCenter.x >= imageView.left
+                 && imageCenter.x <= imageView.right
+                 && imageCenter.y >= imageView.top
+                 && imageCenter.y <= imageView.bottom ) {
+                    // The boundary conditions are valid.  Accept the imageType.
+                    imageType = imageDesc.type;
+
+                    if( imageType === "stretch" ) {
+                        // Set border and viewport information for the canvas for
+                        //  computing the region within the background image to render.
+                        canvasDimension.imageBorder = imageBorder;
+                        canvasDimension.imageView = imageView;
+                    }
+                }
+            }
+
+            if( imageBorder == undefined ) {
+                imageBorder = Object.assign( {}, canvasDimension );
+            }
+            if( imageView == undefined ) {
+                imageView = Object.assign( {}, imageBorder );
+            }
+
+            // Configure the canvas dimensions and fill in the background colour.
+            getCanvas().width = canvasDimension.width();
+            getCanvas().height = canvasDimension.height();
+            context.fillStyle = imageType==undefined ? g_Image_colour : "white";
+            context.fillRect( 0, 0, canvasDimension.width(), canvasDimension.height() );
+
+            // Adjust the drawing image center to account for the clipped imageBorder.
+            g_Origin.setImageCenter( g_ObjectArray[0].centerX() - minX
+                                        + canvasDimension.growthX() * (imageView.left - imageBorder.left),
+                                     g_ObjectArray[0].centerY() - minY
+                                        + canvasDimension.growthY() * (imageView.top - imageBorder.top) );
+
+            if( imageType != undefined ) {
+                context.save();
+                    // Set the opacity.
+                    context.globalAlpha = Math.max( getOpacity( colorFromID(ID.BACKGROUND_COLOUR) ), 5 ) / 100;
+
+                    switch( imageType ) {
+                        case "tile":
+                            // tile the clipped image in the background
+                            for( let y=canvasDimension.top; y <= canvasDimension.bottom; y += imageBorder.height() ) {
+                                for( let x=canvasDimension.left; x <= canvasDimension.right; x += imageBorder.width() ) {
+                                    context.drawImage( image,
+                                                       imageBorder.left,
+                                                       imageBorder.top,
+                                                       imageBorder.width(),
+                                                       imageBorder.height(),
+                                                       x,
+                                                       y,
+                                                       imageBorder.width(),
+                                                       imageBorder.height() );    
+                                }
+                            }
+                            break;
+
+                        case "center":
+                            {
+                                let centerMaxX = min( imageCenter.x - imageBorder.left,
+                                                      imageBorder.right - imageCenter.x );
+                                centerMaxX     = min( centerMaxX, 
+                                                      canvasDimension.height()*centerMaxX / canvasDimension.width() );
+
+                                let centerMaxY = min( imageCenter.y - imageBorder.top,
+                                                      imageBorder.bottom - imageCenter.y );
+                                centerMaxY     = min( centerMaxY, 
+                                                      canvasDimension.width()*centerMaxY / canvasDimension.height() );
+
+                                context.drawImage( image,
+                                                   imageCenter.x - centerMaxX,
+                                                   imageCenter.y - centerMaxY,
+                                                   2 * centerMaxX,
+                                                   2 * centerMaxY,
+                                                   canvasDimension.left,
+                                                   canvasDimension.top,
+                                                   canvasDimension.width(),
+                                                   canvasDimension.height() );
+                            }
+                            break;
+
+                        case "stretch":
+                            {
+                                // stretch background image
+                                context.drawImage( image,
+                                                   imageBorder.left,
+                                                   imageBorder.top,
+                                                   imageBorder.width(),
+                                                   imageBorder.height(),
+                                                   canvasDimension.left,
+                                                   canvasDimension.top,
+                                                   canvasDimension.width(),
+                                                   canvasDimension.height() );    
+                            }
+                            break;
+                    }
+                context.restore();
+            }
+            
+            // Compute all the peg locations
+            for( let j = 0; j < g_ObjectArray.length; ++j ) {
+                let pegObj = g_ObjectArray[j];
+
+                if( pegObj.objectType == OBJECT_TYPE.MEMBER ) {
+                    let peg = pegObj.origin.polarToAbsXY( obj.boundingRadius, pegObj.angle );
+                    pegs.push( peg );
+                }
+            }
+
+            switch( g_TorusTreament ) {
+                case TORUS_TREATMENT.MESH:
+                    for( let j =0; j < pegs.length; ++j ) {
+                        for( let k = j+1; k < pegs.length; ++k ) {
+                            context.strokeStyle = colorFromID(ID.TORUS_TREATMENT_COLOUR);
+                            context.lineWidth = 1;
+                            context.beginPath();
+                            context.moveTo( pegs[j].x, pegs[j].y );
+                            context.lineTo( pegs[k].x, pegs[k].y );
+                            context.closePath();
+                            context.stroke();
+                        }
+                    }
+                    break;
+	
+                case TORUS_TREATMENT.HEART:
+                    drawHeart( context, obj.centerX(), obj.centerY(), obj.boundingRadius, 
+                                colorFromID(ID.TORUS_TREATMENT_COLOUR) );
+                    break;
+
+                case TORUS_TREATMENT.RANDOM:
+                    {
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
+                        let seed = computeSeed();
+                        let rnd = new myRand( seed );
+
+                        function polarToXY( radius, angle ) {
+                            if( radius == null ) {
+                                radius = rnd.nextRange( 0, obj.boundingRadius );
+                            }
+                            if( angle == null ) {
+                                angle = rnd.nextRange( 0, 360 );
+                            } 
+                            return { x:radius * Math.cos( angle * Math.PI / 180 ),
+                                     y:radius * Math.sin( angle * Math.PI / 180 ),
+                                     radius:radius,
+                                     angle:angle };
+                        }
+
+                        context.save();
+                        context.beginPath();
+                        context.arc( obj.centerX(), obj.centerY(), 
+                                     obj.boundingRadius + 1, 0, 2*Math.PI );
+                        context.clip();
+
+                        context.translate( obj.centerX(), obj.centerY() );
+                        context.lineJoin = "round";
+
+                        let arcAngle = 360 / 8;
+                        let radius = obj.boundingRadius - 10;
+                        let depth = 40;
+
+                        iterateRandom( context, arcAngle, createScript( obj, arcAngle ) );
+                        context.restore();
+                    }
+                    break;
+
+                case TORUS_TREATMENT.GEOMETRIC_1:
+                    {
+                        for( let j = 0; j < g_ObjectArray.length; ++j ) {
+                            let pegObj = g_ObjectArray[j];
+
+                            if( pegObj.objectType == OBJECT_TYPE.MEMBER ) {
+                                let point;
+
+                                context.strokeStyle = colorFromID(ID.TORUS_TREATMENT_COLOUR);
+                                context.lineWidth = 1;
+                                context.beginPath();
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius, pegObj.angle );
+                                context.moveTo( point.x, point.y );
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius, pegObj.angle+120 );
+                                context.lineTo( point.x, point.y );
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius, pegObj.angle+240 );
+                                context.lineTo( point.x, point.y );
+                                context.closePath();
+                                context.stroke();
+                                
+                                context.beginPath();
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius/2, pegObj.angle+60 );
+                                context.arc( point.x, point.y, obj.boundingRadius/2, 0, 2*Math.PI );
+                                context.closePath();
+                                context.stroke();
+
+                                context.beginPath();
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius/2, pegObj.angle+180 );
+                                context.arc( point.x, point.y, obj.boundingRadius/2, 0, 2*Math.PI );
+                                context.closePath();
+                                context.stroke();
+
+                                context.beginPath();
+                                point = pegObj.origin.polarToAbsXY( obj.boundingRadius/2, pegObj.angle-60 );
+                                context.arc( point.x, point.y, obj.boundingRadius/2, 0, 2*Math.PI );
+                                context.closePath();
+                                context.stroke();
+                            }
+                        }
+                    }
+                    break;
+
+                case TORUS_TREATMENT.FLOWER_OF_LIFE:
+                    {
+                        let centerArray = [];
+                        let radius = Math.floor( obj.boundingRadius/3 );
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
+
+                        iterateSacred( obj, radius, 0, 0, centerArray );
+                        context.lineWidth = 1;
+                        context.strokeStyle = colorFromID(ID.TORUS_TREATMENT_COLOUR);
+                        for( let j = 0; j < centerArray.length; ++j ) {
+                            let point = obj.origin.absXY( centerArray[j].centerX, centerArray[j].centerY );
+
+                            context.strokeStyle = pointColour( obj, point, startColour );
+                            let visiblePoints = centerArray[j].visiblePoints;
+                            for( let k = 0; k < visiblePoints.length; ++k ) {
+                                let endIndex = (k+1) % visiblePoints.length;
+                                if( visiblePoints[k] && visiblePoints[endIndex] ) {
+                                    let startAngle = 2*Math.PI * k / visiblePoints.length;
+                                    let endAngle = 2*Math.PI * endIndex / visiblePoints.length;
+                                    context.beginPath();
+                                    context.arc( point.x, point.y, radius, startAngle, endAngle );
+                                    context.closePath();
+                                    context.stroke();
+                                }
+                            }
+                        }
+                    }
+                    break;
+
+                case TORUS_TREATMENT.METATRONS_CUBE:
+                    {
+                        let radius = obj.boundingRadius/5;
+                        let points = [];
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
+                        let angleStep = 360 / 6;
+                        let pegObj = g_ObjectArray[0];
+
+                        points.push( {point:pegObj.origin.polarToAbsXY( 0, 0 ), colour:startColour} );
+                        for( let r = 2*radius; r <= 4*radius; r += 2*radius ) {
+                            for( let count = 0; count < 6; ++count ) {
+                                let point = pegObj.origin.polarToAbsXY( radius, 90+count*angleStep );
+                                points.push( {point:pegObj.origin.polarToAbsXY( r, 90+count*angleStep ), 
+                                              colour:pointColour( obj, point, startColour )} );
+                            }
+                        }
+
+                        context.lineWidth = 1;
+                        for( let j = 0; j < points.length; ++j ) {
+                            context.strokeStyle = points[j].colour;
+                            context.beginPath();
+                            context.arc( points[j].point.x, points[j].point.y, radius, 0, 2*Math.PI );
+                            context.closePath();
+                            context.stroke();
+                        }
+
+                        for( let j = 1; j < points.length; ++j ) {
+                            for( let k = j+1; k < points.length; ++k ) {
+                                let gradient = context.createLinearGradient( points[j].point.x, points[j].point.y,
+                                                                             points[k].point.x, points[k].point.y );
+                                gradient.addColorStop( 0, points[j].colour );
+                                gradient.addColorStop( 1, points[k].colour );
+                                context.strokeStyle = gradient;
+                                context.beginPath();
+                                context.moveTo( points[j].point.x, points[j].point.y );
+                                context.lineTo( points[k].point.x, points[k].point.y );
+                                context.closePath();
+                                context.stroke();
+                                context.fillStyle = null;
+                            }
+                        }
+                    }
+                    break;
+
+                case TORUS_TREATMENT.DAISY:
+                    {
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
+                        let width = obj.boundingRadius / 6;
+                         
+                        for( let radius = width/2; radius < obj.boundingRadius; radius += width/2 ) {
+                            for( let angle = 0; angle < 360; angle += 10 ) {
+                                let center = obj.origin.polarToAbsXY( radius, angle );
+                                let colour = pointColour( obj, center, startColour );
+                                context.beginPath();
+                                context.strokeStyle = colour;
+                                context.arc( center.x, center.y, width/2, 0, 2*Math.PI );
+                                context.closePath();
+                                context.stroke();
+                            }
+                            width *= 2;
+                        }
+                    }
+                    break;
+
+                case TORUS_TREATMENT.PETALS:
+                    {
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
+                        for( let angle=0; angle < 360; angle+=20 ) {
+                            let center = obj.origin.polarToAbsXY( obj.boundingRadius/2, angle );
+                            context.beginPath();
+                            context.strokeStyle = pointColour( obj, center, startColour );
+                            context.ellipse( center.x, center.y, obj.boundingRadius/2, 20, 
+                                             angle * Math.PI / 180, 2*Math.PI, false );
+                            context.fillStyle = pointColour( obj, center, startColour, "rgba", 0.1 );
+                            context.fill();
+                            context.closePath();
+                            context.stroke();
+                        }
+                    }
+                    break;
+
+                case TORUS_TREATMENT.GOLDEN_SPIRAL:
+                    {
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
+                        context.save();
+                        context.beginPath();
+                        context.arc( obj.centerX(), obj.centerY(), 
+                                     obj.boundingRadius + 1, 0, 2*Math.PI );
+                        context.clip();
+                        context.stroke();
+
+                        iterateSpiralRotate( context, obj, startColour );
+                        context.restore();
+                    }
+                    break;
+
+                case TORUS_TREATMENT.METATRON_2:
+                    {
+                        let startColour = colorFromID(ID.TORUS_TREATMENT_COLOUR);
+                    
+                        context.save();
+                        context.translate( obj.centerX(), obj.centerY() );
+                        metatron2( context, obj, startColour );
+                        context.restore();
+                    }
+                    break;
+
+                case TORUS_TREATMENT.SHADED_SPHERE:
+                    {
+                        let radius = obj.boundingRadius;
+                        let startRadius = radius * (1/8);
+                        let endRadius = radius;
+                        let gradient = context.createRadialGradient( obj.centerX()-15,
+                                                                     obj.centerY()-15,
+                                                                     startRadius,
+                                                                     obj.centerX()+5,
+                                                                     obj.centerY()+5,
+                                                                     endRadius );
+                        let colors = ['white', colorFromID(ID.TORUS_TREATMENT_COLOUR)];
+                        for( let i = 0; i < colors.length; ++i ) {
+                            gradient.addColorStop( i / (colors.length-1), colors[i] );
+                        }
+
+                        context.save();
+                            context.beginPath();
+                            context.fillStyle = gradient;
+                            context.arc( obj.centerX(), obj.centerY(), radius, 0, 2*Math.PI );
+                            context.fill();
+                            context.stroke();
+                        context.restore();
+                    }
+                    break;
+
+                case TORUS_TREATMENT.HONEYCOMB_1:
+                case TORUS_TREATMENT.HONEYCOMB_2:
+                    {
+                        let radius = obj.boundingRadius;
+                        let startRadius = radius * (1/8);
+                        let endRadius = radius;
+                        let gradient = context.createRadialGradient( obj.centerX()-15,
+                                                                     obj.centerY()-15,
+                                                                     startRadius,
+                                                                     obj.centerX()+5,
+                                                                     obj.centerY()+5,
+                                                                     endRadius );
+                        let colors = ['white', colorFromID(ID.TORUS_TREATMENT_COLOUR)];
+                        for( let i = 0; i < colors.length; ++i ) {
+                            gradient.addColorStop( i / (colors.length-1), colors[i] );
+                        }
+                        context.fillStyle = gradient;
+
+
+                        let r = obj.boundingRadius*2 / 16;
+                        let grid = obj.boundingRadius / r;
+
+                        function drawHexagon( x, y ) {
+                            context.beginPath();
+                            for( let a=30; a<360; a+=60 ) {
+                                let x1 = x + r * Math.cos( a * Math.PI/180 );
+                                let y1 = y + r * Math.sin( a * Math.PI/180 );
+                    
+                                if( a==30 ) {
+                                    context.moveTo( x1, y1 );
+                                } else {
+                                    context.lineTo( x1, y1 );
+                                }
+                            }
+                            context.closePath();
+                            context.stroke();
+
+                            if( g_TorusTreament == TORUS_TREATMENT.HONEYCOMB_2 ) {
+                                context.arc( x, y, r, 0, 2*Math.PI );
+                                context.stroke();
+                            }
+                        }
+
+                        context.save();
+                        context.beginPath();
+                        context.arc( obj.centerX(), obj.centerY(), 
+                                     obj.boundingRadius + 1, 0, 2*Math.PI );
+                        context.clip();
+                        context.stroke();
+
+                        let offset = 0;
+                        let y_scale = 2*r * Math.cos( 30 * Math.PI/180 );
+                        let y_count = 1.1*Math.ceil(obj.boundingRadius/y_scale)*y_scale;
+                        for( let y=obj.centerY()-y_count; y<=obj.centerY() + y_count; y+=y_scale ) {
+                            for( let x=obj.centerX() - r*grid + offset; x<obj.centerX() + y_count; x+=2*r ) {
+                                drawHexagon( x, y );
+                            }
+                            if( offset == 0 ) {
+                                offset = r;
+                            } else {
+                                offset = 0;
+                            }
+                        }
+                        context.restore();
+                    }
+                    break;
+
+                case -1:
+                    {
+                        let imageDesc = g_Images[$(ID.TORUS_TREATMENT).value];
+                        let image = imageDesc.image;
+                        if( image != undefined && image.complete ) {
+                            let opacity = Math.max( getOpacity( colorFromID(ID.TORUS_TREATMENT_COLOUR) ),
+                                                    5 );
+                            context.save();
+                            context.beginPath();
+                            context.arc( obj.centerX(), obj.centerY(), 
+                                         obj.boundingRadius + 1, 0, 2*Math.PI );
+                            context.clip();
+                            context.stroke();
+
+                            context.globalAlpha = opacity/100;
+
+                            let width = image.width;
+                            let height = image.height;
+
+                            switch( imageDesc.type ) {
+                                case "clip":
+                                    {
+                                        let centerX = imageDesc.centerX || width/2;
+                                        let centerY = imageDesc.centerY || height/2;
+                                        let radius = Math.min( centerX, centerY, width-centerX, height-centerY );
+                                        let scale = imageDesc.scale || 1;
+
+                                        radius *= scale;
+
+                                        context.drawImage( image,
+                                                           centerX-radius,
+                                                           centerY-radius,
+                                                           radius*2,
+                                                           radius*2,
+                                                           obj.centerX() - obj.boundingRadius,
+                                                           obj.centerY() - obj.boundingRadius,
+                                                           obj.boundingRadius * 2,
+                                                           obj.boundingRadius * 2 )
+                                    }
+                                    break;
+
+                                case "center":
+                                default:
+                                    {
+                                        let scale = 2 * obj.boundingRadius / Math.sqrt( width*width + height*height );
+                                        let newWidth = Math.floor( scale * width );
+                                        let newHeight = Math.floor( scale * height );
+
+                                        context.drawImage( image,
+                                                           obj.centerX() - newWidth/2,
+                                                           obj.centerY() - newHeight/2,
+                                                           newWidth,
+                                                           newHeight );
+                                    }
+                                    break;
+                            }
+
+                            context.restore();
+                        }
+                    }
+                    break;
+            }
+
+            // Draw the torus
+            obj.drawCircle( {color:colorFromID(ID.TORUS_COLOUR), 
+                             width:parseInt( $(ID.TORUS_WIDTH).value ),
+                             treatment:parseInt( $(ID.TORUS_LINE_TREATMENT).value ),
+                             weaveColor:colorFromID(ID.TORUS_TREATMENT_COLOUR) } );
+
+            // Draw the pegs
+            for( let j = 0; j < pegs.length; ++j ) {
+                drawPeg( context, pegs[j].x, pegs[j].y, pegs[j].angle );
+            }
+        } else {
+            if( g_Debug ) {
+                obj.debugBoundingBox( obj.spacing );
+
+                if( obj.objectType == OBJECT_TYPE.MEMBER || obj.objectType == OBJECT_TYPE.MASTER ) {
+                    obj.debugMinMaxAngles();
+                }
+            }
+        }
+
+        obj.draw();
+
+        if( g_Debug ) {
+            obj.drawCircle( {color:obj.fontDesc.DebugColor} );
+            obj.drawCircle( {color:obj.fontDesc.DebugColor, spacing:obj.spacing} );
+
+            obj.debugBoundingBox( 0 );
+        }
+    }
+}
+
+
+function getOpacity( colour ) {
+	// validate hex string
+	let hex = String(colour).replace(/[^0-9a-f]/gi, '');
+	if (hex.length < 6) {
+		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+	}
+    var opacity = 255;
+
+	for(let i = 0; i < 3; i++) {
+		let c = parseInt(hex.substr(i*2,2), 16);
+        if( c < opacity ) opacity = c;
+    }
+    return Math.floor( (255-opacity)*100 / 255 );
+}
+
+
+function pointColour( torusObj, point, startColour, method, opacity ) {
+    let p0, p1, p2, maxDistance;
+
+    if( torusObj.colourPoints == undefined ) {
+        let radius = torusObj.boundingRadius * 0.75;
+        torusObj.colourPoints = {};
+        torusObj.colourPoints.p0 = torusObj.origin.polarToAbsXY( radius, 30 );
+        torusObj.colourPoints.p1 = torusObj.origin.polarToAbsXY( radius, 150 );
+        torusObj.colourPoints.p2 = torusObj.origin.polarToAbsXY( radius, 270 );
+        torusObj.colourPoints.maxDistance = distancePoints(torusObj.colourPoints.p0, torusObj.colourPoints.p1);
+    }
+    p0 = torusObj.colourPoints.p0;
+    p1 = torusObj.colourPoints.p1;
+    p2 = torusObj.colourPoints.p2;
+    maxDistance = torusObj.colourPoints.maxDistance;
+    let arr = [Math.min( distancePoints(point, p0), maxDistance ),
+               Math.min( distancePoints(point, p1), maxDistance ), 
+               Math.min( distancePoints(point, p2), maxDistance )];
+    let magnitude = arr[0] + arr[1] + arr[2];
+    let percent = [ arr[0]/magnitude, 
+                    arr[1]/magnitude,
+                    arr[2]/magnitude ];
+    let rgb = "", c, i;
+
+	// validate hex string
+	let hex = String(startColour).replace(/[^0-9a-f]/gi, '');
+	if (hex.length < 6) {
+		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+	}
+
+	// convert to decimal and change luminosity
+    if( method != null ) {
+        rgb = method + "(";
+    } else {
+        // hexadecimal color
+        rgb = "#";
+    }
+	for (i = 0; i < 3; i++) {
+		c = parseInt(hex.substr(i*2,2), 16);
+        
+        c = c + 2*256*(0.5-percent[i]);
+		c = Math.round(Math.min(Math.max(0, c), 255));
+        if( method != null ) {
+            rgb += c.toString();
+            if( i < 2 ) {
+                rgb += ",";
+            }
+        } else {
+            c = c.toString(16);
+            rgb += ("00"+c).substr(c.length);
+        }
+	}
+    if( method != null ) {
+        if( opacity != null ) {
+            rgb += "," + opacity.toString();
+        }
+        rgb += ")";
+    }
+
+	return rgb;
+}
+
+
+function colorLuminance(hex, lum) {
+	// validate hex string
+	hex = String(hex).replace(/[^0-9a-f]/gi, '');
+	if (hex.length < 6) {
+		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+	}
+	lum = lum || 0;
+
+	// convert to decimal and change luminosity
+	let rgb = "#", c, i;
+	for (i = 0; i < 3; i++) {
+		c = parseInt(hex.substr(i*2,2), 16);
+		c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
+		rgb += ("00"+c).substr(c.length);
+	}
+
+	return rgb;
+}
+
+
+function lastVisibleMember() {
+    let lastVisible = g_Origin.maxMembers - 1;
+    while( lastVisible >= 0 ) {
+        if( memberElement(lastVisible).value !== "" ) {
+            break;
+        }
+        --lastVisible;
+    }
+    return lastVisible;
+}
+
+
+function saveSnapshotInDatabase( downloaded ) {
+    let snapshot = getPageParameters( true, true );
+    snapshot._downloaded = downloaded;
+    snapshot._timestamp = new Date();
+        
+    g_Database.torus.add( snapshot ).then( function() {
+        profile( `saveSnapshotInDatabase: Added torus data to database; _id=${snapshot._id}, _timestamp=${snapshot._timestamp.toLocaleString()}, t1='${snapshot.t1}', t2='${snapshot.t2}'` );
+
+        // Delete any temporary snapshot
+        if( g_SavedSnapshots.length>0 && g_SavedSnapshots[0]._timestamp.getTime()===g_TempSnapshotTimestamp.getTime() ) {
+            deleteSnapshot( g_SavedSnapshots[0]._id );
+        }
+
+        g_SavedSnapshots.unshift( snapshot );
+        addSnapshotInfo( snapshot, false );
+    }).catch( e => {
+        profile( "saveSnapshotInDatabase: couldn't add to database: " + e.stack );
+    });
+}
+
+
+function objectsEqual(a, b) {
+    var aProps = Object.getOwnPropertyNames(a).filter( n => n[0]!='_' );
+    var bProps = Object.getOwnPropertyNames(b).filter( n => n[0]!='_' );
+
+    if (aProps.length != bProps.length) {
+        return false;
+    }
+
+    for( let i = 0; i < aProps.length; i++ ) {
+        let propName = aProps[i];
+        if (a[propName] !== b[propName]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+function setTitle() {
+    if( g_SavedSnapshots.length > 0 && g_SavedSnapshots[0]._timestamp.getTime()===g_TempSnapshotTimestamp.getTime() ) {
+        document.title = "Image Generator +";
+    } else {
+        document.title = "Image Generator";
+    }
+}
+
+
+function buildCanvas() {
+    saveMembers();
+    loadMembers();
+    buildCanvasLite();
+}
+
+
+function buildCanvasLite() {
+    resetGlobals();
+    g_Debug = $(ID.DEBUG).checked;
+
+    g_Image_colour = g_Debug ? "yellow" : colorFromID(ID.BACKGROUND_COLOUR);
+
+    let tort = $(ID.TORUS_TREATMENT).value;
+    if( !isNaN(tort) && isFinite(tort) ) {
+        g_TorusTreament = parseInt(tort);
+    } else {
+        g_TorusTreament = -1;
+    }
+    g_PegTreatment = parseInt($(ID.PEG_TREATMENT).value);
+
+    if( $(ID.TITLE_1).value !== "" )   g_Title.push( $(ID.TITLE_1).value );
+    if( $(ID.TITLE_2).value !== "" )   g_Title.push( $(ID.TITLE_2).value );
+
+    let lastVisible = lastVisibleMember();
+    for( let i = 0; i < g_Origin.maxMembers; ++i ) {
+        let memberEl = memberElement(i);
+        let member = memberEl.value = memberEl.value.trim();
+        let master = masterElement(i).value;
+
+        if( member !== "" ) {
+            if( g_Members.length > 0 && member === g_Members[g_Members.length-1].member ) {
+                if( master !== "" && g_Members[g_Members.length-1].master !== "" ) {
+                    g_Members[g_Members.length-1].master += " / " + master;
+                }
+            } else {
+                g_Members.push( {member:member, master:master} );
+            }
+        }
+
+        if( i <= lastVisible ) {
+            $(ID.TRASH_ROW_.tag + i).style.visibility = "visible";
+        } else {
+            $(ID.TRASH_ROW_.tag + i).style.visibility = "hidden";
+        }
+    }
+
+    assignRowTypes();
+    setDefaultFilename();
+
+    g_Origin.memberStartAngle = parseInt( $(ID.ORIENTATION).value );
+    g_Origin.torusRingSize = parseInt( $(ID.TORUS_SIZE).value );
+    g_Origin.torusRingPegSize = parseInt( $(ID.PEG_WIDTH).value );
+    if( g_Origin.torusRingSize < 100 || g_Origin.torusRingSize > 300 ) {
+        g_Origin.torusRingSize = 100;
+    }
+    let result = createSeatingArrangement();
+    if( result == null ) {
+        $(ID.ERROR_STRING).innerHTML = "";
+        drawSeatingArrangement();
+    } else {
+        $(ID.ERROR_STRING).innerHTML = result;
+    }
+
+    $(ID.DESCRIPTION).innerHTML = getMemberDescription( getPageParameters(true, false) );
+    composeMyURL();
+
+    let pageParameters = getPageParameters( true );
+    if( !objectsEqual( pageParameters, g_UnmodifiedValues ) ) {
+        g_UnmodifiedValues = pageParameters;
+        g_UnmodifiedValues._timestamp = g_TempSnapshotTimestamp;
+        g_UnmodifiedValues._modified = new Date();
+        g_UnmodifiedValues._downloaded = false;
+        if( g_SavedSnapshots.length > 0 && g_SavedSnapshots[0]._timestamp.getTime()===g_TempSnapshotTimestamp.getTime() ) {
+            g_UnmodifiedValues._id = g_SavedSnapshots[0]._id;
+        }
+        updateTorusDataToDatabase( g_UnmodifiedValues );
+    }
+}
+
+
+function testOverlap() {
+    for( let i = 1; i < g_ObjectArray.length; ++i ) {
+        let obj = g_ObjectArray[i];
+
+        if( obj.intersectsCircle( g_ObjectArray[0] ) ) {
+            return {msg: "object '" + obj.getName() + "' intersects torus circle"};
+        }
+    }
+    
+    for( let i = 0; i < g_ObjectArray.length; ++i ) {
+        let obj = g_ObjectArray[i];
+        if( obj.exceedsImageBoundary() ) {
+            return {msg:"object '" + obj.getName() + "' exceeds image boundary"};
+        }
+
+        for( let j = i+1; j < g_ObjectArray.length; ++j ) {
+            let outerObj = g_ObjectArray[j];
+            if( obj.intersectsBoundingBox( outerObj ) ) {
+                return {msg:"object '" + obj.getName() + "' intersects with '" 
+                            + outerObj.getName() + "'",
+                        objA:obj,
+                        objB:outerObj};
+            }
+        }
+    }
+
+    return null;    // no intersection
+}
+
+
+function distance( x1, y1, x2, y2 ) {
+    return Math.sqrt( Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2) );
+}
+
+
+function distancePoints( p1, p2 ) {
+    return distance( p1.x, p1.y, p2.x, p2.y );
+}
+
+
+function myTrim( str ) {
+    return str.replace(/^\s+|\s+$/g,"");
+}
+
+
+function normalizeAngle( angle ) {
+    if( angle < 0 ) {
+        return 360 + (angle % 360);
+    } else {
+        return angle % 360;
+    }
+}
+
+
+function createTextObject( objectType,
+                           textArray, 
+                           context,
+                           fontDesc, 
+                           alignment, 
+                           origin, 
+                           radius, 
+                           angle, 
+                           spacing ) {
+    let obj = {};
+    obj.objectType = objectType;
+    obj.textArray = textArray;
+    obj.fontDesc = fontDesc;
+    obj.alignment = alignment;
+    obj.origin = origin;
+    obj.radius = radius;
+    obj.angle = normalizeAngle( angle );
+    obj.spacing = spacing;
+
+    obj.font = ($(ID[fontDesc + "_FONT_ITALIC"]).checked ? "italic" : "normal") + " "     // font style
+             + ($(ID[fontDesc + "_FONT_BOLD"]).checked ? "bold" : "normal") + " "         // font weight
+             + $(ID[fontDesc + "_FONT_SIZE"]).value + " " 
+             + $(ID[fontDesc + "_FONT_FAMILY"]).value;
+    obj.shadowEnabled = $(ID[fontDesc + "_FONT_SHADOW"]).checked;
+    obj.context = context;
+    obj.context.font = obj.font;
+
+    obj.line = [];
+    let maxWidth = 0;
+    for( let i = 0; i < textArray.length; ++i ) {
+        let width = Math.round( obj.context.measureText( textArray[i].text ).width );
+        obj.line.push( {'text':myTrim(textArray[i].text),
+                        'width':width,
+                        'color':textArray[i].color} );
+        if( width > maxWidth ) maxWidth = width;
+    }
+
+    obj.fontHeight = parseInt($(ID[fontDesc + "_FONT_SIZE"]).value);   // e.g. "14px"
+    obj.boundingWidth = maxWidth;
+    obj.boundingHeight = obj.fontHeight * textArray.length;
+
+    obj.boxCenterX = Math.round( obj.boundingWidth / 2 );
+    obj.boxCenterY = Math.round( obj.boundingHeight / 2 );
+    obj.boundingRadius = distance( 0, 0, obj.boxCenterX, obj.boxCenterY );
+
+    obj.adjustX = 0;
+    obj.adjustY = 0;
+
+    if( obj.objectType == OBJECT_TYPE.MEMBER ) {
+        // Some fine placement is necessary for the member elements that
+        //  immediately orbit the circle so that the member text is adjacent
+        //  to the peg.
+        let peg = obj.origin.polarToAbsXY( obj.origin.torusRingSize + obj.origin.torusRingPegSize,
+                                           obj.angle ); 
+        let center = obj.origin.polarToAbsXY( obj.radius, obj.angle );
+        let top = center.y - obj.boxCenterY - obj.spacing;
+        let bottom = top + obj.boundingHeight + obj.spacing;
+        let left = center.x - obj.boxCenterX - obj.spacing;
+        let right = left + obj.boundingWidth + obj.spacing;
+
+        if( obj.angle == 0 || obj.angle == 90 || obj.angle == 180 || obj.angle == 270 ) {
+            // this center is already correct
+        } else if( obj.angle < 90 ) {
+            // adjust to top left corner
+            obj.adjustX = peg.x - left;
+            obj.adjustY = peg.y - top;
+        } else if( obj.angle < 180 ) {
+            // adjust to top right corner
+            obj.adjustX = peg.x - right;
+            obj.adjustY = peg.y - top;
+        } else if( obj.angle < 270 ) {
+            // adjust to bottom right corner
+            obj.adjustX = peg.x - right;
+            obj.adjustY = peg.y - bottom;
+        } else {
+            // adjust to bottom left corner
+            obj.adjustX = peg.x - left;
+            obj.adjustY = peg.y - bottom;
+        }
+    }
+
+    obj.toAbsXY = function() {
+        let coord = this.origin.polarToAbsXY( this.radius, this.angle );
+        coord.x += this.adjustX;
+        coord.y += this.adjustY;
+        return coord;
+    };
+
+    obj.centerX = function() {
+        return this.toAbsXY().x;
+    };
+
+    obj.centerY = function() {
+        return this.toAbsXY().y;
+    };
+
+    obj.left = function() {
+        return this.centerX() - this.boxCenterX;
+    };
+
+    obj.top = function() {
+        return this.centerY() - this.boxCenterY;
+    };
+
+    obj.right = function() {
+        return this.left() + this.boundingWidth;
+    };
+
+    obj.bottom = function() {
+        return this.top() + this.boundingHeight;
+    };
+
+    obj.computeAngle = function( x, y ) {
+        let originCenter = this.origin.absXY( 0, 0 );
+        let theta = Math.atan2( y - originCenter.y, x - originCenter.x ); 
+        if( theta >= 0 ) {
+            return theta / Math.PI * 180;
+        } else {
+            return (theta + 2*Math.PI) / Math.PI * 180;
+        }
+    };
+
+    obj.computeCenterAngle = function() {
+        let center = this.toAbsXY();
+        return this.computeAngle( center.x, center.y );
+    };
+
+    obj.computeMinAngle = function() {
+        let top = this.top();
+        let bottom = this.bottom();
+        let left = this.left();
+        let right = this.right();
+        let leftTopAngle        = this.computeAngle(left, top);
+        let rightTopAngle       = this.computeAngle(right, top);
+        let rightBottomAngle    = this.computeAngle(right, bottom);
+        let leftBottomAngle     = this.computeAngle(left, bottom);
+        if( leftTopAngle > 270 && leftBottomAngle < 90 ) {  // straddles angle 0?
+            return Math.min( leftTopAngle, rightTopAngle );
+        } else {
+            return Math.min( leftTopAngle, rightTopAngle, leftBottomAngle, rightBottomAngle );
+        } 
+    };
+
+    obj.computeMaxAngle = function() {
+        let top = this.top();
+        let bottom = this.bottom();
+        let left = this.left();
+        let right = this.right();
+        let leftTopAngle        = this.computeAngle(left, top);
+        let rightTopAngle       = this.computeAngle(right, top);
+        let rightBottomAngle    = this.computeAngle(right, bottom);
+        let leftBottomAngle     = this.computeAngle(left, bottom);
+        if( leftTopAngle > 270 && leftBottomAngle < 90 ) {  // straddles angle 0?
+            return Math.max( leftBottomAngle, rightBottomAngle );
+        } else {
+            return Math.max( leftTopAngle, rightTopAngle, leftBottomAngle, rightBottomAngle );
+        } 
+    };
+
+    obj.setRadius = function( radius ) {
+        this.radius = radius;
+    };
+
+    obj.setBoundingRadius = function( boundingRadius ) {
+        this.boundingRadius = boundingRadius;
+    };
+
+    obj.setAngle = function( angle ) {
+        this.angle = normalizeAngle( angle );
+    };
+   
+    obj.getName = function() {
+        let str = "";
+        for( let i = 0; i < this.textArray.length; ++i ) {
+            str = str + " " + this.textArray[i].text;
+        }
+        return myTrim(str);
+    }
+
+    obj.draw = function() {
+        let center = this.toAbsXY();
+        let y = center.y - ((this.line.length - 1)*this.fontHeight) / 2;
+        this.context.textBaseline = "middle";
+        for( let i = 0; i < this.line.length; ++i ) {
+            let line = this.line[i];
+            let x;
+            if( this.alignment == ALIGNMENT.LEFT ) {
+                this.context.textAlign = "left";
+                x = center.x - this.boxCenterX;
+            } else if( this.alignment == ALIGNMENT.CENTER ) {
+                this.context.textAlign = "center";
+                x = center.x;
+            } else if( this.alignment == ALIGNMENT.RIGHT ) {
+                this.context.textAlign = "right";
+                x = center.x + this.boxCenterX;
+            } else {    // assume ALIGNMENT.AUTO
+                // Choose the text alignment based on the angle.
+                if( angle <= 45 || angle >= 315 ) {
+                    this.context.textAlign = "left";
+                    x = center.x - this.boxCenterX;
+                } else if( angle >= 135 && angle <= 225 ) {
+                    this.context.textAlign = "right";
+                    x = center.x + this.boxCenterX;
+                } else {
+                    this.context.textAlign = "center";
+                    x = center.x;
+                }
+            }
+            this.context.font = this.font;
+            if( this.shadowEnabled ) {
+                // Create a shadow effect for the text
+                let shadow = colorLuminance( this.line[i].color || colorFromID(ID[this.fontDesc + "_COLOUR"]),
+                                             -0.1 ); 
+                this.context.shadowColor = shadow;
+                this.context.shadowBlur = 10;
+                this.context.strokeStyle = 'white';
+                this.context.miterLimit = 1; 
+                this.context.lineJoin = 'round';
+                this.context.lineWidth = 2; 
+                this.context.strokeText( this.line[i].text, x, y );
+                this.context.shadowBlur = 0; 
+            } else {
+                // Add a slight outline to improve contrast with the background.
+                this.context.strokeStyle = 'white';
+                this.context.miterLimit = 2; 
+                this.context.lineJoin = 'round';
+                this.context.lineWidth = 2; 
+                this.context.strokeText( this.line[i].text, x, y );
+            }
+            this.context.fillStyle = this.line[i].color || colorFromID(ID[this.fontDesc + "_COLOUR"]);
+            this.context.fillText( this.line[i].text, x, y );
+            y = y + this.fontHeight;
+        }
+    };
+
+    obj.drawCircle = function( args ) {
+        let context = this.context;
+
+        context.fillStyle = args.fillColour;
+        context.lineWidth = args.width || 1;
+
+        let step = 2;
+        let radius = this.boundingRadius + (args.spacing || 0) + 1;
+        let ripple = 0;
+        let rippleStep = 60;
+
+        let rainbow = $(ID.TORUS_LINE_RAINBOW).checked;
+        let gradient;
+        if( rainbow ) {
+            gradient = context.createLinearGradient( this.centerX() - radius,
+                                                     this.centerY() - radius,
+                                                     this.centerX() + radius,
+                                                     this.centerY() + radius );
+            gradient.addColorStop(0, 'red');
+            gradient.addColorStop(1 / 6, 'orange');
+            gradient.addColorStop(2 / 6, 'yellow');
+            gradient.addColorStop(3 / 6, 'green');
+            gradient.addColorStop(4 / 6, 'blue');
+            gradient.addColorStop(5 / 6, 'indigo');
+            gradient.addColorStop(1, 'violet');
+        }
+
+        function getColour() {
+            if( args.color ) {
+                return rainbow ? gradient   //`hsla(${angle},100%,50%,1.0)`
+                               : args.color;
+            } else {
+                return DEBUG_COLOUR;
+            }
+        }
+
+        if( args.treatment == CIRCLE_TREATMENT.RIPPLE ) {
+            ripple = 0;
+            context.beginPath();
+            context.strokeStyle = args.weaveColor || "#000000";
+            for( var angle=0; angle<=360; angle += step ) {
+                var r = radius;
+
+                if( args.treatment == CIRCLE_TREATMENT.RIPPLE ) {
+                    r = Math.sin( ripple * Math.PI/180 );
+                    r = 3*r + radius;
+                }
+                var x2 = this.centerX() + r * Math.cos( angle * Math.PI/180 );
+                var y2 = this.centerY() + r * Math.sin( angle * Math.PI/180 );
+
+                if( angle == 0 ) {
+                    context.moveTo( x2, y2 );
+                } else {
+                    context.lineTo( x2, y2 );
+                }
+
+                ripple += rippleStep;
+            }
+            context.stroke();
+        }
+
+        if( args.treatment == CIRCLE_TREATMENT.RAY ) {
+            step = 5;
+            context.strokeStyle = getColour();
+            for( var angle=0; angle<=360; angle += step ) {
+                var r = radius;
+
+                var x1 = this.centerX() + r * Math.cos( angle * Math.PI/180 );
+                var y1 = this.centerY() + r * Math.sin( angle * Math.PI/180 );
+                var len = 5;
+                var x2 = this.centerX() + (r+len) * Math.cos( angle * Math.PI/180 );
+                var y2 = this.centerY() + (r+len) * Math.sin( angle * Math.PI/180 );
+
+                context.beginPath();
+                context.moveTo( x1, y1 );
+                context.lineTo( x2, y2 );
+                context.stroke();
+            }
+        } else if( args.treatment == CIRCLE_TREATMENT.SPIRAL ) {
+            context.beginPath();
+            context.strokeStyle = getColour();
+
+            step = 0.4;
+            let smallRadius = 5;
+            let smallAngle = 0;
+            let smallStep = 20;
+
+            for( var angle=0; angle <= 360; angle += step ) {
+                var x1 = this.centerX() + radius * Math.cos( angle * Math.PI/180 );
+                var y1 = this.centerY() + radius * Math.sin( angle * Math.PI/180 );
+
+                x1 += smallRadius * Math.cos( smallAngle * Math.PI/180 );
+                y1 += smallRadius * Math.sin( smallAngle * Math.PI/180 );
+
+                if( smallAngle == 0 ) {
+                    context.moveTo( x1, y1 );
+                } else {
+                    context.lineTo( x1, y1 );
+                }
+
+                smallAngle += smallStep;
+            }
+            context.stroke();
+        } else if( args.treatment == CIRCLE_TREATMENT.BOX ) {
+            step = 5;
+            let radius2 = radius - 3*parseInt( $(ID.TORUS_WIDTH).value );
+
+            for( var angle=0; angle <= 360; angle += step ) {
+                context.beginPath();
+                context.strokeStyle = getColour();
+
+                let x1 = this.centerX() + radius * Math.cos( angle * Math.PI/180 );
+                let y1 = this.centerY() + radius * Math.sin( angle * Math.PI/180 );
+                
+                let x2 = this.centerX() + radius * Math.cos( (angle+step) * Math.PI/180 );
+                let y2 = this.centerY() + radius * Math.sin( (angle+step) * Math.PI/180 );
+
+                let x3 = this.centerX() + radius2 * Math.cos( (angle+step) * Math.PI/180 );
+                let y3 = this.centerY() + radius2 * Math.sin( (angle+step) * Math.PI/180 );
+
+                let x4 = this.centerX() + radius2 * Math.cos( angle * Math.PI/180 );
+                let y4 = this.centerY() + radius2 * Math.sin( angle * Math.PI/180 );
+
+                context.moveTo( x1, y1 );
+                context.lineTo( x2, y2 );
+                context.lineTo( x3, y3 );
+                context.lineTo( x4, y4 );
+
+                context.stroke();
+            }
+            
+        } else {
+            context.beginPath();
+            context.strokeStyle = getColour();
+            for( var angle=0; angle<=360; angle += step ) {
+                var r = radius;
+
+                if( args.treatment == CIRCLE_TREATMENT.WAVE || args.treatment == CIRCLE_TREATMENT.RIPPLE ) {
+                    r = radius + 3 * Math.cos( ripple * Math.PI/180 );
+                }
+                var x1 = this.centerX() + r * Math.cos( angle * Math.PI/180 );
+                var y1 = this.centerY() + r * Math.sin( angle * Math.PI/180 );
+
+                if( angle == 0 ) {
+                    context.moveTo( x1, y1 );
+                } else {
+                    context.lineTo( x1, y1 );
+                }
+
+                ripple += rippleStep;
+            }
+            context.stroke();
+        }
+
+    };
+
+    obj.debugBoundingBox = function( spacing ) {
+        let context = this.context;
+        context.strokeStyle = DEBUG_COLOUR;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo( this.left()-spacing, this.top()-spacing );
+        context.lineTo( this.right()+spacing, this.top()-spacing );
+        context.lineTo( this.right()+spacing, this.bottom()+spacing );
+        context.lineTo( this.left()-spacing, this.bottom()+spacing );
+        context.closePath();
+        context.stroke();
+    };
+
+    obj.debugMinMaxAngles = function() {
+        let context = this.context;
+        let torusCenter = this.origin.polarToAbsXY( 0, 0 );
+        let minPoint = this.origin.polarToAbsXY( 300, this.computeMinAngle() );
+        let maxPoint = this.origin.polarToAbsXY( 300, this.computeMaxAngle() );
+
+        context.strokeStyle = "blue";
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo( torusCenter.x, torusCenter.y );
+        context.lineTo( minPoint.x, minPoint.y );
+        context.stroke();
+        context.strokeStyle = "red";
+        context.beginPath();
+        context.moveTo( torusCenter.x, torusCenter.y );
+        context.lineTo( maxPoint.x, maxPoint.y );
+        context.stroke();
+
+        if( this.objectType == OBJECT_TYPE.MASTER ) {
+            context.strokeStyle = "black";
+            context.beginPath();
+            context.moveTo( torusCenter.x, torusCenter.y );
+            context.lineTo( this.centerX(), this.centerY() );
+            context.stroke();
+        }
+    };
+
+    obj.exceedsImageBoundary = function() {
+        return this.left() < 0
+            || this.right() >= obj.origin.imageWidth
+            || this.top() < 0
+            || this.bottom() >= obj.origin.imageHeight;
+    };
+
+    obj.intersectsBoundingBox = function( obj ) {
+        return (this.left()-this.spacing <= obj.right()+obj.spacing)
+            && (obj.left()-obj.spacing   <= this.right()+this.spacing)
+            && (this.top()-this.spacing  <= obj.bottom()+obj.spacing)
+            && (obj.top()-obj.spacing    <= this.bottom()+this.spacing);
+    };
+
+    obj.distanceToXY = function( x, y ) {
+        return distance( this.centerX(), this.centerY(), x, y );
+    };
+
+    obj.intersectsCircle = function( obj ) {
+        let left = this.left()-this.spacing;
+        let top = this.top()-this.spacing;
+        let right = this.right()+this.spacing;
+        let bottom = this.bottom()+this.spacing;
+        let minRadius = obj.boundingRadius + obj.spacing + this.spacing;
+        let objCenterX = obj.centerX();
+        let objCenterY = obj.centerY();
+
+        // Check if any of the bounding corners (plus spacing) fall within
+        //  the object's circle.
+        if( obj.distanceToXY( left, top ) < minRadius
+         || obj.distanceToXY( right, top ) < minRadius
+         || obj.distanceToXY( right, bottom ) < minRadius
+         || obj.distanceToXY( left, bottom ) < minRadius ) {
+            return true;
+        }
+
+        // Check if the top/bottom of the bounding box intersects with
+        //  the object's circle.
+        if( left < objCenterX && right > objCenterX 
+         && (Math.abs( top-objCenterY ) < minRadius
+             || Math.abs( bottom-objCenterY ) < minRadius) ) {
+            return true;
+        }
+
+        // Check if the left/right of the bounding box intersects with
+        //  the object's circle.
+        if( top < objCenterY && bottom > objCenterY
+         && (Math.abs( left-objCenterX ) < minRadius
+             || Math.abs( right-objCenterX ) < minRadius) ) {
+            return true;
+        }
+
+        return false;
+    };
+
+    return obj;
+}
+
+function getNumberStringPrefix( num ) {
+    // determine 'st', 'nd', or 'rd', or 'th' prefix
+    if( num <= 20 ) {
+        if( num == 1 ) {
+            return "st";
+        } else if( num == 2 ) {
+            return "nd";
+        } else if( num == 3 ) {
+            return "rd";
+        } else {
+            return "th";
+        }
+    } else {
+        num = num % 10;
+
+        if( num == 1 ) {
+            return "st";
+        } else if( num == 2 ) {
+            return "nd";
+        } else if( num == 3 ) {
+            return "rd";
+        } else {
+            return "th";
+        }
+    }
+}
+
+function getDateString() {
+    let day = new Date();
+    let monthNames = ["January", "February", "March", "April", "May", "June", 
+                      "July", "August", "September", "October", "November", "December"];
+    let currentMonth = day.getUTCMonth();
+    let str = monthNames[day.getUTCMonth()] + " " + day.getUTCDate() + getNumberStringPrefix( day.getUTCDate() ) + "/";
+
+    // advance to 'tomorrow'
+    day.setTime( day.getTime() + 86400 * 1000 );
+
+    if( currentMonth == day.getUTCMonth() ) {
+        // In current month.
+        return str + day.getUTCDate() + getNumberStringPrefix( day.getUTCDate() );
+    } else {
+        return str + monthNames[day.getUTCMonth()] + " " + day.getUTCDate() + getNumberStringPrefix( day.getUTCDate() );
+    }
+}
+
+function setDefaultFilename() {
+    let day = new Date();
+    let shortMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    // NOTE: This may be a bit annoying to create the default filename based on the group title.
+    //       We'll see how it goes.
+    $(ID.IMAGE_FILENAME).value = $(ID.TITLE_1).value + " - " + 
+                   shortMonthNames[day.getMonth()] + " " + day.getDate() + ", " + day.getFullYear() + ".png";
+
+}
+
+
+function saveSnapshot() {
+    saveSnapshotInDatabase( false );        // downloaded
+}
+
+
+function createFontSelectionElements( parentID, fontDesc ) {
+    let fontWeights = [ "normal", "bold" ];
+    let fontSizes = [ "10px", "12px", "14px", "16px", "18px", "20px", "22px", "24px", "26px" ];
+
+    let fontStyles = [ "normal", "italic" ];
+
+    // font family selection
+    let element = document.createElement( "span" );
+    let str = "<select class=dropDown name=fontFamily id='" + ID[fontDesc + "_FONT_FAMILY"].tag + "' onchange='buildCanvas()'>\n";
+    for( let i = 0; i < g_DetectedFonts.length; ++i ) {
+        str += "<option value='" + g_DetectedFonts[i] + "'";
+        str += ">" + g_DetectedFonts[i] + "</option>\n";
+    }
+    str += "</select> ";
+    element.innerHTML = str;
+    $(parentID).appendChild( element );
+
+    // font size selection
+    element = document.createElement( "span" );
+    str = "<select class=dropDown name=fontSize id='" + ID[fontDesc + "_FONT_SIZE"].tag + "' onchange='buildCanvas()'>\n";
+    for( let i = 0; i < fontSizes.length; ++i ) {
+        str += "<option value='" + fontSizes[i] + "'";
+        str += ">" + fontSizes[i] + "</option>\n";
+    }
+    str += "</select> ";
+    element.innerHTML = str;
+    $(parentID).appendChild( element );
+
+    // font bold selection
+    element = document.createElement( "span" );
+    str = "<B>Bold</B><input type=checkbox id='" + ID[fontDesc + "_FONT_BOLD"].tag + "' onchange='buildCanvas()'>\n";
+    element.innerHTML = str;
+    $(parentID).appendChild( element );
+
+    // font italic selection
+    element = document.createElement( "span" );
+    str = "<I>Italic</I><input type=checkbox id='" + ID[fontDesc + "_FONT_ITALIC"].tag + "' onchange='buildCanvas()'>\n";
+    element.innerHTML = str;
+    $(parentID).appendChild( element );
+
+    // font shadow selection
+    element = document.createElement( "span" );
+    str = "<U>Shadow</U><input type=checkbox id='" + ID[fontDesc + "_FONT_SHADOW"].tag + "' onchange='buildCanvas()'>\n";
+    element.innerHTML = str;
+    $(parentID).appendChild( element );
+}
+
+
+function initializeElementsFromHash( hash, full = false ) {
+    if( full ) {
+        // Reset the Member/Master rows
+        for( let i = 0; i < g_Origin.maxMembers; ++i ) {
+            memberElement(i).value = "";
+            masterElement(i).value = "";
+        }
+
+        while( g_Origin.maxMembers < hash._rows ) {
+            addMemberMasterRow();
+        }
+    }
+
+    let all = document.getElementsByTagName("*");
+    for( let i = 0; i < all.length; ++i ) {
+        let el = all[i];
+        if( el.id in hash ) {
+            let underscore = el.id.search("_");
+
+            if( !full && underscore>0 ) {
+                // Ignore row elements.
+                continue;
+            }
+ 
+            if( !full ) {
+                let id = g_TagToID[el.id];
+                if( id && ID[id].sensitive ) {
+                    // Ignore this element as it is set at page load time.
+                    continue;
+                }
+            }
+
+            let defaultValue = hash[el.id];
+
+            if( el.nodeName === "SELECT" ) {
+                el.value = defaultValue;
+            } else if( el.nodeName === "INPUT" ) {
+                if( el.type.toLowerCase() === "checkbox" ) {
+                    el.checked = defaultValue;
+                } else if( el.type.toLowerCase()==="select-one" ) {
+                    el.value = defaultValue;
+                } else if( el.type.toLowerCase()==="text") {
+                    el.value = defaultValue;
+
+                    // For jscolor class elements, update the text box background color.
+                    if( el.className === "jscolor" ) {
+                        // jscolor class element
+                        el.jscolor.importColor();
+                    }
+                }
+            }
+        }
+    }
+    g_UnmodifiedValues = getPageParameters( true );
+
+    prioritizeImageFetch( ID.BACKGROUND_TREATMENT );
+    prioritizeImageFetch( ID.TORUS_TREATMENT );
+}
+
+
+function setParametersFromUrl( url ) {
+    let u = new Url( url );
+    initializeElementsFromHash( u.query );
+}
+
+
+function getPageParameters( full, getImage=false ) {
+    let all = document.getElementsByTagName("*");
+    let hash = {};
+
+    if( full ) {
+        hash._version = g_Version;
+        hash._rows = g_Origin.maxMembers;
+        if( getImage ) {
+            try {
+                hash._image = getCanvas().toDataURL( "image/png" );
+            } catch( e ) {
+                // Sometimes Chrome messes up with a 'tainted canvas' exception.  This
+                //  appears to be unpredictable.  We shouldn't be prevented from saving
+                //  the torus settings.
+                profile( "getPageParameters: unable to get snapshot image: " + e );
+            }
+        }
+    }
+    for( let i = 0; i < all.length; ++i ) {
+        let el = all[i];
+        let id = el.id;
+        let underscore = id.search( "_" );
+
+        if( full && underscore > 0 ) {           // ignore leading '_'
+            // Found a variable element (e.g. "p_3").  Remove the number component.
+            id = id.substring( 0, underscore+1 );
+        }
+
+        if( id in g_TagToID ) {
+            let defaultValue = ID[g_TagToID[id]].save;
+
+            if( full && ID[g_TagToID[id]].db ) {
+                // Force addition of this element.
+                defaultValue = null;
+            }
+
+            if( el.nodeName === "SELECT" ) {
+                if( el.value !== defaultValue ) {
+                    hash[el.id] = el.value;
+                }
+            } else if( el.nodeName === "INPUT" ) {
+                if( el.type.toLowerCase() === "checkbox" ) {
+                    if( el.checked != defaultValue ) {
+                        hash[el.id] = el.checked;
+                    }
+                } else if( el.type.toLowerCase()==="select-one"
+                        || el.type.toLowerCase()==="text" ) {
+                    if( el.value !== defaultValue ) {
+                        hash[el.id] = el.value;
+                    }
+                }
+            }
+        }
+    }
+    return hash;
+}
+
+
+function getUrlWithParameters( includeRows = false ) {
+    let url = new Url();
+    Object.assign( url.query, getPageParameters( includeRows, false ) );
+    return url;
+}
+
+
+function composeMyURL() {
+    if( g_Debug ) {
+        let url = getUrlWithParameters();
+        $(ID.MY_URL).innerHTML = "<b>" + url + "</b>";
+    } else {
+        $(ID.MY_URL).innerHTML = "";
+    }
+}
+
+
+function deleteRows( start, num ) {
+    let rows = [];
+    let last = lastVisibleMember();
+
+    for( let i=0; i < num; ++i ) {
+        rows.push( [ memberElement(start+i).value,
+                     masterElement(start+i).value ] );
+    }
+
+    while( start+num <= last ) {
+        memberElement(start).value = memberElement(start+num).value;
+        masterElement(start).value = masterElement(start+num).value;
+        ++start;
+    }
+
+    while( num-- ) {
+        memberElement(start).value = "";
+        masterElement(start).value = "";
+        ++start;
+    }
+    assignRowTypes();
+    return rows;
+}
+
+
+function insertRows( start, rows ) {
+    let end = g_Origin.maxMembers-1;
+
+    while( end >= start+rows.length ) {
+        memberElement(end).value = memberElement(end-rows.length).value;
+        masterElement(end).value = masterElement(end-rows.length).value;
+        --end;
+    } 
+    for( let i=0; i<rows.length; ++i ) {
+        memberElement(start+i).value = rows[i][0];
+        masterElement(start+i).value = rows[i][1];
+    }
+    assignRowTypes();
+}
+
+
+function deleteRowRedraw( num ) {
+    if( deleteRows( num, 1 ).length > 0 ) {
+        buildCanvas();
+    }
+}
+
+
+function swapAdjacentRows( topRow ) {
+    let rows = deleteRows( topRow, 1 );
+    if( rows.length > 0 ) {
+        insertRows( topRow+1, rows );
+        buildCanvas();
+    }
+}
+
+
+function memberHandleDragStart(e) {
+    this.style.opacity = '0.4';  // this / e.target is the source node.
+    g_DragSrcEl = this;
+
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData( "text/html", this.innerHTML);
+}
+
+
+function memberHandleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault(); // Necessary. Allows us to drop.
+    }
+
+    e.dataTransfer.dropEffect = 'move';  // See the section on the DataTransfer object.
+    return false;
+}
+
+
+function memberHandleDragEnter(e) {
+    // this / e.target is the current hover target.
+    this.classList.add('over');
+}
+
+
+function memberHandleDragLeave(e) {
+    this.classList.remove('over');  // this / e.target is previous target element.
+}
+
+
+function memberHandleDrop(e) {
+    // this / e.target is current target element.
+
+    if (e.stopPropagation) {
+        e.stopPropagation(); // stops the browser from redirecting.
+    }
+
+    if( g_DragSrcEl != this ) {
+        let srcRow = parseInt( g_DragSrcEl.id );
+        let destRow = parseInt( this.id );
+        let srcRowCount = 1;
+
+        // Avoid grouping adjacent Member rows if the source and destination
+        //  rows have the same name.
+        if( memberElement(srcRow).value !== memberElement(destRow).value ) {
+            // Identify the heading for (i.e. first row with the Member name).
+            while( srcRow > 0 && memberElement(srcRow).value === memberElement(srcRow-1).value ) {
+                --srcRow;
+            }
+
+            // Identify the number of consecutive rows with the same Member name.
+            while( srcRow+srcRowCount < g_Origin.maxMembers 
+                && memberElement(srcRow).value===memberElement(srcRow+srcRowCount).value ) {
+                ++srcRowCount;
+            }
+
+            // Identify the ROW_TYPE of the destination row (i.e. REPEAT/HEADING/EMPTY).  This
+            //  will determine if the source rows should be moved before or after the destination
+            //  rows.
+            let destType = getRowType( destRow );
+            if( srcRow < destRow || destType == ROW_TYPE.REPEAT ) {
+                // Move the source rows after the block of destination Member rows.
+                while( ++destRow <= g_Origin.maxMembers-1 
+                    && memberElement(destRow).value !== ""
+                    && memberElement(destRow).value === memberElement(destRow-1).value ) {
+                }
+            }
+
+            if( srcRow < destRow ) {
+                destRow -= srcRowCount;
+            }
+        }
+
+        if( srcRow != destRow ) {
+            let rows = deleteRows( srcRow, srcRowCount );
+            insertRows( destRow, rows );
+            
+            buildCanvas();
+        }
+    }
+
+    let rows = document.querySelectorAll('#'+ID.MEMBER_ROWS.tag+' .row');
+    [].forEach.call(rows, function (row) {
+        row.classList.remove('over');
+        row.style.opacity = "";
+    });
+
+    return false;
+}
+
+
+function memberHandleKeyDown(event) {
+    // this/e.target is the source node.
+
+    let e = event || window.event;
+    let id = Number( e.target.parentElement.getAttribute( 'id' ) );
+    let handled = false;
+    if( (e.ctrlKey && e.key!=='Control') || (e.metaKey && e.key!='Meta') ) {
+        switch( e.key ) {
+            case 'ArrowDown':
+                if( id < g_Origin.maxMembers-1 ) {
+                    swapAdjacentRows( id );
+                    memberElement( id+1 ).focus();
+                    handled = true; 
+                }
+                break;
+            case 'ArrowUp':
+                if( id > 0 ) {
+                    swapAdjacentRows( id-1 );
+                    memberElement( id-1 ).focus();
+                    handled = true; 
+                }
+                break;
+            case 'ArrowLeft': {
+                    let srcRow = id;
+                    let srcRowCount = 1;
+                    
+                    // Identify the heading for (i.e. first row with the Member name).
+                    while( srcRow > 0 && memberElement(srcRow).value === memberElement(srcRow-1).value ) {
+                        --srcRow;
+                    }
+
+                    // Identify the number of consecutive rows with the same Member name.
+                    while( srcRow+srcRowCount < g_Origin.maxMembers 
+                        && memberElement(srcRow).value===memberElement(srcRow+srcRowCount).value ) {
+                        ++srcRowCount;
+                    }
+
+                    if( srcRow > 0 ) {
+                        let destRow = srcRow;
+                        while( --destRow > 0
+                            && memberElement(destRow).value === memberElement(destRow-1).value ) {
+                        }
+
+                        let rows = deleteRows( srcRow, srcRowCount );
+                        insertRows( destRow, rows );
+
+                        memberElement( destRow + id-srcRow ).focus();
+                        buildCanvas();
+                        handled = true;
+                    }
+                }
+                break;
+            case 'ArrowRight': {
+                    let srcRow = id;
+                    let srcRowCount = 1;
+                    
+                    // Identify the heading for (i.e. first row with the Member name).
+                    while( srcRow > 0 && memberElement(srcRow).value === memberElement(srcRow-1).value ) {
+                        --srcRow;
+                    }
+
+                    // Identify the number of consecutive rows with the same Member name.
+                    while( srcRow+srcRowCount < g_Origin.maxMembers 
+                        && memberElement(srcRow).value===memberElement(srcRow+srcRowCount).value ) {
+                        ++srcRowCount;
+                    }
+
+                    if( srcRow + srcRowCount < g_Origin.maxMembers ) {
+                        let destRow = srcRow + srcRowCount;
+                        let destRowCount = 1;
+                        while( destRow+destRowCount < g_Origin.maxMembers-1
+                            && memberElement(destRow+destRowCount-1).value === memberElement(destRow+destRowCount).value ) {
+                            ++destRowCount;
+                        }
+
+                        let rows = deleteRows( srcRow, srcRowCount );
+                        destRow = destRow + destRowCount - srcRowCount;
+                        insertRows( destRow, rows );
+
+                        memberElement( destRow + id-srcRow ).focus();
+                        buildCanvas();
+                        handled = true;
+                    }
+                }
+                break;
+            case '\\':
+                // Clone previous row member name into current row.
+                if( id > 0 ) {
+                    memberElement( id ).value = memberElement( id-1 ).value;
+                    masterElement( id ).value = '';
+                    handled = true;
+                }
+                break;
+            case '/':
+                // Create a new member row element below the current row.
+                if( memberElement( g_Origin.maxMembers-1 ).value !== '' ) {
+                    addMemberButton();
+                }
+                insertRows( id+1, [[memberElement( id ).value, '']] );
+                masterElement( id+1 ).focus();
+                break; 
+            case 'Enter':
+                // Possibly row member list and add a blank row.
+                if( memberElement( g_Origin.maxMembers-1 ).value !== '' ) {
+                    addMemberButton();
+                }
+                insertRows( id+1, [['', '']] );
+                memberElement( id+1 ).focus();
+                break; 
+        }
+        if( handled ) {
+            assignRowTypes();
+            if( e.stopPropagation ) {
+                // IE9 & other browsers
+                e.stopPropagation();
+            } else {
+                // IE8 and lower
+                e.cancelBubble = true;
+            }
+        }
+    }
+    return false;
+}
+
+
+
+function memberHandleDragEnd(e) {
+    // this/e.target is the source node.
+
+    let rows = document.querySelectorAll('#'+ID.MEMBER_ROWS.tag+' .row');
+    [].forEach.call(rows, function (row) {
+        row.classList.remove('over');
+        row.style.opacity = "";
+    });
+}
+
+
+function addEventHandler(obj, evt, handler) {
+    if(obj.addEventListener) {
+        // W3C method
+        obj.addEventListener(evt, handler, false);
+    } else if(obj.attachEvent) {
+        // IE method.
+        obj.attachEvent('on'+evt, handler);
+    } else {
+        // Old school method.
+        obj['on'+evt] = handler;
+    }
+}
+
+
+function saveMembers() {
+    for( let i = 0; i < g_Origin.maxMembers; ++i ) {
+        let member = memberElement(i).value;
+        if( member !== "" ) {
+            if( g_AllMembers.find( x => member===x.name ) == undefined ) {
+                g_AllMembers.push( {name:member, added:new Date()} );
+            }
+        }
+    }
+    if( g_AllMembers.length > 0 ) {
+        addMembersToDatabase( g_AllMembers );
+    }
+}
+
+
+function getRowType( row ) {
+    if( row >= 0 && row < g_Origin.maxMembers ) {
+        let name = memberElement(row).value;
+
+        if( name !== "" ) {
+            if( row > 0 && memberElement(row-1).value === name ) {
+                return ROW_TYPE.REPEAT;
+            } else {
+                return ROW_TYPE.HEADING;
+            }
+        }
+    }
+    return ROW_TYPE.EMPTY;
+}
+
+
+function updateMembersList() {
+    let element = document.createElement( "datalist" );
+    let str = "";
+    element.setAttribute( "id", "membersList" );
+    for( let i = 0; i < g_AllMembers.length; ++i ) {
+        str += "<option value='" + g_AllMembers[i].name + "'>\n";
+        profile( `updateMembersList:          member ${g_AllMembers[i].name}` );
+    }
+    element.innerHTML = str;
+
+    let last = $(ID.MEMBERS_DATA_LIST).lastChild;
+    if( last != null ) {
+        $(ID.MEMBERS_DATA_LIST).removeChild( last );
+    }
+    $(ID.MEMBERS_DATA_LIST).appendChild( element );
+}
+
+
+function loadMembers() {
+    g_Database.members.orderBy('name').keys( names => {
+        for( let i in names ) {
+            let name = names[i]; 
+            if( g_AllMembers.find( x => name===x.name ) == undefined ) {
+                g_AllMembers.push( {name:name} );
+                profile( `loadMembers: found '${name}'` );
+            }
+        }
+    } ).then( function() {
+        profile( `loadMembers: have ${g_AllMembers.length} members` );
+        updateMembersList();
+
+        // Updated the saved members list
+        for( let i = 0; i < g_AllMembers.length; ++i ) {
+            let memberID = ID.SAVED_MEMBER_ + g_AllMembers[i].name;
+            if( $(memberID) == null ) {
+                // add the member name
+                let element = document.createElement( "div" );
+                element.setAttribute( "class", "memberRow" );
+                element.setAttribute( "id", memberID );
+
+                let str = `<div class='memberRowDelete' onClick='deleteMemberRow("${g_AllMembers[i].name}")'>` +
+                          "<span class='tooltip'>&#9949; " +
+                            "<span class='tooltiptext'>Delete this saved Member name</span></span>\n" +
+                          "</div>" +
+                          `Saved member "<b>${g_AllMembers[i].name}</b>" `;
+
+                element.innerHTML = str;
+
+                $(ID.SAVED_MEMBERS_LIST).appendChild( element );
+            }
+        }
+    }).catch( err => {
+        console.error( "loadMembers: caught error: " + err.stack );
+    });
+}
+
+
+function deleteMemberRow( id ) {
+    g_Database.members
+        .delete( id )
+        .then( () => {
+            $(ID.SAVED_MEMBER_ + id).remove();
+            profile( "deleteMemberRow: deleted member ID " + id );
+
+            g_AllMembers = g_AllMembers.filter( e => e.name != id );
+            updateMembersList();
+        }).catch( e => {
+            console.error( "deleteMemberRow: error: " + e );
+        });
+}
+
+
+function addMemberMasterRow() {
+   let i = g_Origin.maxMembers;
+   let element = document.createElement( "div" );
+   element.setAttribute( "class", "empty row" );
+   element.setAttribute( "draggable", "true" );
+   element.setAttribute( "id", "" + i );
+   let str = "<div class='rowMove' id='" + ID.MOVE_ROW_DOWN_.tag + i + "' onclick='swapAdjacentRows(" + i + ")'>" +
+               "<span class='tooltip'>&#8681;" +
+                        "<span class='tooltiptext'>Move this row down</span></span> " +
+             "</div>" +
+             "Member <input class=textInput type='text' name='member' id='" + ID.MEMBER_.tag + i + "' list=membersList" +
+             " onChange='buildCanvas()'/>" +
+             " works with <select class=dropDown name=masters id='" + ID.MASTER_.tag + i + "' onChange='buildCanvas()'>\n";
+
+   g_MastersList.sort();
+   for( let j = 0; j < g_MastersList.length; ++j ) {
+       let name = g_MastersList[j].toUpperCase();
+       str += "<option value=\"" + name + "\">" + name + "</option>\n";
+   }
+   str += "</select>";
+   str += "<div class='rowDelete' id='" + ID.TRASH_ROW_.tag + i + "' onClick='deleteRowRedraw(" + i + ")'>" +
+            "<span class='tooltip'>&#9949;" +
+                     "<span class='tooltiptext'>Delete this row</span></span>\n" +
+          "</div>";
+   element.innerHTML = str;
+
+   $(ID.MEMBER_ROWS).appendChild( element );
+
+    if( g_Origin.maxMembers > 0 ) {
+        $(ID.MOVE_ROW_DOWN_.tag + (g_Origin.maxMembers-1)).style.visibility = "visible";
+    }
+
+    ++g_Origin.maxMembers;
+}
+
+
+function assignRowTypes() {
+    let rows = document.querySelectorAll('#'+ID.MEMBER_ROWS.tag+' .row');
+    [].forEach.call(rows, function(row) {
+        let num = parseInt( row.id );
+        switch( getRowType( num ) ) {
+            case ROW_TYPE.EMPTY:
+                row.setAttribute( "class", "row" );
+                break;
+
+            case ROW_TYPE.HEADING:
+                row.setAttribute( "class", "heading row" );
+                break;
+
+            case ROW_TYPE.REPEAT:
+                row.setAttribute( "class", "repeat row" );
+                break;
+        }
+    });
+}
+
+
+function addDragHandlers() {
+    // Support for draggable elements.
+    let rows = document.querySelectorAll('#'+ID.MEMBER_ROWS.tag+' .row');
+    [].forEach.call(rows, function(row) {
+      addEventHandler( row, 'dragstart', memberHandleDragStart );
+      addEventHandler( row, 'dragenter', memberHandleDragEnter );
+      addEventHandler( row, 'dragover', memberHandleDragOver );
+      addEventHandler( row, 'dragleave', memberHandleDragLeave );
+      addEventHandler( row, 'drop', memberHandleDrop );
+      addEventHandler( row, 'dragend', memberHandleDragEnd );
+
+      addEventHandler( row, 'keydown', memberHandleKeyDown );
+    });
+}
+
+function addMemberButton() {
+    addMemberMasterRow();
+    addDragHandlers();
+}
+
+
+function getMemberDescription( obj, nl = "<br/>" ) {
+    let str = "";
+    let i=0;
+    let result = [];
+    for( let i=0; i<obj._rows; ++i ) {
+        let memberID = ID.MEMBER_.tag + i;
+        let masterID = ID.MASTER_.tag + i;
+
+        if( memberID in obj ) {
+            let member = obj[memberID];
+            if( result.length==0 || member!==result[result.length-1][0] ) {
+                result.push( [member, []] );
+            }
+            if( masterID in obj ) {
+                result[result.length-1][1].push( obj[masterID] );
+            }
+        }
+    }
+
+    if( result.length > 0 ) {
+        let start = 0;
+        do {
+            if( str.length > 0 ) str += nl;
+            str += `${result[start][0]}: ` + result[start][1].join( ", " );
+            if( obj[ID.TORUS_ADDITION_ORDER.tag] ) {
+                // clockwise order
+                start = (start==0) ? result.length-1 : start-1;
+            } else {
+                start = (start==result.length-1) ? 0 : start+1;
+            }
+        } while( start != 0 );
+    }
+    return str;
+}
+
+
+function deleteSnapshot( id ) {
+    g_Database.torus
+        .delete( id )
+        .then( () => {
+            $(ID.SNAPSHOT_.tag + id).remove();
+            profile( "deleteSnapshot: torus definition deleted" );
+
+            g_SavedSnapshots = g_SavedSnapshots.filter( e => e._id != id );
+            setTitle();
+        }).catch( e => {
+            console.error( "deleteSnapshot: error: " + e );
+        });
+}
+
+
+function loadSnapshot( id, full ) {
+    let obj = g_SavedSnapshots.find( (a) => a._id == id );
+    if( obj != null ) {
+        initializeElementsFromHash( g_ElementDefaults );
+        initializeElementsFromHash( obj, full );
+        buildCanvas();
+
+        // Delete any temporary snapshot
+        if( full
+         && g_SavedSnapshots[0]._id != id
+         && g_SavedSnapshots[0]._timestamp.getTime()===g_TempSnapshotTimestamp.getTime() ) {
+            deleteSnapshot( g_SavedSnapshots[0]._id );
+        }
+
+    }
+}
+
+
+function addSnapshotInfo( obj, append=true ) {
+    let container = document.createElement( "div" );
+    container.setAttribute( "id", ID.SNAPSHOT_.tag + obj._id );
+
+    let button = document.createElement( "button" );
+    button.setAttribute( "class", "accordion" );
+    let name;
+    if( obj._timestamp.getTime() == g_TempSnapshotTimestamp.getTime() ) {
+        name = "<font color='green'>[" + obj._modified.toDateString() + ", " +
+               obj._modified.toLocaleTimeString() + "] " + (obj[ID.TITLE_1.tag] || "");
+        if( obj[ID.TITLE_2.tag] && obj[ID.TITLE_2.tag]!=="" ) {
+            name += " / " + obj[ID.TITLE_2.tag];
+        }
+        name += "</font>";
+    } else {
+        name = "[<font color='blue'>" + obj._timestamp.toDateString() + ", " + 
+                     obj._timestamp.toLocaleTimeString() + "</font>]" +
+                "] " + obj[ID.TITLE_1.tag] || "";
+        if( obj[ID.TITLE_2.tag] && obj[ID.TITLE_2.tag]!=="" ) {
+            name += " / <font color='red'>" + obj[ID.TITLE_2.tag] + "</font>";
+        }
+        if( obj._downloaded ) {
+            name += " <b>(DOWNLOADED)</b>"; 
+        }
+    }
+    button.innerHTML = name;
+
+    button.addEventListener("click", function() {
+        this.classList.toggle("active");
+        let panel = this.nextElementSibling;
+        if (panel.style.maxHeight){
+          panel.style.maxHeight = null;
+        } else {
+          panel.style.maxHeight = panel.scrollHeight + "px";
+        } 
+      });
+
+    let div = document.createElement( "div" );
+    div.setAttribute( "class", "panel" );
+
+    let image = "";
+    if( "_image" in obj ) {
+        image = `<img src="${obj._image}" height=200 width=200 />`;
+    }
+
+    let str = "<table border=1>\n";
+    if( obj._modified ) {
+        str += " <tr><td>Modified date:</td><td>" + obj._modified.toLocaleString() + "</td></tr>\n";
+    } else {
+        str += " <tr><td>Save date:</td><td>" + obj._timestamp.toLocaleString() + "</td></tr>\n";
+    }
+    str +=    " <tr><td>Title 1:</td><td>" + obj[ID.TITLE_1.tag] + "</td></tr>\n" +
+              " <tr><td>Title 2:</td><td>" + obj[ID.TITLE_2.tag] + "</td></tr>\n" +
+              " <tr><td>part:</td><td>" + (obj[ID.TITLE_PART.tag] || "") + "</td></tr>\n" +
+              " <tr><td>Description:</td><td>" + getMemberDescription(obj) + "</td></tr>\n" +
+              " <tr><td>Image:</td><td>" + image + "</td></tr>\n" +
+              "</table>\n";
+    str += `<button type=button onclick='deleteSnapshot(${obj._id})'>Delete snapshot</button>\n`;
+    str += `<button type=button onclick='loadSnapshot(${obj._id},true)'>Load snapshot</button>\n`;
+    str += `<button type=button onclick='loadSnapshot(${obj._id},false)'>Load style</button>\n`;
+    div.innerHTML = str;
+
+    container.appendChild( button );
+    container.appendChild( div );
+
+    let el = $(ID.SNAPSHOT_.tag + obj._id);
+    if( el != null ) {
+        // Replace the existing snapshot definition.
+        el.replaceWith( container );
+    } else {
+        // Add/append a snapshot definition.
+        let parent = $(ID.SNAPSHOTS_LIST);
+        if( append ) {
+            parent.appendChild( container );
+        } else {
+            let first = parent.firstChild;
+            if( first != null ) {
+                parent.insertBefore( container, parent.childNodes[0] );
+            } else {
+                parent.appendChild( container );
+            }
+        }
+    }
+}
+
+
+function dispatchImageFetch( count=6 ) {
+    let fetching=[], pending=[], completed=[];
+
+    for( let i=0; i<g_QueuedImages.length; ++i ) {
+        let desc = g_QueuedImages[i];
+        if( desc.image.src !== "" ) {
+            if( desc.image.complete ) {
+                completed.push( desc );
+            } else {
+                fetching.push( desc );
+            }
+        } else {
+            pending.push( desc );
+        }
+    }
+
+    while( fetching.length<count && pending.length>0 ) {
+        let desc = pending.shift();
+        desc.image.src = desc.file;
+        profile( `dispatching '${desc.file}'` );
+        fetching.push( desc );
+    }
+}
+
+function prioritizeImageFetch( treatmentID ) {
+    let value = $(treatmentID).value;
+    let index = g_QueuedImages.findIndex( 
+        // find the imageDesc that is pending download
+        d => { 
+            return d.image.optionName===value && d.image.src===""; 
+        } );
+
+    if( index>=0 ) {
+        profile( `prioritizeImageFetch for '${value}' rescheduling` );
+        let desc = g_QueuedImages.splice( index, 1 );
+        g_QueuedImages.unshift( desc[0] );
+        dispatchImageFetch();
+    } else {
+        profile( `prioritizeImageFetch for '${value}' NOOP` );
+    }
+
+}
+
+function prefetchImage( imageDesc, optionName, treatmentID ) {
+    imageDesc.image = new Image;
+
+    // If the image is loaded after fetching the database settings then
+    //  redraw the canvas.
+    imageDesc.image.optionName = optionName;
+    imageDesc.image.onload = function() {
+        profile( `Loaded "${this.optionName}"` );
+        dispatchImageFetch();
+        if( this.optionName == $(treatmentID).value ) {
+            buildCanvas();
+        }
+    };
+
+    g_QueuedImages.push( imageDesc );
+}
+
+
+function pageSetup() {
+    $(ID.VERSION).innerHTML = "Version: " + g_Version;
+    profile( "========================= Starting version: " + g_Version );
+
+    // Determine what fonts are supported.
+    g_DetectedFonts = (new Detector()).identifyCommonFonts();
+
+    // Map page ID tag names to ID key names.
+    g_TagToID = {};
+    g_ElementDefaults = {};
+    for( let k in ID ) {
+        let id = ID[k];
+        if( "save" in id ) {
+            g_TagToID[id.tag] = k;
+            if( !k.endsWith("_") ) {
+                g_ElementDefaults[id.tag] = id.save;
+            }
+        }
+    }
+                        
+    initializeDatabase();
+    profile( "Get torus data" );
+    getTorusData();
+    profile( "Load members start" );
+    loadMembers();
+    profile( "Load members end" );
+
+    profile( "Get images start" );
+    let startTimestamp = (new Date())/1000;
+    let container = document.createDocumentFragment();
+    for( var im in g_Images ) {
+        var imageDesc = g_Images[im];
+
+        let option = document.createElement( "option" );
+        if( im[0] == "_" ) {        // separator sentinel
+            option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
+            option.setAttribute( "disabled", "" );
+            option.innerHTML = "&nbsp;";
+            container.appendChild( option );
+            continue;
+        } else {
+            option.setAttribute( "value", im );
+            option.innerHTML = "Picture '" + im + "'";
+            container.appendChild( option );
+        }
+
+        prefetchImage( imageDesc, im, ID.TORUS_TREATMENT );
+    }
+    $(ID.TORUS_TREATMENT).appendChild( container );
+    profile( "Get images complete" );
+
+    profile( "Get background images start" );
+    container = document.createDocumentFragment();
+    for( var bgm in g_Background_images ) {
+        var imageDesc = g_Background_images[bgm];
+
+        let option = document.createElement( "option" );
+        if( bgm[0] == "_" ) {        // separator sentinel
+            option.setAttribute( "style", "font-size: 1pt; background-color: #000000;" );
+            option.setAttribute( "disabled", "" );
+            option.innerHTML = "&nbsp;";
+            container.appendChild( option ); 
+            continue;
+        } else {
+            option.setAttribute( "value", bgm );
+            option.innerHTML = "Picture '" + bgm + "'";
+            container.appendChild( option ); 
+        }
+
+        prefetchImage( imageDesc, bgm, ID.BACKGROUND_TREATMENT );
+    }
+    $(ID.BACKGROUND_TREATMENT).appendChild( container );
+    profile( "Get background images complete" );
+
+    dispatchImageFetch();
+
+    // Update the canvas to configured dimensions.
+    getCanvas().width = g_Origin.imageWidth;
+    getCanvas().height = g_Origin.imageHeight;
+
+    createFontSelectionElements( "titleProperties", "TITLE" );
+    createFontSelectionElements( "recipientProperties", "RECIPIENT" );
+    createFontSelectionElements( "memberProperties", "MEMBER" );
+    createFontSelectionElements( "masterProperties", "MASTER" );
+
+    // Create the Members/Masters forms.
+    for( let i = 0; i < g_Origin.initialMaxMembers; ++i ) {
+        addMemberMasterRow();
+    }
+    addDragHandlers();
+
+    // Update the "Download image" anchor element to download the canvas as a PNG file.
+    let dl = $(ID.DOWNLOAD_LINK);
+    addEventHandler( dl,
+                     "click", 
+                     function() { 
+                         this.href = getCanvas(false).toDataURL("image/png");
+                         let name = $(ID.IMAGE_FILENAME).value;
+                         if( name === "" ) name = "image.png";
+                         this.download = name;
+                         saveSnapshotInDatabase( true );    // downloaded
+                     } );
+
+    // Set default element values
+    initializeElementsFromHash( g_ElementDefaults );
+
+    // Populate the date in the title.
+    $(ID.TITLE_2).value = getDateString() + "    Duration: 20 min";
+
+    if( window.location.href.indexOf( "?" ) != -1 ) {
+        // Set element values from URL parameters
+        setParametersFromUrl( window.location.href );
+    }
+
+
+    g_UnmodifiedValues = getPageParameters( true );
+    buildCanvas();
+
+    // Possibly notify the user to a version change.
+    let lastVersion = localStorage.getItem('version');
+    if( lastVersion !== g_Version ) {
+        let msg = "The 'Image Generator' has been upgraded.  Please refer to the Help page for " +
+                  "the list of changes";
+        if( lastVersion && lastVersion !== '' ) {
+            msg += " since version '" + lastVersion + "'";
+        }
+        msg += ".";
+        alert( msg );
+        localStorage.setItem( 'version', g_Version );
+    }
+}
+
+//
+//////////////////////////////////////////////////////
+
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="common.css">
+</head>
+  <body onload="pageSetup()">
+    <script src="jscolor.min.js"></script>
+    <script src="jsurl.js"></script>
+
+    <div class="navbar">
+      <!-- <a class="active" href="index.html"><i class="fa fa-fw fa-home"></i> Home</a> -->
+      <a href="help.html" target="_blank"><i class="fa fa-fw fa-question-circle"></i> Help</a>
+      <a id="_downloadLink" href="#image"><i class="fa fa-fw fa-download"></i> Download</a> 
+      <span id="_version">Version ?</span>
+    </div>
+
+    <div id="_membersDataList"></div>
+
+    <div class="main">
+      <div id="inputTable">
+        <h2>Group Torus Title</h2>
+        Title 1: <span class="tooltip"><input class="textInput" autofocus type="text" name="t1" id="t1" size="40" value='' onchange="buildCanvas()"><span class="tooltiptext">Title used in the image<br> header and download filename</span></input></span><br>
+        Title 2: <input class="textInput" type="text" name="t2" id="t2" size="40" value='Duration: 20 min' onchange="buildCanvas()"/><br>
+        part (optional) <input class="textInput" type="text" name="tp" id="tp" size="20" value='' onchange="buildCanvas()"/>
+            <span class="tooltip"><input class="jscolor" id="tpc" value="000000" size="4" onchange="buildCanvas()"><span class="tooltiptext">Colour selector for<br> '<b>part (optional)</b>'</span></span> <br>
+        Font <span id="titleProperties"></span>
+            <span class="tooltip"><input class="jscolor" id="tc" value="000000" size="4" onchange="buildCanvas()"><span class="tooltiptext">Colour selector for<br/>'<b>Title 1</b> and <b>Title 2</b>'</span></span><br>
+  
+        <h2>Members / Masters</h2>
+        <i><b>Members are added to the torus in a <select class="dropDown" name="order" id="or" onchange="buildCanvas()">
+            <option value="counter">counter-clockwise</option>
+            <option value="clockwise">clockwise</option>
+        </select> order.   Masters are<br> on the right (counter-clockwise) of members.<br></b></i>
+        <button class="addRowButton" type="button" onclick="addMemberButton()">Add Row</button>
+  
+        <div id="_members"></div>
+        
+        <p id="_error"></p>
+  
+        Member font <span id="memberProperties"></span>
+            <span class="tooltip"><input class="jscolor" id="pc" value="000000" size="4" onchange="buildCanvas()"><span class="tooltiptext">Colour selector for <br/>member names</span></span> <br>
+        Master font <span id="masterProperties"></span>
+            <span class="tooltip"><input class="jscolor" id="mc" value="000000" size="4" onchange="buildCanvas()"><span class="tooltiptext">Colour selector for<br/>master names</span></span> <br>
+        Orientation for first member is
+        <select class="dropDown" name="orientation" id="o" onchange="buildCanvas()">
+            <option value="270">North (N)</option>
+            <option value="292.5">North-Northeast (NNE)</option>
+            <option value="315">Northeast (NE)</option>
+            <option value="337.5">East-Northeast (ENE)</option>
+            <option value="0">East (E)</option>
+            <option value="22.5">East-Southeast (ESE)</option>
+            <option value="45">Southeast (SE)</option>
+            <option value="67.5">South-Southeast (SSE)</option>
+            <option value="90">South (S)</option>
+            <option value="112.5">South-Southwest (SSW)</option>
+            <option value="135">Southwest (SW)</option>
+            <option value="157.5">West-Southwest (WSW)</option>
+            <option value="180">West (W)</option>
+            <option value="202.5">West-Northwest (WNW)</option>
+            <option value="225">Northwest (NW)</option>
+            <option value="247.5">North-Northwest (NNW)</option>
+        </select>
+        <br>
+        <h2>Torus Circle</h2>
+        <table border="0">
+          <tbody><tr>
+            <td>Background:</td>
+            <td>
+              <table border="1">
+                <tbody><tr>
+                  <td>colour <input class="jscolor" id="bgc" value="FFFFFF" size="6" onchange="buildCanvas()"></td>
+                  <td>
+                      treatment
+                      <span class="tooltip">
+                        <select class="dropDown" name="backgroundTreatment" id="bgt" onchange="buildCanvas()">
+                          <option value="0">None</option>
+                        </select>
+                        <span class="tooltiptext">Pattern to display in background</span>
+                      </span>
+                  </td>
+                </tr>
+              </tbody></table>
+            </td>
+          </tr><tr>
+            <td>Torus circle</td>
+            <td>
+              <table border="1">
+                <tbody><tr>
+                  <td>circle treatment:</td>
+                  <td>
+                    <span class="tooltip">
+                      <select class="dropDown" name="torusTreatment" id="tort" onchange="buildCanvas()">
+                        <option value="0">None</option>
+                        <option value="1">HEART</option>
+                        <option value="2">RANDOM</option>
+                        <option value="3">FLOWER_OF_LIFE</option>
+                        <option value="4">METATRONS_CUBE</option>
+                        <option value="5">DAISY</option>
+                        <option value="6">PETALS</option>
+                        <option value="10">GOLDEN_SPIRAL</option>
+                        <option value="11">METATRON_2</option>
+                        <option value="12">SHADED_SPHERE</option>
+                        <option value="13">HONEYCOMB_1</option>
+                        <option value="14">HONEYCOMB_2</option>
+                        <option value="7">MESH (per members)</option>
+                        <option value="8">GEOMETRIC_1 (per members)</option>
+                      </select>
+                      <span class="tooltiptext">Pattern to display within torus circle</span>
+                    </span>
+                    <span class="tooltip">
+                      <input class="jscolor" id="tortc" value="000000" size="6" onchange="buildCanvas()"> <br>
+                      <span class="tooltiptext">Colour selector for<br> pattern in torus</span>
+                    </span>
+                   </td>
+                </tr><tr>
+                  <td>circle size:</td>
+                  <td>
+                    <select class="dropDown" name="torusSize" id="tors" onchange="buildCanvas()">
+                      <option value="100">100px</option>
+                      <option value="110">110px</option>
+                      <option value="120">120px</option>
+                      <option value="130">130px</option>
+                      <option value="140">140px</option>
+                      <option value="150">150px</option>
+                      <option value="160">160px</option>
+                      <option value="170">170px</option>
+                    </select>
+                  </td>
+                </tr><tr>
+                  <td>circle line treatment:</td>
+                  <td>
+                    <select class="dropDown" name="torusLineTreatment" id="torlt" onchange="buildCanvas()">
+                      <option value="0">SOLID</option>
+                      <option value="1">WAVE</option>
+                      <option value="2">RIPPLE</option>
+                      <option value="3">RAY</option>
+                      <option value="4">SPIRAL</option>
+                      <option value="5">BOX</option>
+                    </select>
+                    Rainbow <input type="checkbox" id="torlr" onchange="buildCanvas()">
+                  </td>
+                </tr><tr>
+                  <td>circle width:</td>
+                  <td>
+                    <select class="dropDown" name="torusWidth" id="torw" onchange="buildCanvas()">
+                      <option value="2">2px</option>
+                      <option value="3">3px</option>
+                      <option value="4">4px</option>
+                      <option value="5">5px</option>
+                      <option value="6">6px</option>
+                      <option value="7">7px</option>
+                    </select>
+                  </td>
+                </tr><tr>
+                  <td>circle colour:</td>
+                  <td>
+                    <span class="tooltip">
+                      <input class="jscolor" id="torc" value="000000" size="6" onchange="buildCanvas()">
+                      <span class="tooltiptext">Colour selector for torus circle</span>
+                    </span>
+                  </td>
+                </tr>
+              </tbody></table>
+                  </td>
+          </tr><tr>
+            <td>Torus peg</td>
+            <td>
+              <table border="1">
+                <tbody><tr>
+                  <td>peg treatment:</td>
+                  <td>
+                    <select class="dropDown" name="pegTreatment" id="pegt" onchange="buildCanvas()">
+                      <option value="0">None</option>
+                      <option value="1">Circle</option>
+                      <option value="2">Square</option>
+                      <option value="3">Diamond</option>
+                      <option value="4">Heart</option>
+                      <option value="5">Star</option>
+                      <option value="6">Chevron</option>
+                      <option value="7">Triangle</option>
+                    </select>
+                    Rotate <input type="checkbox" id="pegr" onchange="buildCanvas()">
+                  </td>
+                </tr><tr>
+                  <td>peg width:</td>
+                  <td>
+                    <select class="dropDown" name="pegWidth" id="pegw" onchange="buildCanvas()">
+                      <option value="5">5px</option>
+                      <option value="6">6px</option>
+                      <option value="7">7px</option>
+                      <option value="8">8px</option>
+                      <option value="9">9px</option>
+                      <option value="10">10px</option>
+                    </select>
+                  </td>
+                </tr><tr>
+                  <td>peg colour:</td>
+                  <td>
+                    <span class="tooltip">
+                      <input class="jscolor" id="torpc" value="000000" size="6" onchange="buildCanvas()">
+                      <span class="tooltiptext">Colour selector for pegs</span>
+                    </span>
+                  </td>
+                </tr><tr>
+                  <td>peg border colour:</td>
+                  <td>
+                    <span class="tooltip">
+                      <input class="jscolor" id="torpbc" value="000000" size="6" onchange="buildCanvas()">
+                      <span class="tooltiptext">Colour selector for peg borders</span>
+                    </span>
+                  </td>
+                </tr>
+              </tbody></table>
+            </td>
+          </tr>
+        </table>
+  
+        <h2>Recipient (optional)</h2>
+        Recipient: <span class="tooltip"><input class="textInput" type="text" name="rep" id="rep" size="40" value='' onchange="buildCanvas()"/ placeholder="Name for torus center"><span class="tooltiptext">Optional name for center of torus</span></span><br>
+        Font <span id="recipientProperties"></span>
+            <span class="tooltip"><input class="jscolor" id="rc" value="000000" size="6" onchange="buildCanvas()"><span class="tooltiptext">Colour selector for<br> '<b>Recipient</b>'</span></span> <br>
+      </div>
+      
+      <div id="image">
+        <canvas id="_canvas" width="100" height="50" crossOrigin="Anonymous"></canvas>
+      </div>
+    </div> <!-- end main -->
+
+
+
+    <h2>Settings</h2>
+    Download filename: <input class="textInput" type="text" name="name" id="f" value="download.png" size="50"/><br>
+    <div id="debug">
+      Debug enabled: <input type="checkbox" id="_debug" onchange="buildCanvas()"><br>
+      My URL: <span id="_myURL"></span>
+      <canvas id="_testCanvas" width="5" height="5"></canvas>
+    </div>
+
+    <h2>Torus Description</h2>
+    <code id="_description"></code>
+
+    <h2>Snapshots</h2>
+    <button class="addRowButton" type="button" onclick="saveSnapshot()">Save snapshot</button>
+    <div id="_snapshots"></div>    
+
+    <h2>Saved Member Names</h2>
+    <div id="_saved_members"></div>
+  </body>
+</html>
